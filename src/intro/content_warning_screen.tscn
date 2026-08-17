@@ -1,0 +1,70 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/intro/content_warning_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/intro/FRM_0501.png" id="2_background"]
+[ext_resource type="Texture2D" path="res://assets/ui/intro/FRM_0502.png" id="3_mark"]
+[ext_resource type="Texture2D" path="res://assets/ui/intro/FRM_0503.png" id="4_text"]
+
+[node name="ContentWarningScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="Content" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="Content"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+
+[node name="AttentionMark" type="TextureRect" parent="Content"]
+layout_mode = 0
+offset_left = 781.0
+offset_top = 201.0
+offset_right = 1139.0
+offset_bottom = 269.0
+mouse_filter = 2
+texture = ExtResource("3_mark")
+expand_mode = 1
+
+[node name="AttentionText" type="TextureRect" parent="Content"]
+layout_mode = 0
+offset_left = 380.0
+offset_top = 325.0
+offset_right = 1541.0
+offset_bottom = 866.0
+mouse_filter = 2
+texture = ExtResource("4_text")
+expand_mode = 1
+
+[node name="WhiteCover" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="HoldTimer" type="Timer" parent="."]
+one_shot = true
+

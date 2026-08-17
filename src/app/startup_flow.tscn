@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://jyeu7p480bd3"]
+
+[ext_resource type="Script" uid="uid://bqct58f8gw621" path="res://src/app/startup_flow.gd" id="1_flow"]
+[ext_resource type="Script" uid="uid://beyhbqat5bvfu" path="res://src/core/audio/startup_audio.gd" id="2_audio"]
+[ext_resource type="Script" uid="uid://x7ap2qkw0spi" path="res://src/core/save/save_service.gd" id="3_save"]
+
+[node name="StartupFlow" type="Node" unique_id=1271856247]
+script = ExtResource("1_flow")
+
+[node name="ScreenHost" type="Control" parent="." unique_id=1249288274]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="StartupAudio" type="Node" parent="." unique_id=1003861203]
+script = ExtResource("2_audio")
+
+[node name="BgmPlayer" type="AudioStreamPlayer" parent="StartupAudio" unique_id=1183647272]
+bus = &"BGM"
+
+[node name="VoicePlayer" type="AudioStreamPlayer" parent="StartupAudio" unique_id=1266125795]
+bus = &"SystemVoice"
+
+[node name="SaveService" type="Node" parent="." unique_id=899442853]
+script = ExtResource("3_save")

@@ -1,0 +1,2007 @@
+{
+  "schema_version": 1,
+  "source_contract": {
+    "album_groups": 6,
+    "album_cards": 79,
+    "album_variants": 214,
+    "memories": 24,
+    "music_tracks": 21,
+    "album_excludes": [
+      "bustupview (7th source group; not displayed by AlbumModeHD)"
+    ]
+  },
+  "album_groups": [
+    {
+      "id": "sora",
+      "title": "穹",
+      "source_index": 0,
+      "cards": [
+        {
+          "id": "EA01_01",
+          "unlock_flag": 1001,
+          "variants": [
+            {
+              "id": "EA01E",
+              "path": "res://assets/content/event_1920/EA01E.png",
+              "unlock_flag": 1006
+            },
+            {
+              "id": "EA01B",
+              "path": "res://assets/content/event_1920/EA01B.png",
+              "unlock_flag": 1003
+            },
+            {
+              "id": "EA01G",
+              "path": "res://assets/content/event_1920/EA01G.png",
+              "unlock_flag": 1008
+            },
+            {
+              "id": "EA01C",
+              "path": "res://assets/content/event_1920/EA01C.png",
+              "unlock_flag": 1004
+            },
+            {
+              "id": "EA01D",
+              "path": "res://assets/content/event_1920/EA01D.png",
+              "unlock_flag": 1005
+            },
+            {
+              "id": "EA01H",
+              "path": "res://assets/content/event_1920/EA01H.png",
+              "unlock_flag": 1009
+            },
+            {
+              "id": "EA01A",
+              "path": "res://assets/content/event_1920/EA01A.png",
+              "unlock_flag": 1002
+            },
+            {
+              "id": "EA01F",
+              "path": "res://assets/content/event_1920/EA01F.png",
+              "unlock_flag": 1007
+            }
+          ]
+        },
+        {
+          "id": "EA02_02",
+          "unlock_flag": 1010,
+          "variants": [
+            {
+              "id": "EA02",
+              "path": "res://assets/content/event_1920/EA02.png",
+              "unlock_flag": 1010
+            }
+          ]
+        },
+        {
+          "id": "EA03_03",
+          "unlock_flag": 1011,
+          "variants": [
+            {
+              "id": "EA03A",
+              "path": "res://assets/content/event_1920/EA03A.png",
+              "unlock_flag": 1012
+            },
+            {
+              "id": "EA03B",
+              "path": "res://assets/content/event_1920/EA03B.png",
+              "unlock_flag": 1013
+            }
+          ]
+        },
+        {
+          "id": "EA04_04",
+          "unlock_flag": 1014,
+          "variants": [
+            {
+              "id": "EA04A",
+              "path": "res://assets/content/event_1920/EA04A.png",
+              "unlock_flag": 1015
+            },
+            {
+              "id": "EA04B",
+              "path": "res://assets/content/event_1920/EA04B.png",
+              "unlock_flag": 1016
+            },
+            {
+              "id": "EA04C",
+              "path": "res://assets/content/event_1920/EA04C.png",
+              "unlock_flag": 1017
+            }
+          ]
+        },
+        {
+          "id": "EA05_05",
+          "unlock_flag": 1018,
+          "variants": [
+            {
+              "id": "EA05",
+              "path": "res://assets/content/event_1920/EA05.png",
+              "unlock_flag": 1018
+            }
+          ]
+        },
+        {
+          "id": "EA06_06",
+          "unlock_flag": 1019,
+          "variants": [
+            {
+              "id": "EA06A",
+              "path": "res://assets/content/event_1920/EA06A.png",
+              "unlock_flag": 1020
+            },
+            {
+              "id": "EA06B",
+              "path": "res://assets/content/event_1920/EA06B.png",
+              "unlock_flag": 1021
+            },
+            {
+              "id": "EA06C",
+              "path": "res://assets/content/event_1920/EA06C.png",
+              "unlock_flag": 1022
+            }
+          ]
+        },
+        {
+          "id": "EA07_07",
+          "unlock_flag": 1023,
+          "variants": [
+            {
+              "id": "EA07",
+              "path": "res://assets/content/event_1920/EA07.png",
+              "unlock_flag": 1023
+            }
+          ]
+        },
+        {
+          "id": "EA08_08",
+          "unlock_flag": 1024,
+          "variants": [
+            {
+              "id": "EA08A",
+              "path": "res://assets/content/event_1920/EA08A.png",
+              "unlock_flag": 1025
+            },
+            {
+              "id": "EA08B",
+              "path": "res://assets/content/event_1920/EA08B.png",
+              "unlock_flag": 1026
+            },
+            {
+              "id": "EA08C",
+              "path": "res://assets/content/event_1920/EA08C.png",
+              "unlock_flag": 1027
+            }
+          ]
+        },
+        {
+          "id": "EA09_09",
+          "unlock_flag": 1028,
+          "variants": [
+            {
+              "id": "EA09A",
+              "path": "res://assets/content/event_1920/EA09A.png",
+              "unlock_flag": 1029
+            },
+            {
+              "id": "EA09B",
+              "path": "res://assets/content/event_1920/EA09B.png",
+              "unlock_flag": 1030
+            },
+            {
+              "id": "EA09C",
+              "path": "res://assets/content/event_1920/EA09C.png",
+              "unlock_flag": 1031
+            },
+            {
+              "id": "EA09D",
+              "path": "res://assets/content/event_1920/EA09D.png",
+              "unlock_flag": 1032
+            }
+          ]
+        },
+        {
+          "id": "EA10_10",
+          "unlock_flag": 1033,
+          "variants": [
+            {
+              "id": "EA10A",
+              "path": "res://assets/content/event_1920/EA10A.png",
+              "unlock_flag": 1034
+            },
+            {
+              "id": "EA10C",
+              "path": "res://assets/content/event_1920/EA10C.png",
+              "unlock_flag": 1036
+            },
+            {
+              "id": "EA10B",
+              "path": "res://assets/content/event_1920/EA10B.png",
+              "unlock_flag": 1035
+            },
+            {
+              "id": "EA10D",
+              "path": "res://assets/content/event_1920/EA10D.png",
+              "unlock_flag": 1037
+            }
+          ]
+        },
+        {
+          "id": "EA11_11",
+          "unlock_flag": 1038,
+          "variants": [
+            {
+              "id": "EA11A",
+              "path": "res://assets/content/event_1920/EA11A.png",
+              "unlock_flag": 1039
+            },
+            {
+              "id": "EA11B",
+              "path": "res://assets/content/event_1920/EA11B.png",
+              "unlock_flag": 1040
+            },
+            {
+              "id": "EA11C",
+              "path": "res://assets/content/event_1920/EA11C.png",
+              "unlock_flag": 1041
+            },
+            {
+              "id": "EA11D",
+              "path": "res://assets/content/event_1920/EA11D.png",
+              "unlock_flag": 1042
+            }
+          ]
+        },
+        {
+          "id": "EA12_12",
+          "unlock_flag": 1043,
+          "variants": [
+            {
+              "id": "EA12A",
+              "path": "res://assets/content/event_1920/EA12A.png",
+              "unlock_flag": 1044
+            },
+            {
+              "id": "EA12B",
+              "path": "res://assets/content/event_1920/EA12B.png",
+              "unlock_flag": 1045
+            },
+            {
+              "id": "EA12C",
+              "path": "res://assets/content/event_1920/EA12C.png",
+              "unlock_flag": 1046
+            }
+          ]
+        },
+        {
+          "id": "EA13_13",
+          "unlock_flag": 1047,
+          "variants": [
+            {
+              "id": "EA13A",
+              "path": "res://assets/content/event_1920/EA13A.png",
+              "unlock_flag": 1048
+            },
+            {
+              "id": "EA13B",
+              "path": "res://assets/content/event_1920/EA13B.png",
+              "unlock_flag": 1049
+            },
+            {
+              "id": "EA13C",
+              "path": "res://assets/content/event_1920/EA13C.png",
+              "unlock_flag": 1050
+            }
+          ]
+        },
+        {
+          "id": "EA16_14",
+          "unlock_flag": 1051,
+          "variants": [
+            {
+              "id": "EA16A",
+              "path": "res://assets/content/event_1920/EA16A.png",
+              "unlock_flag": 1052
+            },
+            {
+              "id": "EA16B",
+              "path": "res://assets/content/event_1920/EA16B.png",
+              "unlock_flag": 1053
+            }
+          ]
+        },
+        {
+          "id": "EA17_15",
+          "unlock_flag": 1054,
+          "variants": [
+            {
+              "id": "EA17A",
+              "path": "res://assets/content/event_1920/EA17A.png",
+              "unlock_flag": 1055
+            },
+            {
+              "id": "EA17B",
+              "path": "res://assets/content/event_1920/EA17B.png",
+              "unlock_flag": 1056
+            },
+            {
+              "id": "EA17C",
+              "path": "res://assets/content/event_1920/EA17C.png",
+              "unlock_flag": 1057
+            }
+          ]
+        },
+        {
+          "id": "EA18_16",
+          "unlock_flag": 1058,
+          "variants": [
+            {
+              "id": "EA18A",
+              "path": "res://assets/content/event_1920/EA18A.png",
+              "unlock_flag": 1059
+            },
+            {
+              "id": "EA18B",
+              "path": "res://assets/content/event_1920/EA18B.png",
+              "unlock_flag": 1060
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nao",
+      "title": "奈绪",
+      "source_index": 1,
+      "cards": [
+        {
+          "id": "EB01_01",
+          "unlock_flag": 1061,
+          "variants": [
+            {
+              "id": "EB01B",
+              "path": "res://assets/content/event_1920/EB01B.png",
+              "unlock_flag": 1063
+            },
+            {
+              "id": "EB01A",
+              "path": "res://assets/content/event_1920/EB01A.png",
+              "unlock_flag": 1062
+            }
+          ]
+        },
+        {
+          "id": "EB02_02",
+          "unlock_flag": 1064,
+          "variants": [
+            {
+              "id": "EB02A",
+              "path": "res://assets/content/event_1920/EB02A.png",
+              "unlock_flag": 1065
+            },
+            {
+              "id": "EB02B",
+              "path": "res://assets/content/event_1920/EB02B.png",
+              "unlock_flag": 1066
+            }
+          ]
+        },
+        {
+          "id": "EB03_03",
+          "unlock_flag": 1067,
+          "variants": [
+            {
+              "id": "EB03",
+              "path": "res://assets/content/event_1920/EB03.png",
+              "unlock_flag": 1067
+            }
+          ]
+        },
+        {
+          "id": "EB04_04",
+          "unlock_flag": 1068,
+          "variants": [
+            {
+              "id": "EB04A",
+              "path": "res://assets/content/event_1920/EB04A.png",
+              "unlock_flag": 1069
+            },
+            {
+              "id": "EB04B",
+              "path": "res://assets/content/event_1920/EB04B.png",
+              "unlock_flag": 1072
+            },
+            {
+              "id": "EB04A_",
+              "path": "res://assets/content/event_1920/EB04A_.png",
+              "unlock_flag": 1071
+            }
+          ]
+        },
+        {
+          "id": "EB05_05",
+          "unlock_flag": 1073,
+          "variants": [
+            {
+              "id": "EB05",
+              "path": "res://assets/content/event_1920/EB05.png",
+              "unlock_flag": 1073
+            }
+          ]
+        },
+        {
+          "id": "EB06_06",
+          "unlock_flag": 1074,
+          "variants": [
+            {
+              "id": "EB06A",
+              "path": "res://assets/content/event_1920/EB06A.png",
+              "unlock_flag": 1075
+            },
+            {
+              "id": "EB06B",
+              "path": "res://assets/content/event_1920/EB06B.png",
+              "unlock_flag": 1076
+            }
+          ]
+        },
+        {
+          "id": "EB07_07",
+          "unlock_flag": 1077,
+          "variants": [
+            {
+              "id": "EB07A",
+              "path": "res://assets/content/event_1920/EB07A.png",
+              "unlock_flag": 1078
+            },
+            {
+              "id": "EB07B",
+              "path": "res://assets/content/event_1920/EB07B.png",
+              "unlock_flag": 1079
+            }
+          ]
+        },
+        {
+          "id": "EB08_08",
+          "unlock_flag": 1080,
+          "variants": [
+            {
+              "id": "EB08A",
+              "path": "res://assets/content/event_1920/EB08A.png",
+              "unlock_flag": 1081
+            },
+            {
+              "id": "EB08C",
+              "path": "res://assets/content/event_1920/EB08C.png",
+              "unlock_flag": 1086
+            },
+            {
+              "id": "EB08B",
+              "path": "res://assets/content/event_1920/EB08B.png",
+              "unlock_flag": 1084
+            },
+            {
+              "id": "EB08B_",
+              "path": "res://assets/content/event_1920/EB08B_.png",
+              "unlock_flag": 1085
+            },
+            {
+              "id": "EB08A_",
+              "path": "res://assets/content/event_1920/EB08A_.png",
+              "unlock_flag": 1083
+            }
+          ]
+        },
+        {
+          "id": "EB10_09",
+          "unlock_flag": 1087,
+          "variants": [
+            {
+              "id": "EB10A",
+              "path": "res://assets/content/event_1920/EB10A.png",
+              "unlock_flag": 1088
+            },
+            {
+              "id": "EB10B",
+              "path": "res://assets/content/event_1920/EB10B.png",
+              "unlock_flag": 1089
+            }
+          ]
+        },
+        {
+          "id": "EB11_10",
+          "unlock_flag": 1090,
+          "variants": [
+            {
+              "id": "EB11A",
+              "path": "res://assets/content/event_1920/EB11A.png",
+              "unlock_flag": 1091
+            },
+            {
+              "id": "EB11B",
+              "path": "res://assets/content/event_1920/EB11B.png",
+              "unlock_flag": 1092
+            }
+          ]
+        },
+        {
+          "id": "EB12_11",
+          "unlock_flag": 1093,
+          "variants": [
+            {
+              "id": "EB12A",
+              "path": "res://assets/content/event_1920/EB12A.png",
+              "unlock_flag": 1094
+            },
+            {
+              "id": "EB12B",
+              "path": "res://assets/content/event_1920/EB12B.png",
+              "unlock_flag": 1095
+            },
+            {
+              "id": "EB12C",
+              "path": "res://assets/content/event_1920/EB12C.png",
+              "unlock_flag": 1096
+            }
+          ]
+        },
+        {
+          "id": "EB13_12",
+          "unlock_flag": 1097,
+          "variants": [
+            {
+              "id": "EB13A",
+              "path": "res://assets/content/event_1920/EB13A.png",
+              "unlock_flag": 1098
+            },
+            {
+              "id": "EB13B",
+              "path": "res://assets/content/event_1920/EB13B.png",
+              "unlock_flag": 1099
+            }
+          ]
+        },
+        {
+          "id": "EB16_13",
+          "unlock_flag": 1100,
+          "variants": [
+            {
+              "id": "EB16A",
+              "path": "res://assets/content/event_1920/EB16A.png",
+              "unlock_flag": 1101
+            },
+            {
+              "id": "EB16B",
+              "path": "res://assets/content/event_1920/EB16B.png",
+              "unlock_flag": 1102
+            },
+            {
+              "id": "EB16C",
+              "path": "res://assets/content/event_1920/EB16C.png",
+              "unlock_flag": 1103
+            }
+          ]
+        },
+        {
+          "id": "EB17_14",
+          "unlock_flag": 1104,
+          "variants": [
+            {
+              "id": "EB17A",
+              "path": "res://assets/content/event_1920/EB17A.png",
+              "unlock_flag": 1105
+            },
+            {
+              "id": "EB17B",
+              "path": "res://assets/content/event_1920/EB17B.png",
+              "unlock_flag": 1106
+            },
+            {
+              "id": "EB17C",
+              "path": "res://assets/content/event_1920/EB17C.png",
+              "unlock_flag": 1107
+            }
+          ]
+        },
+        {
+          "id": "EB18_15",
+          "unlock_flag": 1108,
+          "variants": [
+            {
+              "id": "EB18",
+              "path": "res://assets/content/event_1920/EB18.png",
+              "unlock_flag": 1108
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "akira",
+      "title": "瑛",
+      "source_index": 2,
+      "cards": [
+        {
+          "id": "EC01_01",
+          "unlock_flag": 1109,
+          "variants": [
+            {
+              "id": "EC01B",
+              "path": "res://assets/content/event_1920/EC01B.png",
+              "unlock_flag": 1111
+            },
+            {
+              "id": "EC01A",
+              "path": "res://assets/content/event_1920/EC01A.png",
+              "unlock_flag": 1110
+            }
+          ]
+        },
+        {
+          "id": "EC02_02",
+          "unlock_flag": 1112,
+          "variants": [
+            {
+              "id": "EC02A",
+              "path": "res://assets/content/event_1920/EC02A.png",
+              "unlock_flag": 1113
+            },
+            {
+              "id": "EC02C",
+              "path": "res://assets/content/event_1920/EC02C.png",
+              "unlock_flag": 1115
+            },
+            {
+              "id": "EC02B",
+              "path": "res://assets/content/event_1920/EC02B.png",
+              "unlock_flag": 1114
+            }
+          ]
+        },
+        {
+          "id": "EC03_03",
+          "unlock_flag": 1116,
+          "variants": [
+            {
+              "id": "EC03B",
+              "path": "res://assets/content/event_1920/EC03B.png",
+              "unlock_flag": 1118
+            },
+            {
+              "id": "EC03D",
+              "path": "res://assets/content/event_1920/EC03D.png",
+              "unlock_flag": 1120
+            },
+            {
+              "id": "EC03A",
+              "path": "res://assets/content/event_1920/EC03A.png",
+              "unlock_flag": 1117
+            },
+            {
+              "id": "EC03C",
+              "path": "res://assets/content/event_1920/EC03C.png",
+              "unlock_flag": 1119
+            }
+          ]
+        },
+        {
+          "id": "EC05_04",
+          "unlock_flag": 1121,
+          "variants": [
+            {
+              "id": "EC05A",
+              "path": "res://assets/content/event_1920/EC05A.png",
+              "unlock_flag": 1122
+            },
+            {
+              "id": "EC05B",
+              "path": "res://assets/content/event_1920/EC05B.png",
+              "unlock_flag": 1123
+            }
+          ]
+        },
+        {
+          "id": "EC06_05",
+          "unlock_flag": 1124,
+          "variants": [
+            {
+              "id": "EC06A",
+              "path": "res://assets/content/event_1920/EC06A.png",
+              "unlock_flag": 1125
+            },
+            {
+              "id": "EC06B",
+              "path": "res://assets/content/event_1920/EC06B.png",
+              "unlock_flag": 1126
+            }
+          ]
+        },
+        {
+          "id": "EC07_06",
+          "unlock_flag": 1127,
+          "variants": [
+            {
+              "id": "EC07A",
+              "path": "res://assets/content/event_1920/EC07A.png",
+              "unlock_flag": 1128
+            },
+            {
+              "id": "EC07C",
+              "path": "res://assets/content/event_1920/EC07C.png",
+              "unlock_flag": 1130
+            },
+            {
+              "id": "EC07B",
+              "path": "res://assets/content/event_1920/EC07B.png",
+              "unlock_flag": 1129
+            }
+          ]
+        },
+        {
+          "id": "EC09_07",
+          "unlock_flag": 1131,
+          "variants": [
+            {
+              "id": "EC09",
+              "path": "res://assets/content/event_1920/EC09.png",
+              "unlock_flag": 1131
+            }
+          ]
+        },
+        {
+          "id": "EC10_08",
+          "unlock_flag": 1132,
+          "variants": [
+            {
+              "id": "EC10A",
+              "path": "res://assets/content/event_1920/EC10A.png",
+              "unlock_flag": 1133
+            },
+            {
+              "id": "EC10B",
+              "path": "res://assets/content/event_1920/EC10B.png",
+              "unlock_flag": 1134
+            },
+            {
+              "id": "EC10C",
+              "path": "res://assets/content/event_1920/EC10C.png",
+              "unlock_flag": 1135
+            },
+            {
+              "id": "EC10E",
+              "path": "res://assets/content/event_1920/EC10E.png",
+              "unlock_flag": 1137
+            },
+            {
+              "id": "EC10D",
+              "path": "res://assets/content/event_1920/EC10D.png",
+              "unlock_flag": 1136
+            },
+            {
+              "id": "EC10F",
+              "path": "res://assets/content/event_1920/EC10F.png",
+              "unlock_flag": 1138
+            }
+          ]
+        },
+        {
+          "id": "EC11_09",
+          "unlock_flag": 1139,
+          "variants": [
+            {
+              "id": "EC11A",
+              "path": "res://assets/content/event_1920/EC11A.png",
+              "unlock_flag": 1140
+            },
+            {
+              "id": "EC11B",
+              "path": "res://assets/content/event_1920/EC11B.png",
+              "unlock_flag": 1141
+            },
+            {
+              "id": "EC11C",
+              "path": "res://assets/content/event_1920/EC11C.png",
+              "unlock_flag": 1142
+            }
+          ]
+        },
+        {
+          "id": "EC12_10",
+          "unlock_flag": 1143,
+          "variants": [
+            {
+              "id": "EC12A",
+              "path": "res://assets/content/event_1920/EC12A.png",
+              "unlock_flag": 1144
+            },
+            {
+              "id": "EC12B",
+              "path": "res://assets/content/event_1920/EC12B.png",
+              "unlock_flag": 1145
+            },
+            {
+              "id": "EC12C",
+              "path": "res://assets/content/event_1920/EC12C.png",
+              "unlock_flag": 1146
+            }
+          ]
+        },
+        {
+          "id": "EC13_11",
+          "unlock_flag": 1147,
+          "variants": [
+            {
+              "id": "EC13A",
+              "path": "res://assets/content/event_1920/EC13A.png",
+              "unlock_flag": 1148
+            },
+            {
+              "id": "EC13B",
+              "path": "res://assets/content/event_1920/EC13B.png",
+              "unlock_flag": 1149
+            },
+            {
+              "id": "EC13C",
+              "path": "res://assets/content/event_1920/EC13C.png",
+              "unlock_flag": 1150
+            },
+            {
+              "id": "EC13D",
+              "path": "res://assets/content/event_1920/EC13D.png",
+              "unlock_flag": 1151
+            },
+            {
+              "id": "EC13E",
+              "path": "res://assets/content/event_1920/EC13E.png",
+              "unlock_flag": 1152
+            }
+          ]
+        },
+        {
+          "id": "EC16_12",
+          "unlock_flag": 1153,
+          "variants": [
+            {
+              "id": "EC16A",
+              "path": "res://assets/content/event_1920/EC16A.png",
+              "unlock_flag": 1154
+            },
+            {
+              "id": "EC16B",
+              "path": "res://assets/content/event_1920/EC16B.png",
+              "unlock_flag": 1155
+            },
+            {
+              "id": "EC16C",
+              "path": "res://assets/content/event_1920/EC16C.png",
+              "unlock_flag": 1156
+            },
+            {
+              "id": "EC16D",
+              "path": "res://assets/content/event_1920/EC16D.png",
+              "unlock_flag": 1157
+            }
+          ]
+        },
+        {
+          "id": "EC17_13",
+          "unlock_flag": 1158,
+          "variants": [
+            {
+              "id": "EC17A",
+              "path": "res://assets/content/event_1920/EC17A.png",
+              "unlock_flag": 1159
+            },
+            {
+              "id": "EC17B",
+              "path": "res://assets/content/event_1920/EC17B.png",
+              "unlock_flag": 1160
+            },
+            {
+              "id": "EC17C",
+              "path": "res://assets/content/event_1920/EC17C.png",
+              "unlock_flag": 1161
+            }
+          ]
+        },
+        {
+          "id": "EC18_14",
+          "unlock_flag": 1162,
+          "variants": [
+            {
+              "id": "EC18",
+              "path": "res://assets/content/event_1920/EC18.png",
+              "unlock_flag": 1162
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazuha",
+      "title": "一叶",
+      "source_index": 3,
+      "cards": [
+        {
+          "id": "ED01_01",
+          "unlock_flag": 1163,
+          "variants": [
+            {
+              "id": "ED01A",
+              "path": "res://assets/content/event_1920/ED01A.png",
+              "unlock_flag": 1164
+            },
+            {
+              "id": "ED01C",
+              "path": "res://assets/content/event_1920/ED01C.png",
+              "unlock_flag": 1166
+            },
+            {
+              "id": "ED01B",
+              "path": "res://assets/content/event_1920/ED01B.png",
+              "unlock_flag": 1165
+            }
+          ]
+        },
+        {
+          "id": "ED02_02",
+          "unlock_flag": 1167,
+          "variants": [
+            {
+              "id": "ED02A",
+              "path": "res://assets/content/event_1920/ED02A.png",
+              "unlock_flag": 1168
+            },
+            {
+              "id": "ED02B",
+              "path": "res://assets/content/event_1920/ED02B.png",
+              "unlock_flag": 1169
+            }
+          ]
+        },
+        {
+          "id": "ED03_03",
+          "unlock_flag": 1170,
+          "variants": [
+            {
+              "id": "ED03A",
+              "path": "res://assets/content/event_1920/ED03A.png",
+              "unlock_flag": 1171
+            },
+            {
+              "id": "ED03B",
+              "path": "res://assets/content/event_1920/ED03B.png",
+              "unlock_flag": 1172
+            },
+            {
+              "id": "ED03C",
+              "path": "res://assets/content/event_1920/ED03C.png",
+              "unlock_flag": 1173
+            }
+          ]
+        },
+        {
+          "id": "ED04_04",
+          "unlock_flag": 1174,
+          "variants": [
+            {
+              "id": "ED04",
+              "path": "res://assets/content/event_1920/ED04.png",
+              "unlock_flag": 1174
+            }
+          ]
+        },
+        {
+          "id": "ED05_05",
+          "unlock_flag": 1175,
+          "variants": [
+            {
+              "id": "ED05",
+              "path": "res://assets/content/event_1920/ED05.png",
+              "unlock_flag": 1175
+            }
+          ]
+        },
+        {
+          "id": "ED06_06",
+          "unlock_flag": 1176,
+          "variants": [
+            {
+              "id": "ED06A",
+              "path": "res://assets/content/event_1920/ED06A.png",
+              "unlock_flag": 1177
+            },
+            {
+              "id": "ED06B",
+              "path": "res://assets/content/event_1920/ED06B.png",
+              "unlock_flag": 1178
+            },
+            {
+              "id": "ED06C",
+              "path": "res://assets/content/event_1920/ED06C.png",
+              "unlock_flag": 1179
+            }
+          ]
+        },
+        {
+          "id": "ED07_07",
+          "unlock_flag": 1180,
+          "variants": [
+            {
+              "id": "ED07A",
+              "path": "res://assets/content/event_1920/ED07A.png",
+              "unlock_flag": 1181
+            },
+            {
+              "id": "ED07B",
+              "path": "res://assets/content/event_1920/ED07B.png",
+              "unlock_flag": 1182
+            }
+          ]
+        },
+        {
+          "id": "ED09_08",
+          "unlock_flag": 1183,
+          "variants": [
+            {
+              "id": "ED09",
+              "path": "res://assets/content/event_1920/ED09.png",
+              "unlock_flag": 1183
+            }
+          ]
+        },
+        {
+          "id": "ED10_09",
+          "unlock_flag": 1184,
+          "variants": [
+            {
+              "id": "ED10A",
+              "path": "res://assets/content/event_1920/ED10A.png",
+              "unlock_flag": 1185
+            },
+            {
+              "id": "ED10B",
+              "path": "res://assets/content/event_1920/ED10B.png",
+              "unlock_flag": 1186
+            },
+            {
+              "id": "ED10C",
+              "path": "res://assets/content/event_1920/ED10C.png",
+              "unlock_flag": 1187
+            }
+          ]
+        },
+        {
+          "id": "ED11_10",
+          "unlock_flag": 1188,
+          "variants": [
+            {
+              "id": "ED11A",
+              "path": "res://assets/content/event_1920/ED11A.png",
+              "unlock_flag": 1189
+            },
+            {
+              "id": "ED11C",
+              "path": "res://assets/content/event_1920/ED11C.png",
+              "unlock_flag": 1191
+            },
+            {
+              "id": "ED11B",
+              "path": "res://assets/content/event_1920/ED11B.png",
+              "unlock_flag": 1190
+            },
+            {
+              "id": "ED11D",
+              "path": "res://assets/content/event_1920/ED11D.png",
+              "unlock_flag": 1192
+            }
+          ]
+        },
+        {
+          "id": "ED12_11",
+          "unlock_flag": 1193,
+          "variants": [
+            {
+              "id": "ED12A",
+              "path": "res://assets/content/event_1920/ED12A.png",
+              "unlock_flag": 1194
+            },
+            {
+              "id": "ED12B",
+              "path": "res://assets/content/event_1920/ED12B.png",
+              "unlock_flag": 1195
+            },
+            {
+              "id": "ED12C",
+              "path": "res://assets/content/event_1920/ED12C.png",
+              "unlock_flag": 1196
+            }
+          ]
+        },
+        {
+          "id": "ED13_12",
+          "unlock_flag": 1197,
+          "variants": [
+            {
+              "id": "ED13A",
+              "path": "res://assets/content/event_1920/ED13A.png",
+              "unlock_flag": 1198
+            },
+            {
+              "id": "ED13B",
+              "path": "res://assets/content/event_1920/ED13B.png",
+              "unlock_flag": 1199
+            }
+          ]
+        },
+        {
+          "id": "ED16_13",
+          "unlock_flag": 1200,
+          "variants": [
+            {
+              "id": "ED16A",
+              "path": "res://assets/content/event_1920/ED16A.png",
+              "unlock_flag": 1201
+            },
+            {
+              "id": "ED16B",
+              "path": "res://assets/content/event_1920/ED16B.png",
+              "unlock_flag": 1202
+            },
+            {
+              "id": "ED16C",
+              "path": "res://assets/content/event_1920/ED16C.png",
+              "unlock_flag": 1203
+            }
+          ]
+        },
+        {
+          "id": "ED17_14",
+          "unlock_flag": 1204,
+          "variants": [
+            {
+              "id": "ED17A",
+              "path": "res://assets/content/event_1920/ED17A.png",
+              "unlock_flag": 1205
+            },
+            {
+              "id": "ED17B",
+              "path": "res://assets/content/event_1920/ED17B.png",
+              "unlock_flag": 1206
+            },
+            {
+              "id": "ED17C",
+              "path": "res://assets/content/event_1920/ED17C.png",
+              "unlock_flag": 1207
+            }
+          ]
+        },
+        {
+          "id": "ED18_15",
+          "unlock_flag": 1208,
+          "variants": [
+            {
+              "id": "ED18A",
+              "path": "res://assets/content/event_1920/ED18A.png",
+              "unlock_flag": 1209
+            },
+            {
+              "id": "ED18B",
+              "path": "res://assets/content/event_1920/ED18B.png",
+              "unlock_flag": 1210
+            },
+            {
+              "id": "ED18C",
+              "path": "res://assets/content/event_1920/ED18C.png",
+              "unlock_flag": 1211
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "motoka",
+      "title": "初佳",
+      "source_index": 4,
+      "cards": [
+        {
+          "id": "EE01_01",
+          "unlock_flag": 1212,
+          "variants": [
+            {
+              "id": "EE01A",
+              "path": "res://assets/content/event_1920/EE01A.png",
+              "unlock_flag": 1213
+            },
+            {
+              "id": "EE01B",
+              "path": "res://assets/content/event_1920/EE01B.png",
+              "unlock_flag": 1214
+            },
+            {
+              "id": "EE01C",
+              "path": "res://assets/content/event_1920/EE01C.png",
+              "unlock_flag": 1215
+            },
+            {
+              "id": "EE01D",
+              "path": "res://assets/content/event_1920/EE01D.png",
+              "unlock_flag": 1216
+            }
+          ]
+        },
+        {
+          "id": "EE02_02",
+          "unlock_flag": 1217,
+          "variants": [
+            {
+              "id": "EE02A",
+              "path": "res://assets/content/event_1920/EE02A.png",
+              "unlock_flag": 1218
+            },
+            {
+              "id": "EE02B",
+              "path": "res://assets/content/event_1920/EE02B.png",
+              "unlock_flag": 1219
+            },
+            {
+              "id": "EE02C",
+              "path": "res://assets/content/event_1920/EE02C.png",
+              "unlock_flag": 1220
+            },
+            {
+              "id": "EE02D",
+              "path": "res://assets/content/event_1920/EE02D.png",
+              "unlock_flag": 1221
+            }
+          ]
+        },
+        {
+          "id": "EE03_03",
+          "unlock_flag": 1222,
+          "variants": [
+            {
+              "id": "EE03A",
+              "path": "res://assets/content/event_1920/EE03A.png",
+              "unlock_flag": 1223
+            },
+            {
+              "id": "EE03B",
+              "path": "res://assets/content/event_1920/EE03B.png",
+              "unlock_flag": 1224
+            }
+          ]
+        },
+        {
+          "id": "EE04_04",
+          "unlock_flag": 1225,
+          "variants": [
+            {
+              "id": "EE04A",
+              "path": "res://assets/content/event_1920/EE04A.png",
+              "unlock_flag": 1226
+            },
+            {
+              "id": "EE04B",
+              "path": "res://assets/content/event_1920/EE04B.png",
+              "unlock_flag": 1227
+            },
+            {
+              "id": "EE04C",
+              "path": "res://assets/content/event_1920/EE04C.png",
+              "unlock_flag": 1228
+            }
+          ]
+        },
+        {
+          "id": "EE05_05",
+          "unlock_flag": 1229,
+          "variants": [
+            {
+              "id": "EE05A",
+              "path": "res://assets/content/event_1920/EE05A.png",
+              "unlock_flag": 1230
+            },
+            {
+              "id": "EE05B",
+              "path": "res://assets/content/event_1920/EE05B.png",
+              "unlock_flag": 1231
+            }
+          ]
+        },
+        {
+          "id": "EE06_06",
+          "unlock_flag": 1232,
+          "variants": [
+            {
+              "id": "EE06A",
+              "path": "res://assets/content/event_1920/EE06A.png",
+              "unlock_flag": 1233
+            },
+            {
+              "id": "EE06B",
+              "path": "res://assets/content/event_1920/EE06B.png",
+              "unlock_flag": 1234
+            }
+          ]
+        },
+        {
+          "id": "EE07_07",
+          "unlock_flag": 1235,
+          "variants": [
+            {
+              "id": "EE07A",
+              "path": "res://assets/content/event_1920/EE07A.png",
+              "unlock_flag": 1236
+            },
+            {
+              "id": "EE07B",
+              "path": "res://assets/content/event_1920/EE07B.png",
+              "unlock_flag": 1237
+            }
+          ]
+        },
+        {
+          "id": "EE08_08",
+          "unlock_flag": 1238,
+          "variants": [
+            {
+              "id": "EE08A",
+              "path": "res://assets/content/event_1920/EE08A.png",
+              "unlock_flag": 1239
+            },
+            {
+              "id": "EE08B",
+              "path": "res://assets/content/event_1920/EE08B.png",
+              "unlock_flag": 1240
+            }
+          ]
+        },
+        {
+          "id": "EE10_09",
+          "unlock_flag": 1241,
+          "variants": [
+            {
+              "id": "EE10A",
+              "path": "res://assets/content/event_1920/EE10A.png",
+              "unlock_flag": 1242
+            },
+            {
+              "id": "EE10B",
+              "path": "res://assets/content/event_1920/EE10B.png",
+              "unlock_flag": 1243
+            },
+            {
+              "id": "EE10C",
+              "path": "res://assets/content/event_1920/EE10C.png",
+              "unlock_flag": 1244
+            },
+            {
+              "id": "EE10D",
+              "path": "res://assets/content/event_1920/EE10D.png",
+              "unlock_flag": 1245
+            }
+          ]
+        },
+        {
+          "id": "EE11_10",
+          "unlock_flag": 1246,
+          "variants": [
+            {
+              "id": "EE11A",
+              "path": "res://assets/content/event_1920/EE11A.png",
+              "unlock_flag": 1247
+            },
+            {
+              "id": "EE11B",
+              "path": "res://assets/content/event_1920/EE11B.png",
+              "unlock_flag": 1248
+            },
+            {
+              "id": "EE11C",
+              "path": "res://assets/content/event_1920/EE11C.png",
+              "unlock_flag": 1249
+            }
+          ]
+        },
+        {
+          "id": "EE12_11",
+          "unlock_flag": 1250,
+          "variants": [
+            {
+              "id": "EE12A",
+              "path": "res://assets/content/event_1920/EE12A.png",
+              "unlock_flag": 1251
+            },
+            {
+              "id": "EE12B",
+              "path": "res://assets/content/event_1920/EE12B.png",
+              "unlock_flag": 1252
+            },
+            {
+              "id": "EE12C",
+              "path": "res://assets/content/event_1920/EE12C.png",
+              "unlock_flag": 1253
+            },
+            {
+              "id": "EE12D",
+              "path": "res://assets/content/event_1920/EE12D.png",
+              "unlock_flag": 1254
+            }
+          ]
+        },
+        {
+          "id": "EE13_12",
+          "unlock_flag": 1255,
+          "variants": [
+            {
+              "id": "EE13A",
+              "path": "res://assets/content/event_1920/EE13A.png",
+              "unlock_flag": 1256
+            },
+            {
+              "id": "EE13B",
+              "path": "res://assets/content/event_1920/EE13B.png",
+              "unlock_flag": 1257
+            },
+            {
+              "id": "EE13C",
+              "path": "res://assets/content/event_1920/EE13C.png",
+              "unlock_flag": 1258
+            }
+          ]
+        },
+        {
+          "id": "EE16_13",
+          "unlock_flag": 1259,
+          "variants": [
+            {
+              "id": "EE16A",
+              "path": "res://assets/content/event_1920/EE16A.png",
+              "unlock_flag": 1260
+            },
+            {
+              "id": "EE16B",
+              "path": "res://assets/content/event_1920/EE16B.png",
+              "unlock_flag": 1261
+            }
+          ]
+        },
+        {
+          "id": "EE17_14",
+          "unlock_flag": 1262,
+          "variants": [
+            {
+              "id": "EE17A",
+              "path": "res://assets/content/event_1920/EE17A.png",
+              "unlock_flag": 1263
+            },
+            {
+              "id": "EE17B",
+              "path": "res://assets/content/event_1920/EE17B.png",
+              "unlock_flag": 1264
+            }
+          ]
+        },
+        {
+          "id": "EE18_15",
+          "unlock_flag": 1265,
+          "variants": [
+            {
+              "id": "EE18",
+              "path": "res://assets/content/event_1920/EE18.png",
+              "unlock_flag": 1265
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "others",
+      "title": "其他",
+      "source_index": 5,
+      "cards": [
+        {
+          "id": "EZ01_01",
+          "unlock_flag": 1266,
+          "variants": [
+            {
+              "id": "EZ01A",
+              "path": "res://assets/content/event_1920/EZ01A.png",
+              "unlock_flag": 1267
+            },
+            {
+              "id": "EZ01B",
+              "path": "res://assets/content/event_1920/EZ01B.png",
+              "unlock_flag": 1268
+            }
+          ]
+        },
+        {
+          "id": "EZ04_02",
+          "unlock_flag": 1269,
+          "variants": [
+            {
+              "id": "EZ04A",
+              "path": "res://assets/content/event_1920/EZ04A.png",
+              "unlock_flag": 1270
+            },
+            {
+              "id": "EZ04B",
+              "path": "res://assets/content/event_1920/EZ04B.png",
+              "unlock_flag": 1271
+            }
+          ]
+        },
+        {
+          "id": "EZ05_03",
+          "unlock_flag": 1272,
+          "variants": [
+            {
+              "id": "EZ05A",
+              "path": "res://assets/content/event_1920/EZ05A.png",
+              "unlock_flag": 1273
+            },
+            {
+              "id": "EZ05B",
+              "path": "res://assets/content/event_1920/EZ05B.png",
+              "unlock_flag": 1274
+            },
+            {
+              "id": "EZ05C",
+              "path": "res://assets/content/event_1920/EZ05C.png",
+              "unlock_flag": 1275
+            },
+            {
+              "id": "EZ05D",
+              "path": "res://assets/content/event_1920/EZ05D.png",
+              "unlock_flag": 1276
+            }
+          ]
+        },
+        {
+          "id": "EZ06_04",
+          "unlock_flag": 1277,
+          "variants": [
+            {
+              "id": "EZ06A",
+              "path": "res://assets/content/event_1920/EZ06A.png",
+              "unlock_flag": 1278
+            },
+            {
+              "id": "EZ06B",
+              "path": "res://assets/content/event_1920/EZ06B.png",
+              "unlock_flag": 1279
+            },
+            {
+              "id": "EZ06F",
+              "path": "res://assets/content/event_1920/EZ06F.png",
+              "unlock_flag": 1283
+            },
+            {
+              "id": "EZ06D",
+              "path": "res://assets/content/event_1920/EZ06D.png",
+              "unlock_flag": 1281
+            },
+            {
+              "id": "EZ06E",
+              "path": "res://assets/content/event_1920/EZ06E.png",
+              "unlock_flag": 1282
+            },
+            {
+              "id": "EZ06C",
+              "path": "res://assets/content/event_1920/EZ06C.png",
+              "unlock_flag": 1280
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "music": [
+    {
+      "id": "BGM01",
+      "title_id": "track_01",
+      "path": "res://assets/audio/bgm/BGM01.ogg",
+      "loop": false,
+      "loop_sample": 0,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM03",
+      "title_id": "track_02",
+      "path": "res://assets/audio/bgm/BGM03.ogg",
+      "loop": true,
+      "loop_sample": 235043,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM04",
+      "title_id": "track_03",
+      "path": "res://assets/audio/bgm/BGM04.ogg",
+      "loop": true,
+      "loop_sample": 403958,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM05",
+      "title_id": "track_04",
+      "path": "res://assets/audio/bgm/BGM05.ogg",
+      "loop": true,
+      "loop_sample": 524416,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM06",
+      "title_id": "track_05",
+      "path": "res://assets/audio/bgm/BGM06.ogg",
+      "loop": true,
+      "loop_sample": 243508,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM07",
+      "title_id": "track_06",
+      "path": "res://assets/audio/bgm/BGM07.ogg",
+      "loop": true,
+      "loop_sample": 161922,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM08",
+      "title_id": "track_07",
+      "path": "res://assets/audio/bgm/BGM08.ogg",
+      "loop": true,
+      "loop_sample": 179568,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM09",
+      "title_id": "track_08",
+      "path": "res://assets/audio/bgm/BGM09.ogg",
+      "loop": true,
+      "loop_sample": 399603,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM10",
+      "title_id": "track_09",
+      "path": "res://assets/audio/bgm/BGM10.ogg",
+      "loop": true,
+      "loop_sample": 734884,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM11",
+      "title_id": "track_10",
+      "path": "res://assets/audio/bgm/BGM11.ogg",
+      "loop": true,
+      "loop_sample": 1394331,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM12",
+      "title_id": "track_11",
+      "path": "res://assets/audio/bgm/BGM12.ogg",
+      "loop": true,
+      "loop_sample": 943395,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM13",
+      "title_id": "track_12",
+      "path": "res://assets/audio/bgm/BGM13.ogg",
+      "loop": true,
+      "loop_sample": 22837,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM14",
+      "title_id": "track_13",
+      "path": "res://assets/audio/bgm/BGM14.ogg",
+      "loop": true,
+      "loop_sample": 22821,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM15",
+      "title_id": "track_14",
+      "path": "res://assets/audio/bgm/BGM15.ogg",
+      "loop": true,
+      "loop_sample": 120386,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM16",
+      "title_id": "track_15",
+      "path": "res://assets/audio/bgm/BGM16.ogg",
+      "loop": true,
+      "loop_sample": 226400,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM17",
+      "title_id": "track_16",
+      "path": "res://assets/audio/bgm/BGM17.ogg",
+      "loop": true,
+      "loop_sample": 211613,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM18",
+      "title_id": "track_17",
+      "path": "res://assets/audio/bgm/BGM18.ogg",
+      "loop": true,
+      "loop_sample": 22772,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM19",
+      "title_id": "track_18",
+      "path": "res://assets/audio/bgm/BGM19.ogg",
+      "loop": true,
+      "loop_sample": 530871,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM20",
+      "title_id": "track_19",
+      "path": "res://assets/audio/bgm/BGM20.ogg",
+      "loop": true,
+      "loop_sample": 364347,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM21",
+      "title_id": "track_20",
+      "path": "res://assets/audio/bgm/BGM21.ogg",
+      "loop": true,
+      "loop_sample": 22075,
+      "sample_rate": 44100
+    },
+    {
+      "id": "BGM02_S",
+      "title_id": "track_21",
+      "path": "res://assets/audio/bgm/BGM02_S.ogg",
+      "loop": false,
+      "loop_sample": 0,
+      "sample_rate": 44100
+    }
+  ],
+  "memories": [
+    {
+      "id": "memory_51",
+      "title": "穹回想 01",
+      "group": "穹",
+      "unlock_flag": 51,
+      "kind": "adv",
+      "scenario_id": "00_a020",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R21.png"
+    },
+    {
+      "id": "memory_52",
+      "title": "穹回想 02",
+      "group": "穹",
+      "unlock_flag": 52,
+      "kind": "adv",
+      "scenario_id": "00_a022",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R22.png"
+    },
+    {
+      "id": "memory_53",
+      "title": "穹回想 03",
+      "group": "穹",
+      "unlock_flag": 53,
+      "kind": "adv",
+      "scenario_id": "00_a025b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R23.png"
+    },
+    {
+      "id": "memory_54",
+      "title": "穹回想 04",
+      "group": "穹",
+      "unlock_flag": 54,
+      "kind": "adv",
+      "scenario_id": "00_a026",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R24.png"
+    },
+    {
+      "id": "memory_55",
+      "title": "穹回想 05",
+      "group": "穹",
+      "unlock_flag": 55,
+      "kind": "adv",
+      "scenario_id": "00_a032",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R25.png"
+    },
+    {
+      "id": "memory_61",
+      "title": "奈绪回想 01",
+      "group": "奈绪",
+      "unlock_flag": 61,
+      "kind": "adv",
+      "scenario_id": "00_b005",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R26.png"
+    },
+    {
+      "id": "memory_62",
+      "title": "奈绪回想 02",
+      "group": "奈绪",
+      "unlock_flag": 62,
+      "kind": "adv",
+      "scenario_id": "00_b021",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R27.png"
+    },
+    {
+      "id": "memory_63",
+      "title": "奈绪回想 03",
+      "group": "奈绪",
+      "unlock_flag": 63,
+      "kind": "adv",
+      "scenario_id": "00_b025",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R28.png"
+    },
+    {
+      "id": "memory_64",
+      "title": "奈绪回想 04",
+      "group": "奈绪",
+      "unlock_flag": 64,
+      "kind": "adv",
+      "scenario_id": "00_b032",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R29.png"
+    },
+    {
+      "id": "memory_71",
+      "title": "瑛回想 01",
+      "group": "瑛",
+      "unlock_flag": 71,
+      "kind": "adv",
+      "scenario_id": "00_c019b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R30.png"
+    },
+    {
+      "id": "memory_72",
+      "title": "瑛回想 02",
+      "group": "瑛",
+      "unlock_flag": 72,
+      "kind": "adv",
+      "scenario_id": "00_c023",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R31.png"
+    },
+    {
+      "id": "memory_73",
+      "title": "瑛回想 03",
+      "group": "瑛",
+      "unlock_flag": 73,
+      "kind": "adv",
+      "scenario_id": "00_c034",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R32.png"
+    },
+    {
+      "id": "memory_81",
+      "title": "一叶回想 01",
+      "group": "一叶",
+      "unlock_flag": 81,
+      "kind": "adv",
+      "scenario_id": "00_d025b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R33.png"
+    },
+    {
+      "id": "memory_82",
+      "title": "一叶回想 02",
+      "group": "一叶",
+      "unlock_flag": 82,
+      "kind": "adv",
+      "scenario_id": "00_d028b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R34.png"
+    },
+    {
+      "id": "memory_83",
+      "title": "一叶回想 03",
+      "group": "一叶",
+      "unlock_flag": 83,
+      "kind": "adv",
+      "scenario_id": "00_d042b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R35.png"
+    },
+    {
+      "id": "memory_91",
+      "title": "初佳回想 01",
+      "group": "初佳",
+      "unlock_flag": 91,
+      "kind": "adv",
+      "scenario_id": "00_e013c",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R36.png"
+    },
+    {
+      "id": "memory_92",
+      "title": "初佳回想 02",
+      "group": "初佳",
+      "unlock_flag": 92,
+      "kind": "adv",
+      "scenario_id": "00_e024b",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R37.png"
+    },
+    {
+      "id": "memory_93",
+      "title": "初佳回想 03",
+      "group": "初佳",
+      "unlock_flag": 93,
+      "kind": "adv",
+      "scenario_id": "00_e036",
+      "label": "recollect",
+      "thumbnail": "res://assets/content/thumb/FRM_06R38.png"
+    },
+    {
+      "id": "opening",
+      "title": "开场动画",
+      "group": "其他",
+      "unlock_flag": 0,
+      "kind": "video",
+      "video": "res://assets/video/yosugacn.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R49.png"
+    },
+    {
+      "id": "staff_sora",
+      "title": "穹 Staff Roll",
+      "group": "其他",
+      "unlock_flag": 11,
+      "kind": "video",
+      "video": "res://assets/video/staff_roll_sora.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R50.png"
+    },
+    {
+      "id": "staff_nao",
+      "title": "奈绪 Staff Roll",
+      "group": "其他",
+      "unlock_flag": 12,
+      "kind": "video",
+      "video": "res://assets/video/staff_roll_nao.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R51.png"
+    },
+    {
+      "id": "staff_akira",
+      "title": "瑛 Staff Roll",
+      "group": "其他",
+      "unlock_flag": 13,
+      "kind": "video",
+      "video": "res://assets/video/staff_roll_akira.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R52.png"
+    },
+    {
+      "id": "staff_kazuha",
+      "title": "一叶 Staff Roll",
+      "group": "其他",
+      "unlock_flag": 14,
+      "kind": "video",
+      "video": "res://assets/video/staff_roll_kazuha.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R53.png"
+    },
+    {
+      "id": "staff_motoka",
+      "title": "初佳 Staff Roll",
+      "group": "其他",
+      "unlock_flag": 15,
+      "kind": "video",
+      "video": "res://assets/video/staff_roll_motoka.ogv",
+      "thumbnail": "res://assets/content/thumb/FRM_06R54.png"
+    }
+  ]
+}

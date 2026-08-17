@@ -1,0 +1,16 @@
+.DS_Store
+.godot/
+*.import
+build/
+dist/
+*.tmp
+*.bak
+exported/
+*.pck
+*.apk
+*.aab
+*.ipa
+*.exe
+*.dmg
+*.zip
+*.log
