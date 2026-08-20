@@ -2,274 +2,332 @@ class_name TitleConfigurationPage
 extends TitleVisualPage
 
 
+## HD 环境设定 window shell: frame background, three image tabs, footer strip
+## buttons, key popup, confirm dialog and reset flows.  Pages emit typed
+## patches; the shell owns values, preview emission and debounced persistence.
 signal settings_preview_changed(settings: Dictionary)
 signal settings_commit_requested(settings: Dictionary)
 signal status_changed(message: String)
+signal close_requested
+signal read_flags_reset_requested
 
 const COMMIT_DELAY := 0.25
+const SETTINGS_ROOT := "res://assets/content/settings/"
+const TAB_BUTTONS: Array[Dictionary] = [
+	{"normal": "graphics1.png", "selected": "graphics2.png", "pos": Vector2(1165, 190)},
+	{"normal": "systems1.png", "selected": "systems2.png", "pos": Vector2(1370, 190)},
+	{"normal": "audio1.png", "selected": "audio2.png", "pos": Vector2(1565, 190)},
+]
 
 var _values: Dictionary = {}
-var _tabs: Array[Button] = []
-var _pages: Array[Control] = []
 var _commit_timer: Timer
-var _content: VBoxContainer
-var _status: Label
-var _sliders: Dictionary = {}
-var _options: Dictionary = {}
+var _status_clear_timer: Timer
 var _pending_commit := false
+var _tabs: Array[ConfigToggleButton] = []
+var _pages: Dictionary = {}
+var _current_tab := 0
+var _sliders: Dictionary = {}
+var _key_popup: Control
+var _confirm_dialog: ConfigConfirmDialog
+var _voice_sample: ConfigVoiceSample
+var _status_label: Label
+var _pending_action: StringName = &""
 
 
 func configure(settings: Dictionary) -> void:
 	_values = TitleSettingsModel.normalize(settings)
 	if is_inside_tree():
-		_build_pages()
+		_sync_pages()
 
 
 func _ready() -> void:
 	super._ready()
+	set_visual_background(SETTINGS_ROOT + "bg.png")
 	_commit_timer = Timer.new()
-	_commit_timer.name = "ConfigDebounceTimer"
+	_commit_timer.name = "ConfigCommitTimer"
 	_commit_timer.one_shot = true
 	_commit_timer.wait_time = COMMIT_DELAY
 	_commit_timer.timeout.connect(_commit)
 	add_child(_commit_timer)
-	_build_shell()
+	_status_clear_timer = Timer.new()
+	_status_clear_timer.name = "StatusClearTimer"
+	_status_clear_timer.one_shot = true
+	_status_clear_timer.wait_time = 4.0
+	_status_clear_timer.timeout.connect(func() -> void: _status_label.text = "")
+	add_child(_status_clear_timer)
+	_voice_sample = ConfigVoiceSample.new()
+	_voice_sample.name = "VoiceSample"
+	add_child(_voice_sample)
+	_build_tabs()
 	_build_pages()
+	_build_footer()
+	_build_status_label()
+	_build_key_popup()
+	_build_confirm_dialog()
+	_sync_pages()
+	_show_tab(0)
+	if not _tabs.is_empty():
+		_tabs[0].grab_focus()
 
 
 func _exit_tree() -> void:
-	# Leaving Config while a keyboard/handle slider was still moving must not
-	# discard the last preview.  The owner can safely persist this one snapshot
-	# without coupling controls to SaveService or AudioServer.
 	if _pending_commit:
 		_commit()
 
+
+func _input(event: InputEvent) -> void:
+	if _confirm_dialog != null and _confirm_dialog.is_open():
+		return
+	if _key_popup != null and _key_popup.visible:
+		if StartupInput.is_cancel_event(event):
+			_close_key_popup()
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
+		var key := event as InputEventKey
+		if key.keycode == KEY_LEFT or key.keycode == KEY_RIGHT:
+			if _step_active_slider(key):
+				get_viewport().set_input_as_handled()
+			return
+	if StartupInput.is_cancel_event(event):
+		close_requested.emit()
+		get_viewport().set_input_as_handled()
+
+
+## --- Public API ---
 
 func get_current_settings() -> Dictionary:
 	return _values.duplicate(true)
 
 
-func find_setting_slider(key: String) -> HSlider:
-	return _sliders.get(key) as HSlider
+func find_setting_slider(key: String) -> ConfigKnobSlider:
+	return _sliders.get(key) as ConfigKnobSlider
 
 
-func find_setting_option(key: String) -> OptionButton:
-	return _options.get(key) as OptionButton
+func screen_page() -> ConfigScreenPage:
+	return _pages.get("screen") as ConfigScreenPage
 
 
-func _build_shell() -> void:
-	var root := Control.new()
-	root.name = "ConfigurationContent"
-	root.position = Vector2(80.0, 120.0)
-	root.size = Vector2(1760.0, 900.0)
-	visual_canvas().add_child(root)
-	add_design_texture(root, "res://assets/content/settings/title.png", Rect2(95, 18, 300, 52))
-	add_design_label(root, "Audio / Screen / System · 完整 HD 设置", Rect2(830, 20, 700, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
-	for index in 3:
-		var tab := Button.new()
-		tab.text = ""
-		tab.position = Vector2(95.0 + float(index) * 250.0, 85.0)
-		tab.size = Vector2(205.0, 58.0)
-		tab.focus_mode = Control.FOCUS_ALL
-		var tab_image := TextureRect.new()
-		tab_image.texture = load(["res://assets/content/settings/audio1.png", "res://assets/content/settings/graphics1.png", "res://assets/content/settings/systems1.png"][index]) as Texture2D
-		tab_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		tab_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tab_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tab_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tab.add_child(tab_image)
-		tab.pressed.connect(_show_tab.bind(index))
-		root.add_child(tab)
+func system_page() -> ConfigSystemPage:
+	return _pages.get("system") as ConfigSystemPage
+
+
+func audio_page() -> ConfigAudioPage:
+	return _pages.get("audio") as ConfigAudioPage
+
+
+func show_tab(index: int) -> void:
+	_show_tab(index)
+
+
+func current_tab() -> int:
+	return _current_tab
+
+
+func grab_config_focus() -> void:
+	if not _tabs.is_empty():
+		_tabs[clampi(_current_tab, 0, _tabs.size() - 1)].grab_focus()
+
+
+func open_key_popup() -> void:
+	if _key_popup != null:
+		_key_popup.visible = true
+
+
+func close_key_popup() -> void:
+	_close_key_popup()
+
+
+func is_key_popup_visible() -> bool:
+	return _key_popup != null and _key_popup.visible
+
+
+func is_confirm_visible() -> bool:
+	return _confirm_dialog != null and _confirm_dialog.is_open()
+
+
+func request_reset_settings() -> void:
+	if not bool(_values.get("confirmations", {}).get("default", true)):
+		_run_reset_settings()
+		return
+	_pending_action = &"reset_settings"
+	_open_confirm("要初始化设定吗？", "default")
+
+
+func request_reset_read() -> void:
+	if not bool(_values.get("confirmations", {}).get("clear_read", true)):
+		_run_reset_read()
+		return
+	_pending_action = &"reset_read"
+	_open_confirm("要初始化已读情报吗？", "clear_read")
+
+
+func confirm_pending_action() -> void:
+	_run_pending_action()
+
+
+func cancel_pending_action() -> void:
+	_pending_action = &""
+	_confirm_dialog.close()
+	_set_status("已取消。")
+
+
+## --- Builders ---
+
+func _build_tabs() -> void:
+	for index in TAB_BUTTONS.size():
+		var entry: Dictionary = TAB_BUTTONS[index]
+		var tab := ConfigToggleButton.new()
+		tab.configure_dual(SETTINGS_ROOT + str(entry.normal), SETTINGS_ROOT + str(entry.selected))
+		tab.position = entry.pos
+		tab.pressed.connect(_on_tab_pressed.bind(index))
+		visual_canvas().add_child(tab)
 		_tabs.append(tab)
-	_content = VBoxContainer.new()
-	_content.name = "ConfigPageContent"
-	_content.position = Vector2(190.0, 170.0)
-	_content.size = Vector2(1420.0, 650.0)
-	_content.add_theme_constant_override("separation", 12)
-	_content.clip_contents = true
-	root.add_child(_content)
-	_status = Label.new()
-	_status.position = Vector2(260.0, 835.0)
-	_status.size = Vector2(1240.0, 45.0)
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_status)
 
 
 func _build_pages() -> void:
-	if _content == null:
+	var screen := ConfigScreenPage.new()
+	screen.name = "ScreenPage"
+	screen.patch_requested.connect(_on_patch)
+	visual_canvas().add_child(screen)
+	_pages["screen"] = screen
+	var system := ConfigSystemPage.new()
+	system.name = "SystemPage"
+	system.patch_requested.connect(_on_patch)
+	visual_canvas().add_child(system)
+	_pages["system"] = system
+	var audio := ConfigAudioPage.new()
+	audio.name = "AudioPage"
+	audio.patch_requested.connect(_on_patch)
+	audio.sample_requested.connect(_on_voice_sample_requested)
+	visual_canvas().add_child(audio)
+	_pages["audio"] = audio
+	_collect_sliders(screen)
+	_collect_sliders(system)
+	_collect_sliders(audio)
+
+
+func _collect_sliders(page: ConfigPageBase) -> void:
+	for child in page.get_children():
+		if child is ConfigKnobSlider:
+			var slider := child as ConfigKnobSlider
+			_sliders[slider.name] = slider
+			slider.drag_ended.connect(func(_changed: bool) -> void: _commit())
+
+
+func _build_footer() -> void:
+	var canvas := visual_canvas()
+	var reset_setting := ConfigStripButton.new()
+	reset_setting.configure_strip(SETTINGS_ROOT + "reset_seetting.png", 2)
+	reset_setting.position = Vector2(42, 1037)
+	reset_setting.pressed.connect(request_reset_settings)
+	canvas.add_child(reset_setting)
+	var reset_text := ConfigStripButton.new()
+	reset_text.configure_strip(SETTINGS_ROOT + "reset_text.png", 2)
+	reset_text.position = Vector2(245, 1037)
+	reset_text.pressed.connect(request_reset_read)
+	canvas.add_child(reset_text)
+	var key := ConfigStripButton.new()
+	key.configure_strip(SETTINGS_ROOT + "key.png", 3, 105, 105)
+	key.position = Vector2(520, 1037)
+	key.pressed.connect(open_key_popup)
+	canvas.add_child(key)
+	var title := ConfigStripButton.new()
+	title.configure_strip(SETTINGS_ROOT + "title.png", 2)
+	title.position = Vector2(1607, 995)
+	title.pressed.connect(func() -> void: close_requested.emit())
+	canvas.add_child(title)
+
+
+func _build_status_label() -> void:
+	_status_label = Label.new()
+	_status_label.name = "ConfigStatus"
+	_status_label.position = Vector2(460, 955)
+	_status_label.size = Vector2(1000, 40)
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_label.add_theme_font_size_override("font_size", 24)
+	_status_label.add_theme_color_override("font_color", Color.WHITE)
+	_status_label.add_theme_color_override("font_outline_color", Color(0.05, 0.08, 0.12, 0.9))
+	_status_label.add_theme_constant_override("outline_size", 4)
+	visual_canvas().add_child(_status_label)
+
+
+func _build_key_popup() -> void:
+	_key_popup = Control.new()
+	_key_popup.name = "KeyPopup"
+	_key_popup.position = Vector2.ZERO
+	_key_popup.size = TitleVisualPage.DESIGN_SIZE
+	_key_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	_key_popup.visible = false
+	var image := TextureRect.new()
+	image.name = "KeyPopupImage"
+	image.position = Vector2(568, 191)
+	image.texture = load(SETTINGS_ROOT + "key_popup.png") as Texture2D
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_key_popup.add_child(image)
+	_key_popup.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+			_close_key_popup()
+	)
+	visual_canvas().add_child(_key_popup)
+
+
+func _build_confirm_dialog() -> void:
+	_confirm_dialog = ConfigConfirmDialog.new()
+	_confirm_dialog.name = "ConfigConfirm"
+	_confirm_dialog.confirmed.connect(_on_confirm_confirmed)
+	_confirm_dialog.canceled.connect(cancel_pending_action)
+	_confirm_dialog.always_toggled.connect(_on_confirm_always_toggled)
+	visual_canvas().add_child(_confirm_dialog)
+
+
+## --- State flow ---
+
+func _sync_pages() -> void:
+	for page in _pages.values():
+		(page as ConfigPageBase).sync_from(_values)
+
+
+func _show_tab(index: int) -> void:
+	if _tabs.is_empty() or _pages.is_empty():
 		return
-	if _commit_timer != null:
-		_commit_timer.stop()
-	_pending_commit = false
-	_sliders.clear()
-	_options.clear()
-	for child in _content.get_children():
-		child.queue_free()
-	_pages.clear()
-	_pages.append(_build_audio_page())
-	_pages.append(_build_screen_page())
-	_pages.append(_build_system_page())
-	for page in _pages:
-		_content.add_child(page)
-	_show_tab(0)
-	_status.text = "设置实时预览；拖动结束或键盘/手柄调整停止 250ms 后持久化。"
+	index = clampi(index, 0, _tabs.size() - 1)
+	_current_tab = index
+	for tab_index in _tabs.size():
+		_tabs[tab_index].selected = tab_index == index
+	_pages["screen"].visible = index == 0
+	_pages["system"].visible = index == 1
+	_pages["audio"].visible = index == 2
+	if _key_popup != null and _key_popup.visible:
+		_close_key_popup()
 
 
-func _build_audio_page() -> Control:
-	var page := VBoxContainer.new()
-	page.name = "AudioPage"
-	var heading := Label.new()
-	heading.text = "Audio · 6 个全局音量 + 9 个角色细节音量"
-	page.add_child(heading)
-	var global_fields := [
-		["主音量", "master_volume"], ["语音", "voice_volume"], ["BGM", "bgm_volume"],
-		["环境 SE", "env_se_volume"], ["SE", "se_volume"], ["Movie", "movie_volume"],
-	]
-	for field in global_fields:
-		_add_slider(page, str(field[0]), str(field[1]), 0.0, 1.0, 0.01)
-	for index in TitleSettingsModel.VOICE_DETAIL_NAMES.size():
-		_add_slider(page, "角色语音 · " + TitleSettingsModel.VOICE_DETAIL_NAMES[index], "voice_detail_%d" % index, 0.0, 1.0, 0.01, index)
-	_add_check(page, "静音 Master", "mute_master")
-	_add_check(page, "静音 Voice", "mute_voice")
-	_add_check(page, "静音 BGM", "mute_bgm")
-	return page
+func _on_tab_pressed(index: int) -> void:
+	_show_tab(index)
 
 
-func _build_screen_page() -> Control:
-	var page := VBoxContainer.new()
-	page.name = "ScreenPage"
-	var heading := Label.new()
-	heading.text = "Screen · 窗口、分辨率、透明度、字体与显示选项"
-	page.add_child(heading)
-	_add_option(page, "窗口模式", "window_mode", ["windowed", "borderless", "fullscreen"], ["窗口", "无边框全屏", "全屏"])
-	var width_row := _add_option(page, "窗口分辨率", "window_width", [1280, 1600, 1920], ["1280", "1600", "1920"])
-	if _is_mobile_platform():
-		width_row.visible = false
-	_add_slider(page, "窗口透明度", "window_opacity", 0.2, 1.0, 0.01)
-	_add_option(page, "字体", "font_type", [0, 1, 2, 3, 4, 5], ["黑体", "宋体", "楷体", "圆体", "仿宋", "方松"])
-	_add_check(page, "显示人物头像", "portrait_visible")
-	_add_check(page, "已读文字变色", "read_color")
-	_add_check(page, "屏幕效果", "screen_effect")
-	return page
-
-
-func _build_system_page() -> Control:
-	var page := VBoxContainer.new()
-	page.name = "SystemPage"
-	var heading := Label.new()
-	heading.text = "System · 5 个系统开关、速度与 11 个确认开关"
-	page.add_child(heading)
-	for field in [
-		["已读跳过", "read_skip"], ["点击时停止语音", "voice_stop_on_click"], ["选择后解除跳过", "lock_skip"],
-		["选择后自动播放", "lock_auto"], ["路线引导", "route_guide"],
-	]:
-		_add_check(page, str(field[0]), str(field[1]))
-	_add_slider(page, "文字速度", "message_speed", 1.0, 10.0, 1.0)
-	_add_slider(page, "自动播放等待（毫秒）", "auto_speed", 1000.0, 10000.0, 500.0)
-	var label := Label.new()
-	label.text = "确认窗口"
-	page.add_child(label)
-	for key in TitleSettingsModel.CONFIRMATION_KEYS:
-		_add_confirmation_check(page, key)
-	return page
-
-
-func _add_slider(parent: Control, label_text: String, key: String, minimum: float, maximum: float, step: float, detail_index: int = -1) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = 54.0
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size.x = 260.0
-	row.add_child(label)
-	var slider := HSlider.new()
-	slider.min_value = minimum
-	slider.max_value = maximum
-	slider.step = step
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.value = _get_value(key, detail_index, 1.0)
-	slider.value_changed.connect(_on_slider_changed.bind(key, detail_index))
-	slider.drag_ended.connect(func(_changed: bool) -> void: _commit())
-	_sliders[key] = slider
-	row.add_child(slider)
-	parent.add_child(row)
-	return row
-
-
-func _add_check(parent: Control, label_text: String, key: String) -> CheckButton:
-	var check := CheckButton.new()
-	check.text = label_text
-	check.button_pressed = bool(_values.get(key, false))
-	check.toggled.connect(_on_check_changed.bind(key))
-	parent.add_child(check)
-	return check
-
-
-func _add_confirmation_check(parent: Control, key: String) -> CheckButton:
-	var check := CheckButton.new()
-	check.text = "确认：%s" % key
-	var confirmations: Dictionary = _values.get("confirmations", {})
-	check.button_pressed = bool(confirmations.get(key, true))
-	check.toggled.connect(_on_confirmation_changed.bind(key))
-	parent.add_child(check)
-	return check
-
-
-func _add_option(parent: Control, label_text: String, key: String, values: Array, labels: Array) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = 54.0
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size.x = 260.0
-	row.add_child(label)
-	var option := OptionButton.new()
-	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for index in values.size():
-		option.add_item(str(labels[index]))
-		option.set_item_metadata(index, values[index])
-		if values[index] == _values.get(key):
-			option.select(index)
-	option.item_selected.connect(_on_option_changed.bind(option, key))
-	_options[key] = option
-	row.add_child(option)
-	parent.add_child(row)
-	return row
-
-
-func _on_slider_changed(value: float, key: String, detail_index: int) -> void:
-	if detail_index >= 0:
-		var details: Array = _values.get("voice_detail_volumes", []).duplicate()
-		if detail_index < details.size():
-			details[detail_index] = value
-		_values["voice_detail_volumes"] = details
-	else:
-		_values[key] = value
+func _on_patch(patch: Dictionary, immediate: bool) -> void:
+	for key in patch:
+		# Confirmation controls emit a one-key dictionary. Merge it into the
+		# existing map instead of replacing the other ten source flags.
+		if key == "confirmations" and patch[key] is Dictionary:
+			var confirmations: Dictionary = _values.get("confirmations", {}).duplicate(true)
+			for confirmation_key in patch[key]:
+				confirmations[confirmation_key] = patch[key][confirmation_key]
+			_values[key] = confirmations
+		else:
+			_values[key] = patch[key]
+	_values = TitleSettingsModel.normalize(_values)
+	# Keep previews (portrait/read-colour/window depth) and selected states in
+	# sync for keyboard, touch, and programmatic changes alike. All page sync
+	# setters are silent, so this does not create signal recursion.
+	_sync_pages()
 	_preview_and_debounce()
-
-
-func _on_check_changed(value: bool, key: String) -> void:
-	_values[key] = value
-	_preview_and_debounce()
-	_commit()
-
-
-func _on_confirmation_changed(value: bool, key: String) -> void:
-	var confirmations: Dictionary = _values.get("confirmations", {}).duplicate(true)
-	confirmations[key] = value
-	_values["confirmations"] = confirmations
-	_preview_and_debounce()
-	_commit()
-
-
-func _on_option_changed(index: int, option: OptionButton, key: String) -> void:
-	var value: Variant = option.get_item_metadata(index)
-	_values[key] = value
-	if key == "window_mode":
-		_apply_window_mode(str(value))
-	if key == "window_width":
-		DisplayServer.window_set_size(Vector2i(int(value), int(float(value) * 9.0 / 16.0)))
-	_preview_and_debounce()
-	_commit()
+	if immediate:
+		_commit()
 
 
 func _preview_and_debounce() -> void:
@@ -286,29 +344,101 @@ func _commit() -> void:
 	settings_commit_requested.emit(_values.duplicate(true))
 
 
-func _show_tab(index: int) -> void:
-	for page_index in _pages.size():
-		_pages[page_index].visible = page_index == index
+func _on_voice_sample_requested(detail_index: int) -> void:
+	var details: Array = _values.get("voice_detail_volumes", [])
+	var volume := 1.0
+	if detail_index < details.size():
+		volume = float(details[detail_index])
+	_voice_sample.play_detail(detail_index, volume)
 
 
-func _get_value(key: String, detail_index: int, fallback: float) -> float:
-	if detail_index >= 0:
-		var details: Array = _values.get("voice_detail_volumes", [])
-		return float(details[detail_index]) if detail_index < details.size() else fallback
-	return float(_values.get(key, fallback))
+## --- Popup / confirm / reset ---
+
+func _close_key_popup() -> void:
+	if _key_popup != null:
+		_key_popup.visible = false
 
 
-func _apply_window_mode(mode: String) -> void:
-	match mode:
-		"fullscreen":
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		"borderless":
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-		_:
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+func _open_confirm(message: String, confirmation_key: String) -> void:
+	_confirm_dialog.open(message, bool(_values.get("confirmations", {}).get(confirmation_key, true)))
 
 
-func _is_mobile_platform() -> bool:
-	return OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+func _on_confirm_confirmed() -> void:
+	_run_pending_action()
+
+
+func _on_confirm_always_toggled(checked: bool) -> void:
+	var key := _confirmation_key_for_action()
+	if key.is_empty():
+		return
+	var confirmations: Dictionary = _values.get("confirmations", {}).duplicate(true)
+	confirmations[key] = checked
+	_values["confirmations"] = confirmations
+	_commit()
+
+
+func _confirmation_key_for_action() -> String:
+	match _pending_action:
+		&"reset_settings":
+			return "default"
+		&"reset_read":
+			return "clear_read"
+	return ""
+
+
+func _run_pending_action() -> void:
+	var action := _pending_action
+	_pending_action = &""
+	_confirm_dialog.close()
+	match action:
+		&"reset_settings":
+			_run_reset_settings()
+		&"reset_read":
+			_run_reset_read()
+
+
+func _run_reset_settings() -> void:
+	var preserved_mode: Variant = _values.get("window_mode", "windowed")
+	var preserved_width: Variant = _values.get("window_width", 1280)
+	_values = TitleSettingsModel.defaults()
+	_values["window_mode"] = preserved_mode
+	_values["window_width"] = preserved_width
+	_sync_pages()
+	settings_preview_changed.emit(_values.duplicate(true))
+	_commit()
+	_set_status("已恢复初始设定。")
+
+
+func _run_reset_read() -> void:
+	read_flags_reset_requested.emit()
+	_set_status("已读情报初始化请求已发出（正文运行层待迁移）。")
+
+
+func _set_status(message: String) -> void:
+	status_changed.emit(message)
+	_status_label.text = message
+	_status_clear_timer.start()
+
+
+## --- Slider keyboard routing ---
+
+func _step_active_slider(key: InputEventKey) -> bool:
+	var slider := _find_active_slider()
+	if slider == null or slider.disabled:
+		return false
+	var delta := (slider.max_value - slider.min_value) / (10.0 if key.shift_pressed else 20.0)
+	if key.keycode == KEY_LEFT:
+		slider.step_by(-delta)
+	else:
+		slider.step_by(delta)
+	return true
+
+
+func _find_active_slider() -> ConfigKnobSlider:
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner is ConfigKnobSlider:
+		return focus_owner as ConfigKnobSlider
+	for slider in _sliders.values():
+		if (slider as ConfigKnobSlider).is_hovered():
+			return slider as ConfigKnobSlider
+	return null

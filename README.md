@@ -21,6 +21,16 @@ Continue/Load 也发出统一的 `ScenarioLaunchRequest`。当前正文 ADV runn
 
 视频阶段按键盘、主鼠标键、手柄确认键或触摸可进入警告页。警告页第一次输入会完成淡入并将剩余等待缩短为 4 秒，第二次输入会直接开始白场过渡。Title 菜单使用语义化 `vn_advance`/`vn_cancel`/`vn_confirm`，保留 Godot 原生触摸转鼠标让所有 `Control` 走同一 GUI 路径，并由 `StartupInput` 过滤 `DEVICE_ID_EMULATION` 合成鼠标，避免一次触摸推进两次；滚轮和次鼠标键不会误触发。菜单按钮保留双帧高亮、按下/回弹反馈、手柄焦点和扩大后的触摸命中区。
 
+环境设定现在完整复刻源 `ConfigWindowHD2` 的 HD 信息架构：
+
+- 全屏 1920×1080 配置窗口，覆盖 Title 功能 chrome；`settings/bg.png` 拉伸为窗口边框，右上三个图像页签（Screen/System/Audio）使用真实 `graphics1/2`、`systems1/2`、`audio1/2` 双态贴图。
+- Screen 页：全屏/窗口、1080p/900p/720p、透明度滑块（带 `slider_knob.png` 旋钮）、六个字体双态按钮、简体/日语按钮（日语按源工程禁用）、带头像的预览文本框——已读文字颜色与头像可见性随设置实时刷新。
+- System 页：五组 YES/NO 图像开关、文字速度/自动播放等待滑块、11 个确认窗口勾选框（checkbox.png 开/关帧）。
+- Audio 页：九个角色语音按钮（sora/nao/akira/kazuha/motoka/ryohei/yahiro/kozue/npc 源坐标）与立绘切换；每角色独立音量使用源梯形滑块（旋钮随值 115%→155% 缩放）；六个固定 100% 全局通道滑块；角色音量拖动结束后播放源 `個別音声` 样本，音量 = Master × Voice × 角色细节（经由 Godot 总线等效实现）。
+- 页脚：初始化设定/初始化已读/按键配置/返回标题四个 strip 按钮；按键配置弹出源 `key_popup.png`；右击或 Esc 先关弹窗再关窗口。
+- 初始化流程按源 `CallConfirm`：确认窗口使用源 `ui_1920/confirm` 的 bg/yes/no/ask_always 贴图，Y/Enter 确认、N/Esc/右击取消，“总是询问”勾选框直接改写对应 `confirmations` 项；关闭勾选后重置不再弹窗。初始化设定保留窗口模式与窗口宽度（对应源保留 `fullScreen`/`windowZoom`）；初始化已读发出 typed seam（读档数据存储待 ADV 层迁移）。
+- 设置模型 schema 升级到 3：语音细节从原型 9 槽迁移为源 VCID_TO_INDEX 的 11 槽（SR/AK/NO/KA/MT/RH/YH/KO/YM/SH/NP）并自动重排旧值；`window_opacity` 迁移为源的 `window_depth`（0–100）；`message_speed` 迁移为源 0–100 刻度。滑块拖动实时预览、拖动结束或 250ms debounce 后写入，且每次预览不重读磁盘。
+
 ## 运行
 
 使用 Godot 4.7.1 或兼容的 4.7 维护版本打开目录，或执行：
@@ -43,6 +53,8 @@ GODOT_EXECUTABLE=/path/to/godot ./tools/verify_project.sh
 
 ```bash
 godot --path . --script res://tests/visual_capture.gd -- title /tmp/title.png 1.25
+# 配置页可选第四个参数：0=Screen，1=System，2=Audio
+godot --path . --script res://tests/visual_capture.gd -- config /tmp/yosuga-config-final.png 1.0 0
 ```
 
 ## 结构
@@ -52,7 +64,7 @@ godot --path . --script res://tests/visual_capture.gd -- title /tmp/title.png 1.
 - `src/title/`：Title 路由、可复用菜单按钮、Load/Config/Bonus 页面。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 独立页面、分页网格、Album viewer 与媒体请求。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。
-- `src/title/config/`：完整 Audio/Screen/System 设置模型与 debounce 提交。
+- `src/title/config/`：HD 环境设定窗口 shell、设置模型（schema 3）、确认对话框、语音样本播放和窗口设置服务；`pages/` 为三个页签视图，`ui/` 为复刻源工程的图像开关/滑块/勾选控件。
 - `src/title/voice/`：独立的用户语音收藏 Resource/service；不把收藏错误地放入 autosave。
 - `src/title/scenario/`：Continue、剧情回想和未来语音跳转共用的 typed request 与不可用提示。
 - `src/core/audio/`：启动阶段语音随机选择、BGM 播放与循环点；`default_bus_layout.tres` 声明 Master/BGM/SystemVoice/Voice/EnvSE/SE/Movie 总线。
@@ -60,6 +72,9 @@ godot --path . --script res://tests/visual_capture.gd -- title /tmp/title.png 1.
 - `src/core/save/`：`SaveData` 场景存档、`ProfileData` 跨存档全局进度和 `SaveService`；使用 `user://`、临时文件、跨平台 backup/restore 替换、错误保留和迁移别名。
 - `assets/manifests/title_content_manifest.json`：从源清单整理出的可审计数据契约；契约测试固定组数、卡片/差分/音乐/回忆数量及每个媒体路径。
 - `assets/content/event_1920/`：源事件图资源（包含 manifest 需要的 214 个差分以及源目录中的其他同级资源）。
+- `assets/content/settings/`：源 `ui_1920/settings` HD 环境设定贴图（含 graphic/system/voices 子页与 `slider_knob.png`、`key_popup.png`）。
+- `assets/content/confirm/`：源 `ui_1920/confirm` 确认窗口贴图（bg/yes/no/ask_always）。
+- `assets/audio/voice_samples/`：源 `data/audio_ogg` 的 11 条“個別音声：ボリューム”样本，用于角色音量试听。
 - `assets/audio/bgm/`：Title/鉴赏所需 BGM OGG；manifest 播放 21 首，另保留启动页的 `BGM07_title.ogg`。
 - `assets/video/`：Godot 核心可解码的 OGV；`yosugacn` 与 5 条 Staff Roll 由源 MP4 转为 1280×720/30fps Theora，播放 manifest 不引用 MP4。
 - `assets/content/thumb/`：24 条回忆缩略图；`assets/` 其余为启动页、Title UI 与字体资源。

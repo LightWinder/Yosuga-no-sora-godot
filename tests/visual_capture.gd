@@ -37,8 +37,8 @@ func _initialize() -> void:
 
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
-	if arguments.size() != 3:
-		push_error("Usage: -- <brand|warning|title|title_press|album|music|memories|voice|config|load> <output.png> <delay_seconds>")
+	if arguments.size() < 3 or arguments.size() > 4:
+		push_error("Usage: -- <brand|warning|title|title_press|album|music|memories|voice|config|load> <output.png> <delay_seconds> [config_tab:0|1|2]")
 		quit(2)
 		return
 
@@ -60,7 +60,16 @@ func _capture() -> void:
 		screen = scene.instantiate() as Control
 	root.add_child(screen)
 	await create_timer(float(arguments[2])).timeout
-	if FEATURE_ROUTES.has(screen_name):
+	if screen_name == &"config" and arguments.size() == 4:
+		var config_page := (screen as TitleFeatureScreen).get_node("ConfigurationPage") as TitleConfigurationPage
+		if config_page == null:
+			push_error("ConfigurationPage was not created before visual capture.")
+			quit(1)
+			return
+		var tab := clampi(int(arguments[3]), 0, 2)
+		config_page.show_tab(tab)
+		await process_frame
+	if FEATURE_ROUTES.has(screen_name) and screen_name != &"config":
 		var feature := screen as TitleFeatureScreen
 		var panel := feature.get_node("Center/Panel") as Control
 		var entries := feature.get_node("Center/Panel/Margin/Content/EntryScroll") as Control

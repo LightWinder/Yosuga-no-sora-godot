@@ -6,8 +6,7 @@ signal back_requested
 signal bonus_back_requested
 signal content_requested(request: TitleContentRequest)
 signal scenario_requested(request: ScenarioLaunchRequest)
-
-const SETTINGS_COMMIT_DELAY_SECONDS := 0.25
+signal read_flags_reset_requested
 
 @onready var _title_label: Label = $Center/Panel/Margin/Content/Title
 @onready var _description_label: Label = $Center/Panel/Margin/Content/Description
@@ -16,6 +15,7 @@ const SETTINGS_COMMIT_DELAY_SECONDS := 0.25
 @onready var _primary_button: Button = $Center/Panel/Margin/Content/Primary
 @onready var _back_button: Button = $Center/Panel/Margin/Content/Back
 @onready var _background: TextureRect = $Background
+@onready var _center: Control = $Center
 
 var feature_id: StringName = &""
 var _save_service: SaveService
@@ -27,8 +27,6 @@ var _selected_save_path := ""
 var _delete_confirmation: ConfirmationDialog
 var _pending_delete_slot_id := -1
 var _pending_delete_is_autosave := false
-var _settings_commit_timer: Timer
-var _pending_settings: Dictionary = {}
 var _audio_settings := TitleAudioSettingsService.new()
 var _scenario_notice: ScenarioUnavailableNotice
 
@@ -48,14 +46,9 @@ func _ready() -> void:
 	_primary_button.pressed.connect(_on_primary_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
 	_build_delete_confirmation()
-	_build_settings_commit_timer()
 	_build_scenario_notice()
 	_populate()
 	_back_button.grab_focus()
-
-
-func _exit_tree() -> void:
-	_commit_pending_settings()
 
 
 func _input(event: InputEvent) -> void:
@@ -68,6 +61,9 @@ func _input(event: InputEvent) -> void:
 		var album_page := _content_page as TitleAlbumPage
 		if album_page.get_viewer() != null and album_page.get_viewer().visible:
 			return
+	if _settings_page != null and is_instance_valid(_settings_page) and _settings_page.is_visible_in_tree():
+		# The HD config window owns cancel/key input while it is open.
+		return
 	if StartupInput.is_cancel_event(event):
 		back_requested.emit()
 		get_viewport().set_input_as_handled()
@@ -98,15 +94,6 @@ func _build_delete_confirmation() -> void:
 	add_child(_delete_confirmation)
 
 
-func _build_settings_commit_timer() -> void:
-	_settings_commit_timer = Timer.new()
-	_settings_commit_timer.name = "LegacySettingsCommitTimer"
-	_settings_commit_timer.one_shot = true
-	_settings_commit_timer.wait_time = SETTINGS_COMMIT_DELAY_SECONDS
-	_settings_commit_timer.timeout.connect(_commit_pending_settings)
-	add_child(_settings_commit_timer)
-
-
 func _build_scenario_notice() -> void:
 	_scenario_notice = ScenarioUnavailableNotice.new()
 	_scenario_notice.name = "ScenarioUnavailableNotice"
@@ -127,8 +114,6 @@ func _populate() -> void:
 			_description_label.text = "选择自动存档或 20 个手动存档槽；确认后才会删除。"
 			_populate_load_page()
 		&"configuration":
-			_title_label.text = "环境设定"
-			_description_label.text = "Audio / Screen / System 设置独立持久化，并通过服务实时预览。"
 			_populate_configuration_page()
 		&"album", &"music", &"memories", &"voice":
 			_title_label.text = _catalog_title(feature_id)
@@ -157,8 +142,6 @@ func _background_path(route: StringName) -> String:
 
 
 func _style_navigation() -> void:
-	# The source pages provide the visual surface; these real Buttons remain the
-	# accessible/focusable semantic layer for keyboard, gamepad and touch.
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.80, 0.92, 0.96, 0.88)
 	normal.border_color = Color(0.28, 0.57, 0.70, 0.85)
@@ -260,55 +243,33 @@ func _cancel_pending_delete() -> void:
 
 
 func _populate_configuration_page() -> void:
+	# The HD config window replaces the generic feature chrome, like the
+	# source ConfigWindowHD overlays the whole 1920×1080 surface.
+	_center.visible = false
+	# TitleConfigurationPage owns the safe-area-aware background. Avoid drawing
+	# the route placeholder a second time underneath the same source artwork.
+	_background.visible = false
 	var page := TitleConfigurationPage.new()
 	page.name = "ConfigurationPage"
-	page.custom_minimum_size = Vector2(0.0, 680.0)
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.configure(_save_service.read_settings())
 	page.settings_preview_changed.connect(_on_settings_preview)
 	page.settings_commit_requested.connect(_on_settings_commit)
-	page.status_changed.connect(func(message: String) -> void: _status_label.text = message)
+	page.close_requested.connect(_on_back_pressed)
+	page.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
 	_content_page = page
 	_settings_page = page
-	_entry_list.add_child(page)
-	_status_label.text = "Audio / Screen / System 三页设置。"
+	add_child(page)
+	page.call_deferred("grab_config_focus")
 
 
 func _on_settings_preview(settings: Dictionary) -> void:
-	_pending_settings = settings.duplicate(true)
 	_save_service.preview_settings(settings)
 	_audio_settings.apply(settings)
 
 
 func _on_settings_commit(settings: Dictionary) -> void:
-	_pending_settings.clear()
 	_save_service.write_settings(settings)
 	_audio_settings.apply(settings)
-
-
-## Compatibility seam for callers that used the first prototype's slider API.
-func _on_setting_slider_changed(value: float, setting_key: String) -> void:
-	_pending_settings[setting_key] = value
-	_save_service.preview_settings(_pending_settings)
-	var preview := _save_service.read_settings()
-	for key in _pending_settings:
-		preview[key] = _pending_settings[key]
-	_audio_settings.apply(preview)
-
-
-func _on_setting_drag_ended(_value_changed: bool) -> void:
-	_commit_pending_settings()
-
-
-func _commit_pending_settings() -> void:
-	if _pending_settings.is_empty():
-		return
-	if is_instance_valid(_settings_commit_timer):
-		_settings_commit_timer.stop()
-	var pending := _pending_settings.duplicate(true)
-	_pending_settings.clear()
-	_save_service.write_settings(pending)
-	_audio_settings.apply(_save_service.read_settings())
 
 
 func _populate_catalog_page() -> void:

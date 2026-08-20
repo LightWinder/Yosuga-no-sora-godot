@@ -369,37 +369,137 @@ func _test_title_state() -> void:
 	config.configure(&"configuration", service)
 	root.add_child(config)
 	await process_frame
-	var config_page := config.get_node("Center/Panel/Margin/Content/EntryScroll/EntryList/ConfigurationPage") as TitleConfigurationPage
-	_expect(config_page != null, "Config must expose a dedicated Audio/Screen/System page model.")
+	var config_page := config.get_node("ConfigurationPage") as TitleConfigurationPage
+	_expect(config_page != null, "Config must expose a dedicated HD window model.")
+	_expect(not config.get_node("Center").visible, "HD config must replace the generic feature chrome.")
 	_expect(config_page.find_setting_slider("master_volume") != null, "Config must expose master volume.")
 	_expect(config_page.find_setting_slider("voice_volume") != null, "Config must expose voice volume.")
 	_expect(config_page.find_setting_slider("movie_volume") != null, "Config must expose movie volume.")
-	_expect(config_page.find_setting_slider("voice_detail_8") != null, "Config must expose all nine character-detail sliders.")
-	_expect(config_page.find_setting_option("window_mode") != null, "Config must expose window mode.")
+	_expect(config_page.find_setting_slider("voice_detail") != null, "Config must expose the per-character voice slider.")
+	_expect(config_page.find_setting_slider("window_depth") != null, "Config must expose the textbox depth slider.")
+	_expect(config_page.find_setting_slider("message_speed") != null, "Config must expose message speed.")
+	_expect(config_page.find_setting_slider("auto_speed") != null, "Config must expose auto speed.")
+	_expect(config_page.audio_page() != null and config_page.audio_page().voice_button_count() == 9, "Config audio page must expose the nine source voice characters.")
 	_expect(TitleSettingsModel.defaults().get("confirmations", {}).size() == 11, "Config must preserve all eleven confirmation toggles.")
+	_expect(TitleSettingsModel.VOICE_DETAIL_NAMES.size() == 11, "Settings must preserve the eleven source VCID detail slots.")
+	var source_defaults := TitleSettingsModel.defaults()
+	_expect(is_equal_approx(float(source_defaults.get("bgm_volume", 0.0)), 0.5) and is_equal_approx(float(source_defaults.get("se_volume", 0.0)), 0.7), "Audio defaults must match the source System.tjs gains.")
+	_expect(int(source_defaults.get("window_depth", -1)) == 50 and int(source_defaults.get("message_speed", -1)) == 5, "Screen/system defaults must preserve source units.")
+	var normalized_edges := TitleSettingsModel.normalize({"window_mode": "borderless", "window_width": 1500, "font_type": 99, "mute_master": 1})
+	_expect(str(normalized_edges.get("window_mode", "")) == "windowed" and int(normalized_edges.get("window_width", 0)) == 1600, "Unsupported desktop modes and widths must normalize to source HD choices.")
+	_expect(int(normalized_edges.get("font_type", -1)) == 5 and normalized_edges.get("mute_master", false) == true, "Font and mute values must be clamped/normalized before persistence.")
 	var preview_updates: Array[Dictionary] = []
 	service.settings_preview_changed.connect(func(settings: Dictionary) -> void: preview_updates.append(settings))
 	var writes_before_preview := service.settings_write_count
 	var settings_reads_before_preview := service.settings_disk_read_count
 	var master_slider := config_page.find_setting_slider("master_volume")
-	master_slider.value = 0.42
-	master_slider.value = 0.43
-	master_slider.value = 0.44
+	master_slider.value = 42.0
+	master_slider.value = 43.0
+	master_slider.value = 44.0
 	_expect(preview_updates.size() >= 3, "Config slider must preview each value change in real time.")
 	_expect(service.settings_write_count == writes_before_preview, "Slider preview must not write settings for every value_changed.")
 	_expect(service.settings_disk_read_count == settings_reads_before_preview, "Slider preview must use the settings snapshot without rereading disk.")
 	await create_timer(0.4, true, false, true).timeout
 	_expect(is_equal_approx(float(service.read_settings().get("master_volume", 0.0)), 0.44), "Config slider must persist after debounce.")
 	_expect(service.settings_write_count == writes_before_preview + 1, "Debounced slider changes must persist once.")
-	master_slider.value = 0.55
+	master_slider.value = 55.0
 	master_slider.drag_ended.emit(true)
 	_expect(service.settings_write_count == writes_before_preview + 2, "Ending a slider drag must commit the pending preview immediately.")
 	await create_timer(0.3, true, false, true).timeout
 	_expect(is_equal_approx(float(service.read_settings().get("master_volume", 0.0)), 0.55), "Drag-end commit must persist the final slider value.")
-	var window_mode := config_page.find_setting_option("window_mode")
-	_expect(window_mode.item_count == 3, "Config must expose window mode choices.")
-	window_mode.item_selected.emit(1)
-	_expect(str(service.read_settings().get("window_mode", "")) == "borderless", "Window mode must persist.")
+
+	config_page.screen_page().set_window_mode_for_test("fullscreen")
+	_expect(str(service.read_settings().get("window_mode", "")) == "fullscreen", "Window mode must persist.")
+	config_page.screen_page().set_window_mode_for_test("windowed")
+	_expect(str(service.read_settings().get("window_mode", "")) == "windowed", "Window mode must revert.")
+	config_page.screen_page().set_window_width_for_test(1920)
+	_expect(int(service.read_settings().get("window_width", 0)) == 1920, "Window width must persist.")
+	config_page.screen_page().set_window_width_for_test(1280)
+	config_page.screen_page().set_font_for_test(3)
+	_expect(int(service.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
+	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", false)
+	_expect(service.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
+	var preview_avatar := config_page.screen_page().get_node("PreviewAvatar") as TextureRect
+	_expect(not preview_avatar.visible, "Screen preview must hide the avatar immediately when portrait display is disabled.")
+	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", true)
+	_expect(preview_avatar.visible, "Screen preview must restore the avatar immediately when portrait display is enabled.")
+	config_page.system_page().set_system_toggle_for_test("read_skip", true)
+	_expect(service.read_settings().get("read_skip", true) == false, "The source readSkip flag is inverted relative to the HD YES/NO label.")
+	config_page.system_page().set_system_toggle_for_test("lock_auto", true)
+	_expect(service.read_settings().get("lock_auto", false) == true, "System toggles must persist.")
+	config_page.system_page().set_confirmation_for_test("delete", false)
+	var confirmations_after: Dictionary = service.read_settings().get("confirmations", {})
+	_expect(confirmations_after.get("delete", true) == false, "Confirmation toggles must persist.")
+	_expect(confirmations_after.get("load", false) == true and confirmations_after.get("clear_read", false) == true, "Updating one confirmation must preserve the other source flags.")
+	config_page.system_page().set_confirmation_for_test("delete", true)
+
+	config_page.audio_page().select_voice(2)
+	_expect(config_page.audio_page().selected_voice_detail_index() == 1, "Voice selection must map to the source VCID detail index.")
+	var voice_slider := config_page.find_setting_slider("voice_detail")
+	voice_slider.value = 30.0
+	voice_slider.drag_ended.emit(true)
+	var details: Array = service.read_settings().get("voice_detail_volumes", [])
+	_expect(is_equal_approx(float(details[1]), 0.3), "Voice detail volume must persist at the source detail index.")
+
+	var sample_files := TitleSettingsModel.VOICE_SAMPLE_FILES
+	for detail_index in sample_files.size():
+		_expect(FileAccess.file_exists("res://assets/audio/voice_samples/%s.ogg" % sample_files[detail_index]), "Voice sample must exist: %s" % sample_files[detail_index])
+	_expect(FileAccess.file_exists("res://assets/content/confirm/bg.png"), "Confirm dialog background must exist.")
+	_expect(FileAccess.file_exists("res://assets/content/confirm/yes.png"), "Confirm yes button must exist.")
+	_expect(FileAccess.file_exists("res://assets/content/confirm/no.png"), "Confirm no button must exist.")
+	_expect(FileAccess.file_exists("res://assets/content/confirm/ask_always.png"), "Confirm always-ask toggle must exist.")
+
+	config_page.request_reset_settings()
+	_expect(config_page.is_confirm_visible(), "Reset settings must ask when confirmations.default is enabled.")
+	config_page.cancel_pending_action()
+	_expect(not config_page.is_confirm_visible(), "Cancel must dismiss the reset confirm dialog.")
+	var writes_before_reset := service.settings_write_count
+	config_page.request_reset_settings()
+	config_page.confirm_pending_action()
+	_expect(service.settings_write_count == writes_before_reset + 1, "Confirmed reset must persist once.")
+	var reset_values := service.read_settings()
+	_expect(is_equal_approx(float(reset_values.get("master_volume", 0.0)), 1.0), "Reset settings must restore default volumes.")
+	_expect(str(reset_values.get("window_mode", "")) == "windowed", "Reset settings must preserve window mode.")
+	_expect(int(reset_values.get("window_width", 0)) == 1280, "Reset settings must preserve window width.")
+	config_page.system_page().set_confirmation_for_test("default", false)
+	var writes_before_silent_reset := service.settings_write_count
+	config_page.request_reset_settings()
+	_expect(not config_page.is_confirm_visible(), "Reset settings must skip the dialog when confirmations.default is disabled.")
+	_expect(service.settings_write_count == writes_before_silent_reset + 1, "Silent reset must persist once.")
+	var read_reset_events: Array[bool] = []
+	config_page.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
+	config_page.request_reset_read()
+	_expect(config_page.is_confirm_visible(), "Reset read flags must ask when confirmations.clear_read is enabled.")
+	config_page.confirm_pending_action()
+	_expect(read_reset_events.size() == 1, "Reset read flags must emit a typed seam request.")
+
+	var close_events: Array[bool] = []
+	config_page.close_requested.connect(func() -> void: close_events.append(true))
+	config_page.open_key_popup()
+	_expect(config_page.is_key_popup_visible(), "Key config button must open the popup.")
+	var popup_escape := InputEventKey.new()
+	popup_escape.pressed = true
+	popup_escape.keycode = KEY_ESCAPE
+	config_page._input(popup_escape)
+	_expect(not config_page.is_key_popup_visible(), "Cancel must close the key popup before closing the window.")
+	_expect(close_events.is_empty(), "Popup dismissal must not close the whole config window.")
+	var window_escape := InputEventKey.new()
+	window_escape.pressed = true
+	window_escape.keycode = KEY_ESCAPE
+	config_page._input(window_escape)
+	_expect(close_events.size() == 1, "Cancel must close the HD config window.")
+
+	var legacy_settings := TitleSettingsModel.normalize({
+		"schema_version": 2,
+		"window_opacity": 0.6,
+		"message_speed": 5,
+		"voice_detail_volumes": [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
+	})
+	_expect(int(legacy_settings.get("window_depth", 0)) == 60, "Schema 2 window opacity must migrate to window depth.")
+	_expect(int(legacy_settings.get("message_speed", 0)) == 50, "Schema 2 message speed must migrate to the source 0-100 scale.")
+	var migrated_details: Array = legacy_settings.get("voice_detail_volumes", [])
+	_expect(migrated_details.size() == 11, "Schema 2 voice details must migrate to eleven source slots.")
+	_expect(is_equal_approx(float(migrated_details[0]), 1.0) and is_equal_approx(float(migrated_details[1]), 0.8) and is_equal_approx(float(migrated_details[2]), 0.9) and is_equal_approx(float(migrated_details[10]), 0.2), "Schema 2 voice detail order must remap to source VCID order.")
 	config.free()
 	await process_frame
 

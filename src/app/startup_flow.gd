@@ -25,15 +25,18 @@ var last_selected_option: StringName = &""
 var last_content_request: TitleContentRequest
 var last_scenario_request: ScenarioLaunchRequest
 var _current_screen: Control
+var _screen_settings := TitleScreenSettingsService.new()
 
 
 func _ready() -> void:
 	InputActions.ensure_actions()
 	_save_service.settings_changed.connect(_audio.apply_settings)
+	_save_service.settings_changed.connect(_screen_settings.apply)
 	_save_service.settings_preview_changed.connect(_audio.apply_settings)
+	_save_service.settings_preview_changed.connect(_screen_settings.apply)
 	var settings := _save_service.read_settings()
 	_audio.apply_settings(settings)
-	_apply_window_mode(settings)
+	_screen_settings.apply(settings)
 	_show_brand_movie()
 
 
@@ -113,16 +116,3 @@ func _on_scenario_requested(request: ScenarioLaunchRequest) -> void:
 
 func _on_exit_requested() -> void:
 	get_tree().quit()
-
-
-func _apply_window_mode(settings: Dictionary) -> void:
-	match str(settings.get("window_mode", "windowed")):
-		"borderless":
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-		"fullscreen":
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		_:
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
