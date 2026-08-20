@@ -64,6 +64,7 @@ func _build_shell() -> void:
 	add_design_label(root, "回忆 · 24 条（18 条剧情回想 + 开场 / 5 条 Staff Roll）", Rect2(720, 20, 900, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
 	for index in _group_keys.size():
 		var tab := TitleSpriteButton.new()
+		tab.name = "Group%02d" % (index + 1)
 		tab.configure_sprite(_group_texture(index), 3, 18.0)
 		tab.set_design_size(Vector2(245.0, 58.0))
 		tab.position = Vector2(95.0 + float(index % 3) * 260.0, 84.0 + float(index / 3) * 70.0)
@@ -79,6 +80,7 @@ func _build_shell() -> void:
 	_video_player.visible = false
 	root.add_child(_video_player)
 	_video_stop = add_design_button(root, Rect2(800, 720, 300, 56), "停止视频", 22)
+	_video_stop.name = "StopVideo"
 	_video_stop.visible = false
 	_video_stop.pressed.connect(_stop_video)
 	_entry_list = GridContainer.new()
@@ -90,12 +92,14 @@ func _build_shell() -> void:
 	_entry_list.add_theme_constant_override("v_separation", 12)
 	root.add_child(_entry_list)
 	_previous_page = TitleSpriteButton.new()
+	_previous_page.name = "PreviousPage"
 	(_previous_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
 	(_previous_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
 	_previous_page.position = Vector2(680.0, 785.0)
 	_previous_page.pressed.connect(_change_page.bind(-1))
 	root.add_child(_previous_page)
 	_page_label = Label.new()
+	_page_label.name = "PageNumber"
 	_page_label.position = Vector2(760.0, 785.0)
 	_page_label.size = Vector2(160.0, 42.0)
 	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -104,12 +108,14 @@ func _build_shell() -> void:
 	_page_label.add_theme_font_size_override("font_size", 22)
 	root.add_child(_page_label)
 	_next_page = TitleSpriteButton.new()
+	_next_page.name = "NextPage"
 	(_next_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
 	(_next_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
 	_next_page.position = Vector2(925.0, 785.0)
 	_next_page.pressed.connect(_change_page.bind(1))
 	root.add_child(_next_page)
 	_status = Label.new()
+	_status.name = "Status"
 	_status.position = Vector2(300.0, 840.0)
 	_status.size = Vector2(1180.0, 42.0)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -147,6 +153,7 @@ func _select_group(index: int) -> void:
 	_group_index = index
 	_page_index = 0
 	for child in _entry_list.get_children():
+		_entry_list.remove_child(child)
 		child.queue_free()
 	var selected: Array[TitleMemoryEntry] = []
 	for memory in _manifest.memory_entries:
@@ -171,6 +178,7 @@ func _add_memory_card(memory: TitleMemoryEntry) -> void:
 	var unlocked := memory.unlocked(_profile)
 	var kind_label := "视频" if memory.is_video() else "剧情 seam"
 	var card := TitleVisualCard.new()
+	card.name = "Memory_%s" % str(memory.entry_id).validate_node_name()
 	card.configure(memory.entry_id, memory.title + " · " + kind_label, "res://assets/content/appreciation/cg_preview.png", unlocked, Vector2(350.0, 205.0))
 	if ResourceLoader.exists(memory.thumbnail_path):
 		card.set_thumbnail(load(memory.thumbnail_path) as Texture2D)

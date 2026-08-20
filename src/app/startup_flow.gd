@@ -16,6 +16,7 @@ const BRAND_MOVIE_SCENE: PackedScene = preload("res://src/intro/brand_movie_scre
 const CONTENT_WARNING_SCENE: PackedScene = preload("res://src/intro/content_warning_screen.tscn")
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const TITLE_FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const TITLE_CONFIGURATION_SCENE: PackedScene = preload("res://src/title/config/title_configuration_screen.tscn")
 
 @onready var _screen_host: Control = $ScreenHost
 @onready var _audio: StartupAudio = $StartupAudio
@@ -72,6 +73,8 @@ func _show_title() -> void:
 
 func _replace_screen(scene: PackedScene) -> Control:
 	if is_instance_valid(_current_screen):
+		if _current_screen.get_parent() == _screen_host:
+			_screen_host.remove_child(_current_screen)
 		_current_screen.queue_free()
 
 	_current_screen = scene.instantiate() as Control
@@ -79,6 +82,8 @@ func _replace_screen(scene: PackedScene) -> Control:
 		(_current_screen as TitleScreen).configure(_save_service)
 	elif _current_screen is TitleFeatureScreen:
 		(_current_screen as TitleFeatureScreen).configure(last_selected_option, _save_service)
+	elif _current_screen is TitleConfigurationScreen:
+		(_current_screen as TitleConfigurationScreen).configure(_save_service)
 	_screen_host.add_child(_current_screen)
 	return _current_screen
 
@@ -89,13 +94,16 @@ func _on_title_option_selected(option_id: StringName) -> void:
 
 func _show_title_feature(feature_id: StringName) -> void:
 	last_selected_option = feature_id
+	if feature_id == &"configuration":
+		var configuration := _replace_screen(TITLE_CONFIGURATION_SCENE) as TitleConfigurationScreen
+		configuration.back_requested.connect(_show_title)
+		configuration.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
+		return
 	var screen := _replace_screen(TITLE_FEATURE_SCENE) as TitleFeatureScreen
-	screen.configure(feature_id, _save_service)
 	screen.back_requested.connect(_show_title)
 	screen.bonus_back_requested.connect(_show_title_bonus)
 	screen.scenario_requested.connect(_on_scenario_requested)
 	screen.content_requested.connect(_on_content_requested)
-	screen.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
 
 
 func _show_title_bonus() -> void:

@@ -86,8 +86,10 @@ func _build_shell() -> void:
 	_track_list.add_theme_constant_override("v_separation", 12)
 	root.add_child(_track_list)
 	var stop_button := add_design_button(root, Rect2(765, 835, 390, 58), "停止播放", 22)
+	stop_button.name = "StopPlayback"
 	stop_button.pressed.connect(stop)
 	_status = Label.new()
+	_status.name = "Status"
 	_status.position = Vector2(270.0, 890.0)
 	_status.size = Vector2(1280.0, 38.0)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -99,10 +101,12 @@ func _refresh() -> void:
 	if _manifest == null or _track_list == null:
 		return
 	for child in _track_list.get_children():
+		_track_list.remove_child(child)
 		child.queue_free()
 	for index in _manifest.music_tracks.size():
 		var track := _manifest.music_tracks[index]
 		var button := TitleMusicButton.new()
+		button.name = "Track_%s" % str(track.track_id).validate_node_name()
 		button.configure("res://assets/content/appreciation/track_%02d.png" % (index + 1), "res://assets/content/appreciation/bgm_hitbox.png")
 		button.set_design_size(Vector2(460.0, 67.0))
 		button.tooltip_text = "%s · %s" % [track.track_id, track.title_id]

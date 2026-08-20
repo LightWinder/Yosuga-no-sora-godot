@@ -9,22 +9,25 @@ const ACCENT := Color(0.10, 0.55, 0.76, 1.0)
 const TEXT := Color(0.96, 0.99, 1.0, 1.0)
 const PANEL_FILL := Color(0.96, 0.99, 1.0, 0.48)
 const DISPLAY_FONT_PATH := "res://assets/fonts/Xiaolai-Regular.fontdata"
-
-const EMBOLDEN = 0.2
+const SECTION_TITLE_FONT_SIZE := 44
+const CHOICE_FONT_SIZE := 32
+const CHOICE_OUTLINE_SIZE := 3
+const PANEL_RADIUS := 20
+const EMBOLDEN := 0.2
 
 static var _choice_font: FontVariation
 static var _section_title_font: FontVariation
 static var _choice_glow_texture: GradientTexture2D
 
 
-static func apply_panel(panel: Panel, alpha := 0.48, radius := 20) -> void:
+static func apply_panel(panel: Control, alpha := 0.48, radius := PANEL_RADIUS) -> void:
 	var fill := PANEL_FILL
 	fill.a = alpha
 	panel.add_theme_stylebox_override("panel", _style(fill, Color.TRANSPARENT, 0, radius))
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-static func apply_choice_button(button: Button, font_size := 32) -> void:
+static func apply_choice_button(button: Button, font_size := CHOICE_FONT_SIZE) -> void:
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.add_theme_font_override("font", choice_font())
@@ -35,7 +38,7 @@ static func apply_choice_button(button: Button, font_size := 32) -> void:
 	button.add_theme_color_override("font_focus_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color(0.78, 0.88, 0.93, 0.58))
 	button.add_theme_color_override("font_outline_color", Color(0.05, 0.40, 0.62, 1.0))
-	button.add_theme_constant_override("outline_size", 3)
+	button.add_theme_constant_override("outline_size", CHOICE_OUTLINE_SIZE)
 	var empty := StyleBoxEmpty.new()
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		button.add_theme_stylebox_override(state, empty)
@@ -88,9 +91,12 @@ static func _style(fill: Color, border: Color, width: int, radius: int) -> Style
 	style.border_color = border
 	style.set_border_width_all(width)
 	style.set_corner_radius_all(radius)
-	style.content_margin_left = 10.0
-	style.content_margin_right = 10.0
-	style.content_margin_top = 4.0
-	style.content_margin_bottom = 4.0
+	# Section cards own their padding through their child layout. Keeping the
+	# style box content margins at zero makes local coordinates start exactly at
+	# the visible panel edge and avoids double padding in PanelContainer.
+	style.content_margin_left = 0.0
+	style.content_margin_right = 0.0
+	style.content_margin_top = 0.0
+	style.content_margin_bottom = 0.0
 	style.anti_aliasing = true
 	return style

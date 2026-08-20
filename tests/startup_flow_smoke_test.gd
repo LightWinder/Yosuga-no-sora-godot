@@ -62,8 +62,9 @@ func _run() -> void:
 	startup_flow._show_title_feature(&"configuration")
 	await process_frame
 	var screen_host := startup_flow.get_node("ScreenHost") as Control
-	var configuration_feature := screen_host.get_child(screen_host.get_child_count() - 1) as TitleFeatureScreen
-	configuration_feature.read_flags_reset_requested.emit()
+	var configuration_screen := screen_host.get_child(screen_host.get_child_count() - 1) as TitleConfigurationScreen
+	_expect(configuration_screen != null, "Configuration must use its dedicated route scene.")
+	configuration_screen.configuration_page().read_flags_reset_requested.emit()
 	_expect(read_reset_events.size() == 1, "StartupFlow must expose the configuration read-reset integration seam.")
 	startup_flow.free()
 	Engine.time_scale = 1.0

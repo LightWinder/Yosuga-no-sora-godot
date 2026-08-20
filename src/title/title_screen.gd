@@ -14,6 +14,8 @@ const MENU_Y := 979.0
 const BUTTON_SPACING := 12.0
 const SAFE_AREA_PADDING_PIXELS := 24.0
 const BUTTON_SCENE: PackedScene = preload("res://src/title/title_menu_button.tscn")
+const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/scenario/scenario_unavailable_notice.tscn")
+const EXIT_CONFIRMATION_SCENE: PackedScene = preload("res://src/title/title_exit_confirmation.tscn")
 
 const CHARACTER_LAYERS: Array[Dictionary] = [
 	{"flag": 25, "texture": preload("res://assets/ui/title/QD-13-motoka.png")},
@@ -40,9 +42,7 @@ var _main_buttons: Array[TitleMenuButton] = []
 var _bonus_buttons: Array[TitleMenuButton] = []
 var _active_controls: Array[Control] = []
 var _back_button: Button
-var _exit_overlay: ColorRect
-var _exit_yes_button: Button
-var _exit_no_button: Button
+var _exit_confirmation: TitleExitConfirmation
 var _reveal_tween: Tween
 var _bonus_mode := false
 var _exit_confirmation_visible := false
@@ -57,11 +57,10 @@ func _ready() -> void:
 	InputActions.ensure_actions()
 	if _save_service == null:
 		_save_service = SaveService.new()
+		_save_service.name = "SaveService"
 		add_child(_save_service)
 	_build_character_layers()
 	_build_menu()
-	_build_exit_confirmation()
-	_build_scenario_notice()
 	_version_label.text = "version %s" % str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
 	_apply_design_transform()
 	_start_reveal_animation()
@@ -286,66 +285,33 @@ func _leave_bonus() -> void:
 		_main_buttons[0].grab_focus()
 
 
-func _build_exit_confirmation() -> void:
-	_exit_overlay = ColorRect.new()
-	_exit_overlay.name = "ExitConfirmationOverlay"
-	_exit_overlay.color = Color(0.0, 0.0, 0.0, 0.72)
-	_exit_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_exit_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_exit_overlay)
-
-	var panel := PanelContainer.new()
-	panel.name = "Dialog"
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -350.0
-	panel.offset_top = -155.0
-	panel.offset_right = 350.0
-	panel.offset_bottom = 155.0
-	_exit_overlay.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 24)
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 36)
-	panel.add_child(box)
-	var message := Label.new()
-	message.text = "要结束游戏吗？"
-	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message.custom_minimum_size.y = 100.0
-	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	box.add_child(message)
-	var actions := HBoxContainer.new()
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", 28)
-	box.add_child(actions)
-	_exit_yes_button = Button.new()
-	_exit_yes_button.text = "结束游戏"
-	_exit_yes_button.custom_minimum_size = Vector2(220.0, 72.0)
-	_exit_yes_button.pressed.connect(_confirm_exit)
-	actions.add_child(_exit_yes_button)
-	_exit_no_button = Button.new()
-	_exit_no_button.text = "取消"
-	_exit_no_button.custom_minimum_size = Vector2(220.0, 72.0)
-	_exit_no_button.pressed.connect(_hide_exit_confirmation)
-	actions.add_child(_exit_no_button)
-	_exit_overlay.visible = false
+func _ensure_exit_confirmation() -> void:
+	if is_instance_valid(_exit_confirmation):
+		return
+	_exit_confirmation = EXIT_CONFIRMATION_SCENE.instantiate() as TitleExitConfirmation
+	_exit_confirmation.confirmed.connect(_confirm_exit)
+	_exit_confirmation.canceled.connect(_hide_exit_confirmation)
+	add_child(_exit_confirmation)
 
 
-func _build_scenario_notice() -> void:
-	_scenario_notice = ScenarioUnavailableNotice.new()
-	_scenario_notice.name = "ScenarioUnavailableNotice"
+func _ensure_scenario_notice() -> void:
+	if is_instance_valid(_scenario_notice):
+		return
+	_scenario_notice = SCENARIO_NOTICE_SCENE.instantiate() as ScenarioUnavailableNotice
 	add_child(_scenario_notice)
 
 
 func _show_scenario_notice(request: ScenarioLaunchRequest) -> void:
-	if _scenario_notice != null:
-		_scenario_notice.show_request(request)
+	_ensure_scenario_notice()
+	_scenario_notice.show_request(request)
 
 
 func _show_exit_confirmation() -> void:
 	if _is_mobile_platform():
 		return
+	_ensure_exit_confirmation()
 	_exit_confirmation_visible = true
-	_exit_overlay.visible = true
-	_exit_no_button.grab_focus()
+	_exit_confirmation.open()
 	exit_confirmation_changed.emit(true)
 
 
@@ -353,7 +319,7 @@ func _hide_exit_confirmation() -> void:
 	if not _exit_confirmation_visible:
 		return
 	_exit_confirmation_visible = false
-	_exit_overlay.visible = false
+	_exit_confirmation.close()
 	exit_confirmation_changed.emit(false)
 
 

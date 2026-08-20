@@ -1,0 +1,256 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/title/config/pages/config_screen_page.gd" id="1_page"]
+[ext_resource type="Script" path="res://src/title/config/ui/config_section_card.gd" id="2_card"]
+[ext_resource type="Script" path="res://src/title/config/ui/config_section_title.gd" id="3_title"]
+
+[node name="ScreenPage" type="Control"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+script = ExtResource("1_page")
+
+[node name="MainColumns" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(1851, 583)
+layout_mode = 0
+offset_left = 44.0
+offset_top = 286.0
+offset_right = 1895.0
+offset_bottom = 869.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="LeftColumnMargin" type="MarginContainer" parent="MainColumns"]
+custom_minimum_size = Vector2(962, 583)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 2
+
+[node name="LeftColumn" type="VBoxContainer" parent="MainColumns/LeftColumnMargin"]
+custom_minimum_size = Vector2(962, 581)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="DisplayModeCard" type="PanelContainer" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(962, 111)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/DisplayModeCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DisplayModeTitle" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/DisplayModeCard/Content"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 10.0
+offset_right = 350.0
+offset_bottom = 80.0
+script = ExtResource("3_title")
+caption = "显示模式"
+
+[node name="Gap01" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="WindowSizeCard" type="PanelContainer" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(962, 112)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/WindowSizeCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="WindowSizeTitle" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/WindowSizeCard/Content"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 9.0
+offset_right = 370.0
+offset_bottom = 79.0
+script = ExtResource("3_title")
+caption = "窗口大小"
+
+[node name="Gap03" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TextboxOpacityCard" type="PanelContainer" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(962, 110)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/TextboxOpacityCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TextboxOpacityTitle" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/TextboxOpacityCard/Content"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 9.0
+offset_right = 440.0
+offset_bottom = 79.0
+script = ExtResource("3_title")
+caption = "文本框不透明度"
+
+[node name="Gap05" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(0, 11)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FontSelectionCard" type="PanelContainer" parent="MainColumns/LeftColumnMargin/LeftColumn"]
+custom_minimum_size = Vector2(962, 220)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/FontSelectionCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FontSelectionTitle" type="Control" parent="MainColumns/LeftColumnMargin/LeftColumn/FontSelectionCard/Content"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 7.0
+offset_right = 350.0
+offset_bottom = 77.0
+script = ExtResource("3_title")
+caption = "字体选择"
+
+[node name="ColumnGap" type="Control" parent="MainColumns"]
+custom_minimum_size = Vector2(13, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RightColumn" type="VBoxContainer" parent="MainColumns"]
+custom_minimum_size = Vector2(876, 583)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="UpperRow" type="HBoxContainer" parent="MainColumns/RightColumn"]
+custom_minimum_size = Vector2(876, 352)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="DisplayLanguageCard" type="PanelContainer" parent="MainColumns/RightColumn/UpperRow"]
+custom_minimum_size = Vector2(271, 352)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/RightColumn/UpperRow/DisplayLanguageCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DisplayLanguageTitle" type="Control" parent="MainColumns/RightColumn/UpperRow/DisplayLanguageCard/Content"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 12.0
+offset_right = 288.0
+offset_bottom = 82.0
+script = ExtResource("3_title")
+caption = "显示语言"
+
+[node name="UpperGap" type="Control" parent="MainColumns/RightColumn/UpperRow"]
+custom_minimum_size = Vector2(15, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PreviewCard" type="PanelContainer" parent="MainColumns/RightColumn/UpperRow"]
+custom_minimum_size = Vector2(590, 352)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/RightColumn/UpperRow/PreviewCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PreviewTitle" type="Control" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Content"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 12.0
+offset_right = 248.0
+offset_bottom = 82.0
+script = ExtResource("3_title")
+caption = "预览"
+
+[node name="RowGap" type="Control" parent="MainColumns/RightColumn"]
+custom_minimum_size = Vector2(0, 11)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LowerRow" type="HBoxContainer" parent="MainColumns/RightColumn"]
+custom_minimum_size = Vector2(876, 220)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="PortraitDisplayCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow"]
+custom_minimum_size = Vector2(307, 220)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/RightColumn/LowerRow/PortraitDisplayCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PortraitDisplayTitle" type="Control" parent="MainColumns/RightColumn/LowerRow/PortraitDisplayCard/Content"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 4.0
+offset_right = 328.0
+offset_bottom = 74.0
+script = ExtResource("3_title")
+caption = "人物头像显示"
+
+[node name="LowerGap01" type="Control" parent="MainColumns/RightColumn/LowerRow"]
+custom_minimum_size = Vector2(11, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ReadColorCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow"]
+custom_minimum_size = Vector2(346, 220)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/RightColumn/LowerRow/ReadColorCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ReadColorTitle" type="Control" parent="MainColumns/RightColumn/LowerRow/ReadColorCard/Content"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 4.0
+offset_right = 363.0
+offset_bottom = 74.0
+script = ExtResource("3_title")
+caption = "已读文本颜色变更"
+font_size = 38
+
+[node name="LowerGap03" type="Control" parent="MainColumns/RightColumn/LowerRow"]
+custom_minimum_size = Vector2(15, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScreenEffectCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow"]
+custom_minimum_size = Vector2(197, 220)
+layout_mode = 2
+script = ExtResource("2_card")
+
+[node name="Content" type="Control" parent="MainColumns/RightColumn/LowerRow/ScreenEffectCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScreenEffectTitle" type="Control" parent="MainColumns/RightColumn/LowerRow/ScreenEffectCard/Content"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 4.0
+offset_right = 222.0
+offset_bottom = 74.0
+script = ExtResource("3_title")
+caption = "动画效果"
+font_size = 39

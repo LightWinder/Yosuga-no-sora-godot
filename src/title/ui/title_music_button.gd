@@ -27,6 +27,7 @@ func configure(track_texture_path: String, hitbox_texture_path: String) -> void:
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_title_layer = TextureRect.new()
+	_title_layer.name = "TitleArtwork"
 	_title_layer.texture = title
 	_title_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_title_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

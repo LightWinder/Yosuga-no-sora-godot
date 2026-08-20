@@ -43,6 +43,7 @@ func _ready() -> void:
 	for index in VOICE_BUTTONS.size():
 		var entry: Dictionary = VOICE_BUTTONS[index]
 		var button := add_strip_toggle(VOICE_ROOT + str(entry.file) + ".png", entry.pos)
+		button.name = "%sVoice" % str(entry.file).to_pascal_case()
 		button.pressed.connect(_on_voice_pressed.bind(index))
 		_voice_buttons.append(button)
 	_voice_portrait = TextureRect.new()

@@ -61,10 +61,10 @@ godot --path . --script res://tests/visual_capture.gd -- config /tmp/yosuga-conf
 
 - `src/app/`：只负责启动状态流转，不包含页面实现细节。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
-- `src/title/`：Title 路由、可复用菜单按钮、Load/Config/Bonus 页面。
-- `src/title/content/`：manifest、Album/Music/Memories/Voice 独立页面、分页网格、Album viewer 与媒体请求。
+- `src/title/`：Title 路由和可复用菜单组件；读取页使用轻量通用 host，环境设定使用独立 `TitleConfigurationScreen`，不会再挂在通用功能页下面。
+- `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。
-- `src/title/config/`：HD 环境设定窗口 shell、设置模型（schema 3）、确认对话框、语音样本播放和窗口设置服务；`pages/` 为三个页签视图，`ui/` 为复刻源工程的图像开关/滑块/勾选控件。
+- `src/title/config/`：HD 环境设定路由场景、窗口编辑器场景、设置模型（schema 3）、确认对话框场景、语音样本播放和窗口设置服务；`pages/` 的三个页签均为独立子场景，Screen 页的两列 Container、九张卡片和标题由 `.tscn` 固定持有，脚本只生成数据驱动选项并绑定设置；`ui/` 为复刻源工程的图像开关/滑块/勾选组件与集中视觉 token。
 - `src/title/voice/`：独立的用户语音收藏 Resource/service；不把收藏错误地放入 autosave。
 - `src/title/scenario/`：Continue、剧情回想和未来语音跳转共用的 typed request 与不可用提示。
 - `src/core/audio/`：启动阶段语音随机选择、BGM 播放与循环点；`default_bus_layout.tres` 声明 Master/BGM/SystemVoice/Voice/EnvSE/SE/Movie 总线。
@@ -80,6 +80,8 @@ godot --path . --script res://tests/visual_capture.gd -- config /tmp/yosuga-conf
 - `assets/content/thumb/`：24 条回忆缩略图；`assets/` 其余为启动页、Title UI 与字体资源。
 - `assets/fonts/`、`assets/themes/`：项目级 CJK 默认 Theme 与由源项目 `Xiaolai-Regular.ttf` 生成的 standalone Godot `FontFile` derivative；字体随 `Xiaolai-Regular-OFL-1.1.txt` 附带 SIL OFL 1.1 attribution/license，冷启动不依赖 `.godot` 导入缓存。
 - `tests/`：无需第三方测试框架的无头烟雾测试和输入/存档/Title/导出契约测试。
+
+路由边界、复用弹窗和 Screen 页复杂的固定分栏放在 `.tscn`；规则性很强的重复控件与内容卡片仍由数据生成，但创建后立即赋予稳定业务名称。脚本负责依赖注入、信号和状态同步；服务只在需要它的路由中懒创建。运行时刷新列表会先从父节点移除旧项再释放，避免同帧创建同名节点后出现 `@Node@...` 自动名称。Remote 场景树因此应只显示有业务含义的节点名。
 
 ## 多平台导出
 

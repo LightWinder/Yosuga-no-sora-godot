@@ -29,6 +29,8 @@ func _ready() -> void:
 		var y := SYSTEM_YES_Y[index]
 		var yes := add_dual_toggle(SYSTEM_ROOT + "YES1.png", SYSTEM_ROOT + "YES2.png", Vector2(634, y), 77, 79, 77)
 		var no := add_dual_toggle(SYSTEM_ROOT + "NO1.png", SYSTEM_ROOT + "NO2.png", Vector2(788, y), 59, 61, 59, Vector2(-4, 0))
+		yes.name = "%sYes" % SYSTEM_TOGGLE_KEYS[index].to_pascal_case()
+		no.name = "%sNo" % SYSTEM_TOGGLE_KEYS[index].to_pascal_case()
 		yes.pressed.connect(_on_yes_pressed.bind(index))
 		no.pressed.connect(_on_no_pressed.bind(index))
 		_yes_buttons.append(yes)
@@ -42,6 +44,7 @@ func _ready() -> void:
 	var on_rect := Rect2(checkbox_texture.get_height() * 2, 0, checkbox_texture.get_height() + 6, checkbox_texture.get_height())
 	for index in TitleSettingsModel.CONFIRMATION_KEYS.size():
 		var button := add_check_box(checkbox_texture, off_rect, off_rect, on_rect, on_rect, CONFIRM_POSITIONS[index], Vector2(3.0, 0.0))
+		button.name = "%sConfirmation" % TitleSettingsModel.CONFIRMATION_KEYS[index].to_pascal_case()
 		button.toggled.connect(_on_confirmation_toggled.bind(index))
 		_confirm_buttons.append(button)
 

@@ -5,6 +5,8 @@ extends TitleVisualPage
 signal content_requested(request: TitleContentRequest)
 signal status_changed(message: String)
 
+const VIEWER_SCENE: PackedScene = preload("res://src/title/content/title_album_viewer.tscn")
+
 var _manifest: TitleContentManifest
 var _profile: ProfileData
 var _group_index := 0
@@ -67,6 +69,7 @@ func _build_shell() -> void:
 	add_design_label(root, "前六组 · 79 张卡片 / 214 个差分", Rect2(900, 20, 690, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
 	for _index in 6:
 		var button := TitleSpriteButton.new()
+		button.name = "Group%02d" % (_index + 1)
 		button.configure_sprite(_group_texture(_index), 3, 18.0)
 		button.set_design_size(Vector2(245.0, 58.0))
 		button.position = Vector2(95.0 + float(_index % 3) * 260.0, 84.0 + float(_index / 3) * 70.0)
@@ -82,12 +85,14 @@ func _build_shell() -> void:
 	_card_list.add_theme_constant_override("v_separation", 18)
 	root.add_child(_card_list)
 	_previous_page = TitleSpriteButton.new()
+	_previous_page.name = "PreviousPage"
 	(_previous_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
 	(_previous_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
 	_previous_page.position = Vector2(680.0, 785.0)
 	_previous_page.pressed.connect(_change_page.bind(-1))
 	root.add_child(_previous_page)
 	_page_label = Label.new()
+	_page_label.name = "PageNumber"
 	_page_label.position = Vector2(760.0, 785.0)
 	_page_label.size = Vector2(160.0, 42.0)
 	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -96,19 +101,20 @@ func _build_shell() -> void:
 	_page_label.add_theme_font_size_override("font_size", 22)
 	root.add_child(_page_label)
 	_next_page = TitleSpriteButton.new()
+	_next_page.name = "NextPage"
 	(_next_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
 	(_next_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
 	_next_page.position = Vector2(925.0, 785.0)
 	_next_page.pressed.connect(_change_page.bind(1))
 	root.add_child(_next_page)
 	_status = Label.new()
+	_status.name = "Status"
 	_status.position = Vector2(320.0, 840.0)
 	_status.size = Vector2(1120.0, 42.0)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_status)
-	_viewer = TitleAlbumViewer.new()
-	_viewer.name = "FullScreenAlbumViewer"
+	_viewer = VIEWER_SCENE.instantiate() as TitleAlbumViewer
 	_viewer.z_index = 100
 	_viewer.closed.connect(func() -> void: status_changed.emit("已返回相册列表。"))
 	visual_canvas().add_child(_viewer)
@@ -154,6 +160,7 @@ func _refresh_cards() -> void:
 	if _manifest == null or _card_list == null or _group_index >= _manifest.album_groups.size():
 		return
 	for child in _card_list.get_children():
+		_card_list.remove_child(child)
 		child.queue_free()
 	var group := _manifest.album_groups[_group_index]
 	var page_count := maxi(1, ceili(float(group.cards.size()) / 8.0))
@@ -177,6 +184,7 @@ func _change_page(delta: int) -> void:
 func _add_card_card(group: TitleAlbumGroup, card: TitleAlbumCard) -> void:
 	var unlocked := card.unlocked(_profile)
 	var card_button := TitleVisualCard.new()
+	card_button.name = "Card_%s" % card.card_id.validate_node_name()
 	card_button.configure(StringName(card.card_id), card.card_id, "res://assets/content/appreciation/cg_preview.png", unlocked, Vector2(350.0, 205.0))
 	var first := card.first_variant()
 	if first != null:

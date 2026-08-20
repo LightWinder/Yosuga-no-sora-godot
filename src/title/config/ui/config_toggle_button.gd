@@ -33,6 +33,7 @@ func _init() -> void:
 	add_theme_stylebox_override("focus", flat)
 	add_theme_stylebox_override("disabled", flat)
 	_visual = TextureRect.new()
+	_visual.name = "Visual"
 	_visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_visual.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_visual.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

@@ -14,7 +14,9 @@ const OUTER_KEYLINE_SIZE := 20
 const INNER_STROKE_SIZE := 14
 const STRIP_HEIGHT := 38.0
 
-var caption: String = ""
+@export var caption: String = ""
+@export var font_size := ConfigVisualTokens.SECTION_TITLE_FONT_SIZE
+
 var _font_size := 44
 var _outer_keyline: Label
 var _foreground: Label
@@ -30,10 +32,17 @@ func _init() -> void:
 	resized.connect(_layout_labels)
 
 
+func _ready() -> void:
+	_font_size = font_size
+	_update_labels()
+	queue_redraw()
+
+
 func configure(text_value: String, rect: Rect2, font_size := 44) -> void:
 	caption = text_value
 	position = rect.position
 	size = rect.size
+	self.font_size = font_size
 	_font_size = font_size
 	_update_labels()
 	queue_redraw()

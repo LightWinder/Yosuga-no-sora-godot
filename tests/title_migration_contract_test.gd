@@ -3,6 +3,7 @@ extends SceneTree
 
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const CONFIGURATION_SCENE: PackedScene = preload("res://src/title/config/title_configuration_screen.tscn")
 
 var _failures: Array[String] = []
 
@@ -273,6 +274,9 @@ func _test_title_state() -> void:
 	_expect(options.has(&"bonus"), "Bonus must appear after the cleared-game flag.")
 	_expect(options.has(&"exit_game"), "Exit must appear on desktop.")
 	_expect(title.get_menu_buttons().size() == 6, "Cleared save title menu must expose six desktop entries.")
+	_expect(title.get_node_or_null("ExitConfirmationOverlay") == null, "Exit confirmation must remain lazy until requested.")
+	_expect(title.get_node_or_null("ScenarioUnavailableNotice") == null, "Scenario notice must remain lazy until requested.")
+	_expect_no_generated_node_names(title, "Title scene")
 	var requested: Array[StringName] = []
 	var scenario_requests: Array[ScenarioLaunchRequest] = []
 	title.feature_requested.connect(func(feature_id: StringName) -> void: requested.append(feature_id))
@@ -284,6 +288,8 @@ func _test_title_state() -> void:
 	await process_frame
 	_expect(scenario_requests.size() == 1, "Continue must emit one unified ScenarioLaunchRequest.")
 	_expect(title.is_scenario_notice_visible(), "Continue must enter an explicit unavailable-runner notice.")
+	var title_notice := title.get_node_or_null("ScenarioUnavailableNotice") as ScenarioUnavailableNotice
+	_expect(title_notice != null and title_notice.scene_file_path.ends_with("scenario_unavailable_notice.tscn"), "Scenario notice must be a reusable scene instance.")
 	_expect(scenario_requests[0].scenario_id == "00_z000", "Continue request must preserve save scenario.")
 	var notice_escape := InputEventKey.new()
 	notice_escape.pressed = true
@@ -311,6 +317,19 @@ func _test_title_state() -> void:
 	title._input(escape)
 	_expect(not title.is_bonus_mode(), "Escape must return from Bonus.")
 	for button in title.get_menu_buttons():
+		if button.option_id == &"exit_game":
+			button.pressed.emit()
+			break
+	await process_frame
+	_expect(title.is_exit_confirmation_visible(), "Exit must open its confirmation scene.")
+	var exit_dialog := title.get_node_or_null("ExitConfirmationOverlay") as TitleExitConfirmation
+	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("title_exit_confirmation.tscn"), "Exit confirmation must be a reusable scene instance.")
+	var exit_escape := InputEventKey.new()
+	exit_escape.pressed = true
+	exit_escape.keycode = KEY_ESCAPE
+	title._input(exit_escape)
+	_expect(not title.is_exit_confirmation_visible(), "Escape must dismiss the exit confirmation scene.")
+	for button in title.get_menu_buttons():
 		if button.option_id == &"load_game":
 			button.pressed.emit()
 			break
@@ -333,12 +352,15 @@ func _test_title_state() -> void:
 	root.add_child(feature)
 	await process_frame
 	_expect(feature.feature_id == &"load_game", "Feature screen must preserve its route id.")
-	var load_list := feature.get_node("Center/Panel/Margin/Content/EntryScroll/EntryList") as VBoxContainer
+	_expect(feature.get_node_or_null("DeleteSaveConfirmation") == null, "Load confirmation must remain lazy until deletion is requested.")
+	_expect(feature.get_node_or_null("ScenarioUnavailableNotice") == null, "Load scenario notice must remain lazy until continue is requested.")
+	_expect(feature.get_node_or_null("VoiceCollectionService") == null, "Load route must not own the voice catalog service.")
+	var load_list := feature.get_node("Content/EntryList") as VBoxContainer
 	_expect(load_list.get_child_count() == 21, "Load must list autosave plus all 20 manual slots.")
 	var load_select := (load_list.get_child(0) as HBoxContainer).get_child(0) as Button
 	load_select.pressed.emit()
 	await process_frame
-	_expect(feature.get_node("Center/Panel/Margin/Content/Primary").visible, "Load selection must reveal continue action.")
+	_expect(feature.get_node("Content/Primary").visible, "Load selection must reveal continue action.")
 	var manual_delete := (load_list.get_child(1) as HBoxContainer).get_child(1) as Button
 	manual_delete.pressed.emit()
 	await process_frame
@@ -351,6 +373,7 @@ func _test_title_state() -> void:
 	feature.confirm_delete_confirmation()
 	await process_frame
 	_expect(not service.has_slot(0), "Confirmed manual-slot deletion must refresh and remove the file.")
+	_expect_no_generated_node_names(feature, "Load scene after list refresh")
 	var autosave_delete := (load_list.get_child(0) as HBoxContainer).get_child(1) as Button
 	autosave_delete.pressed.emit()
 	await process_frame
@@ -363,19 +386,21 @@ func _test_title_state() -> void:
 	await process_frame
 	_expect(not service.has_autosave(), "Confirmed autosave deletion must remove the autosave.")
 	load_select = null
-	var feature_back := feature.get_node("Center/Panel/Margin/Content/Back") as Button
+	var feature_back := feature.get_node("Content/Back") as Button
 	feature_back.pressed.emit()
 	_expect(back_events.size() == 1, "Feature Back button must emit its typed route signal.")
 	feature.free()
 	await process_frame
 
-	var config := FEATURE_SCENE.instantiate() as TitleFeatureScreen
-	config.configure(&"configuration", service)
+	var config := CONFIGURATION_SCENE.instantiate() as TitleConfigurationScreen
+	config.configure(service)
 	root.add_child(config)
 	await process_frame
-	var config_page := config.get_node("ConfigurationPage") as TitleConfigurationPage
+	var config_page := config.configuration_page()
 	_expect(config_page != null, "Config must expose a dedicated HD window model.")
-	_expect(not config.get_node("Center").visible, "HD config must replace the generic feature chrome.")
+	_expect(config.get_node_or_null("Content") == null, "Configuration route must not retain hidden generic feature chrome.")
+	_expect(config.scene_file_path.ends_with("title_configuration_screen.tscn"), "Configuration must be owned by a dedicated route scene.")
+	_expect(config_page.scene_file_path.ends_with("title_configuration_page.tscn"), "Configuration editor must be a reusable scene instance.")
 	_expect(config_page.find_setting_slider("master_volume") != null, "Config must expose master volume.")
 	_expect(config_page.find_setting_slider("voice_volume") != null, "Config must expose voice volume.")
 	_expect(config_page.find_setting_slider("movie_volume") != null, "Config must expose movie volume.")
@@ -383,19 +408,27 @@ func _test_title_state() -> void:
 	_expect(config_page.find_setting_slider("window_depth") != null, "Config must expose the textbox depth slider.")
 	_expect(config_page.screen_page().get_node_or_null("PageBackground") == null, "Screen config chrome must not regress to a baked 1920x1080 UI background.")
 	_expect(config_page.find_setting_slider("window_depth").uses_vector_visual(), "Screen config slider must use resolution-independent drawing.")
-	_expect(config_page.screen_page().get_node_or_null("PreviewArtwork") != null, "Screen config must retain the scenic preview as artwork.")
-	var font_selection_title := config_page.screen_page().get_node("FontSelectionTitle") as ConfigSectionTitle
+	var screen_page := config_page.screen_page()
+	_expect(screen_page.scene_file_path.ends_with("config_screen_page.tscn"), "Screen settings layout must be scene-owned instead of rebuilt by its controller.")
+	var main_columns := screen_page.find_child("MainColumns", true, false) as HBoxContainer
+	_expect(main_columns != null, "Screen config must organize its cards with a two-column container layout.")
+	_expect(main_columns.find_child("LeftColumn", true, false) is VBoxContainer, "Screen config must expose a container-managed left column.")
+	_expect(main_columns.find_child("RightColumn", true, false) is VBoxContainer, "Screen config must expose a container-managed right column.")
+	_expect(screen_page.find_child("PreviewArtwork", true, false) != null, "Screen config must retain the scenic preview as artwork.")
+	var font_selection_title := screen_page.find_child("FontSelectionTitle", true, false) as ConfigSectionTitle
 	_expect(font_selection_title != null and font_selection_title.caption == "字体选择", "Screen headings must be rendered from live text.")
 	_expect(font_selection_title.find_children("*", "TextureRect", true, false).is_empty(), "Screen headings must not regress to cropped source textures.")
 	_expect(font_selection_title.get_child_count() == 2, "A section heading must own exactly its two reusable text layers.")
 	_expect(font_selection_title.get_node_or_null("OuterKeyline") is Label and font_selection_title.get_node_or_null("Foreground") is Label, "Section heading stroke layers must remain explicit code-rendered labels.")
-	var preview_artwork := config_page.screen_page().get_node("PreviewArtwork") as TextureRect
+	var preview_artwork := screen_page.find_child("PreviewArtwork", true, false) as TextureRect
 	var preview_region := preview_artwork.texture as AtlasTexture
 	_expect(preview_region != null and preview_region.region.position.y >= 361.0, "Preview artwork must crop out the baked source heading before live text is overlaid.")
-	var preview_textbox := config_page.screen_page().get_node("PreviewTextbox") as TextureRect
-	var preview_avatar := config_page.screen_page().get_node("PreviewAvatar") as TextureRect
+	var preview_textbox := screen_page.find_child("PreviewTextbox", true, false) as TextureRect
+	var preview_avatar := screen_page.find_child("PreviewAvatar", true, false) as TextureRect
 	_expect(preview_textbox != null and preview_textbox.texture != null, "Screen preview must retain the source textbox artwork.")
 	_expect(preview_avatar != null and preview_avatar.texture != null and preview_avatar.size.x > 0.0, "Screen preview avatar artwork must have a visible rect.")
+	_expect(config_page.get_node_or_null("VisualCanvas/ConfigConfirm/Message") is Label, "Config confirmation hierarchy must be declared by its reusable scene.")
+	_expect_no_generated_node_names(config, "Configuration scene")
 	_expect(config_page.find_setting_slider("message_speed") != null, "Config must expose message speed.")
 	_expect(config_page.find_setting_slider("auto_speed") != null, "Config must expose auto speed.")
 	_expect(config_page.audio_page() != null and config_page.audio_page().voice_button_count() == 9, "Config audio page must expose the nine source voice characters.")
@@ -578,7 +611,9 @@ func _test_title_state() -> void:
 	album.content_requested.connect(func(request: TitleContentRequest) -> void: content_requests.append(request))
 	root.add_child(album)
 	await process_frame
-	var album_page := album.get_node("Center/Panel/Margin/Content/EntryScroll/EntryList/AlbumPage") as TitleAlbumPage
+	var album_page := album.get_node("Content/EntryList/AlbumPage") as TitleAlbumPage
+	_expect(album_page.scene_file_path.ends_with("title_album_page.tscn"), "Album route must instantiate its dedicated page scene.")
+	_expect(album.get_node_or_null("VoiceCollectionService") == null, "Album route must not allocate the voice catalog service.")
 	_expect(album_page.group_count() == 6 and album_page.card_count() == 79, "Album page must expose the full source grid model.")
 	_expect(album_page.open_card_for_test(0, 0), "Unlocked Album card must open the full-screen viewer.")
 	_expect(album_page.get_viewer().variant_count() == 8, "Viewer must filter differences by profile flags.")
@@ -609,7 +644,9 @@ func _test_title_state() -> void:
 	music.configure(&"music", service)
 	root.add_child(music)
 	await process_frame
-	var music_page := music.get_node("Center/Panel/Margin/Content/EntryScroll/EntryList/MusicPage") as TitleMusicPage
+	var music_page := music.get_node("Content/EntryList/MusicPage") as TitleMusicPage
+	_expect(music_page.scene_file_path.ends_with("title_music_page.tscn"), "Music route must instantiate its dedicated page scene.")
+	_expect(music.get_node_or_null("VoiceCollectionService") == null, "Music route must not allocate the voice catalog service.")
 	_expect(music_page.track_count() == 21, "Music page must expose all source tracks.")
 	music_page.select_track(0)
 	await process_frame
@@ -630,9 +667,22 @@ func _test_title_state() -> void:
 	memories.scenario_requested.connect(func(request: ScenarioLaunchRequest) -> void: memory_requests.append(request))
 	root.add_child(memories)
 	await process_frame
-	var memories_page := memories.get_node("Center/Panel/Margin/Content/EntryScroll/EntryList/MemoriesPage") as TitleMemoriesPage
+	var memories_page := memories.get_node("Content/EntryList/MemoriesPage") as TitleMemoriesPage
+	_expect(memories_page.scene_file_path.ends_with("title_memories_page.tscn"), "Memories route must instantiate its dedicated page scene.")
+	_expect(memories.get_node_or_null("VoiceCollectionService") == null, "Memories route must not allocate the voice catalog service.")
 	_expect(memories_page.entry_count() == 24 and memories_page.adv_count() == 18 and memories_page.video_count() == 6, "Memories page must separate 18 ADV seams and six videos.")
 	memories.free()
+	await process_frame
+
+	var voice_feature := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	voice_feature.configure(&"voice", service)
+	root.add_child(voice_feature)
+	await process_frame
+	var voice_page := voice_feature.get_node("Content/EntryList/VoicePage") as TitleVoicePage
+	_expect(voice_page.scene_file_path.ends_with("title_voice_page.tscn"), "Voice route must instantiate its dedicated page scene.")
+	_expect(voice_feature.get_node_or_null("VoiceCollectionService") is VoiceCollectionService, "Voice service must be named and scoped only to the voice route.")
+	_expect_no_generated_node_names(voice_feature, "Voice scene")
+	voice_feature.free()
 	await process_frame
 
 	var voice_path := "%s/voice_favorites.json" % title_root
@@ -670,3 +720,12 @@ func _test_title_state() -> void:
 func _expect(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
+
+
+func _expect_no_generated_node_names(scene_root: Node, context: String) -> void:
+	var pending: Array[Node] = [scene_root]
+	while not pending.is_empty():
+		var current: Node = pending.pop_back()
+		_expect(not String(current.name).begins_with("@"), "%s contains an auto-generated node name: %s" % [context, current.name])
+		for child in current.get_children():
+			pending.append(child)

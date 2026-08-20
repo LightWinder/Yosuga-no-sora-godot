@@ -14,32 +14,47 @@ required_files=(
 	"src/core/save/profile_data.gd"
 	"src/core/save/save_service.gd"
 	"src/title/title_feature_screen.tscn"
+	"src/title/title_exit_confirmation.tscn"
 	"src/title/title_catalog.gd"
 	"src/title/content/title_content_manifest.gd"
 	"src/title/content/title_album_page.gd"
+	"src/title/content/title_album_page.tscn"
 	"src/title/content/title_album_viewer.gd"
+	"src/title/content/title_album_viewer.tscn"
 	"src/title/content/title_music_page.gd"
+	"src/title/content/title_music_page.tscn"
 	"src/title/content/title_memories_page.gd"
+	"src/title/content/title_memories_page.tscn"
 	"src/title/content/title_voice_page.gd"
+	"src/title/content/title_voice_page.tscn"
 	"src/title/voice/voice_collection_service.gd"
 	"src/title/config/title_configuration_page.gd"
+	"src/title/config/title_configuration_page.tscn"
+	"src/title/config/title_configuration_screen.gd"
+	"src/title/config/title_configuration_screen.tscn"
 	"src/title/config/title_settings_model.gd"
 	"src/title/config/config_confirm_dialog.gd"
+	"src/title/config/config_confirm_dialog.tscn"
 	"src/title/config/config_voice_sample.gd"
 	"src/title/config/title_screen_settings_service.gd"
 	"src/title/config/pages/config_page_base.gd"
 	"src/title/config/pages/config_screen_page.gd"
+	"src/title/config/pages/config_screen_page.tscn"
 	"src/title/config/pages/config_system_page.gd"
+	"src/title/config/pages/config_system_page.tscn"
 	"src/title/config/pages/config_audio_page.gd"
+	"src/title/config/pages/config_audio_page.tscn"
 	"src/title/config/ui/config_toggle_button.gd"
 	"src/title/config/ui/config_strip_button.gd"
 	"src/title/config/ui/config_check_button.gd"
 	"src/title/config/ui/config_choice_button.gd"
 	"src/title/config/ui/config_choice_group.gd"
 	"src/title/config/ui/config_section_title.gd"
+	"src/title/config/ui/config_section_card.gd"
 	"src/title/config/ui/config_knob_slider.gd"
 	"src/title/config/ui/config_visual_tokens.gd"
 	"src/title/scenario/scenario_launch_request.gd"
+	"src/title/scenario/scenario_unavailable_notice.tscn"
 	"assets/manifests/title_content_manifest.json"
 	"assets/fonts/Xiaolai-Regular.fontdata"
 	"assets/fonts/Xiaolai-Regular-OFL-1.1.txt"
@@ -147,6 +162,16 @@ if rg -q 'title_screen_v2|title_screen_legacy|LegacyTitleScreen' "$project_root/
 	echo "Obsolete Title implementation remains under src/." >&2
 	exit 1
 fi
+if rg -q 'TitleConfigurationPage|ConfigurationPage' "$project_root/src/title/title_feature_screen.gd"; then
+	echo "The generic feature host must not own the configuration route." >&2
+	exit 1
+fi
+if rg -q 'ScenarioUnavailableNotice\.new|Title(Album|Music|Memories|Voice)Page\.new' "$project_root/src/title"; then
+	echo "Reusable Title pages and overlays must be instantiated from scene resources." >&2
+	exit 1
+fi
+require_pattern 'config_screen_page\.tscn' "$project_root/src/title/config/title_configuration_page.tscn" "Screen settings must remain a scene-owned subpage."
+require_pattern 'title_configuration_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route configuration through its dedicated scene."
 
 if ! command -v "$godot_executable" >/dev/null 2>&1 && [[ ! -x "$godot_executable" ]]; then
 	echo "Godot executable not found; static project checks passed. Set GODOT_EXECUTABLE to run runtime tests."

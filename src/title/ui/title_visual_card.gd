@@ -29,6 +29,7 @@ func configure(item: StringName, title: String, texture_path: String, unlocked: 
 	disabled = false
 	_mouse_layer()
 	_thumbnail = TextureRect.new()
+	_thumbnail.name = "Thumbnail"
 	_thumbnail.position = Vector2(12.0, 12.0)
 	_thumbnail.size = Vector2(card_size.x - 24.0, card_size.y - 70.0)
 	_thumbnail.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -37,6 +38,7 @@ func configure(item: StringName, title: String, texture_path: String, unlocked: 
 	_thumbnail.texture = load(texture_path) as Texture2D if texture_path.begins_with("res://") else null
 	add_child(_thumbnail)
 	_caption = Label.new()
+	_caption.name = "Caption"
 	_caption.position = Vector2(14.0, card_size.y - 53.0)
 	_caption.size = Vector2(card_size.x - 28.0, 30.0)
 	_caption.text = title
@@ -49,6 +51,7 @@ func configure(item: StringName, title: String, texture_path: String, unlocked: 
 	_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_caption)
 	_badge = Label.new()
+	_badge.name = "Badge"
 	_badge.position = Vector2(14.0, 14.0)
 	_badge.size = Vector2(card_size.x - 28.0, 30.0)
 	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT

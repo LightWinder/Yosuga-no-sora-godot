@@ -16,12 +16,14 @@ var _visual_canvas: Control
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_visual_canvas = Control.new()
-	_visual_canvas.name = "VisualCanvas"
-	_visual_canvas.position = Vector2.ZERO
-	_visual_canvas.size = DESIGN_SIZE
-	_visual_canvas.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(_visual_canvas)
+	_visual_canvas = get_node_or_null("VisualCanvas") as Control
+	if _visual_canvas == null:
+		_visual_canvas = Control.new()
+		_visual_canvas.name = "VisualCanvas"
+		_visual_canvas.position = Vector2.ZERO
+		_visual_canvas.size = DESIGN_SIZE
+		_visual_canvas.mouse_filter = Control.MOUSE_FILTER_PASS
+		add_child(_visual_canvas)
 	resized.connect(_apply_visual_transform)
 	_apply_visual_transform()
 
@@ -31,15 +33,17 @@ func visual_canvas() -> Control:
 
 
 func set_visual_background(texture_path: String) -> TextureRect:
-	var background := TextureRect.new()
-	background.name = "VisualBackground"
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var background := get_node_or_null("VisualBackground") as TextureRect
+	if background == null:
+		background = TextureRect.new()
+		background.name = "VisualBackground"
+		background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		add_child(background)
+		move_child(background, 0)
 	background.texture = load(texture_path) as Texture2D
-	add_child(background)
-	move_child(background, 0)
 	return background
 
 
@@ -50,6 +54,7 @@ func add_design_texture(
 		stretch_mode: TextureRect.StretchMode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 ) -> TextureRect:
 	var texture := TextureRect.new()
+	texture.name = "%sTexture%02d" % [texture_path.get_file().get_basename().to_pascal_case(), parent.get_child_count()]
 	texture.texture = load(texture_path) as Texture2D
 	texture.position = rect.position
 	texture.size = rect.size
@@ -68,6 +73,7 @@ func add_design_label(
 		color := Color.WHITE
 ) -> Label:
 	var label := Label.new()
+	label.name = "DesignLabel%02d" % parent.get_child_count()
 	label.text = text_value
 	label.position = rect.position
 	label.size = rect.size
@@ -84,6 +90,7 @@ func add_design_label(
 
 func add_design_button(parent: Node, rect: Rect2, text_value: String, font_size := 24) -> Button:
 	var button := Button.new()
+	button.name = "DesignButton%02d" % parent.get_child_count()
 	button.position = rect.position
 	button.size = rect.size
 	button.text = text_value

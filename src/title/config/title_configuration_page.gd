@@ -14,9 +14,9 @@ signal read_flags_reset_requested
 const COMMIT_DELAY := 0.25
 const SETTINGS_ROOT := "res://assets/content/settings/"
 const TAB_BUTTONS: Array[Dictionary] = [
-	{"normal": "graphics1.png", "selected": "graphics2.png", "pos": Vector2(1165, 190)},
-	{"normal": "systems1.png", "selected": "systems2.png", "pos": Vector2(1370, 190)},
-	{"normal": "audio1.png", "selected": "audio2.png", "pos": Vector2(1565, 190)},
+	{"node": "ScreenTab", "normal": "graphics1.png", "selected": "graphics2.png"},
+	{"node": "SystemTab", "normal": "systems1.png", "selected": "systems2.png"},
+	{"node": "AudioTab", "normal": "audio1.png", "selected": "audio2.png"},
 ]
 
 enum Tab {
@@ -26,20 +26,21 @@ enum Tab {
 }
 
 var _values: Dictionary = {}
-var _commit_timer: Timer
-var _status_clear_timer: Timer
 var _pending_commit := false
 var _tabs: Array[ConfigToggleButton] = []
-var _screen_page: ConfigScreenPage
-var _system_page: ConfigSystemPage
-var _audio_page: ConfigAudioPage
 var _current_tab := Tab.SCREEN
 var _sliders: Dictionary = {}
-var _key_popup: Control
-var _confirm_dialog: ConfigConfirmDialog
-var _voice_sample: ConfigVoiceSample
-var _status_label: Label
 var _pending_action: StringName = &""
+
+@onready var _commit_timer: Timer = $ConfigCommitTimer
+@onready var _status_clear_timer: Timer = $StatusClearTimer
+@onready var _voice_sample: ConfigVoiceSample = $VoiceSample
+@onready var _screen_page: ConfigScreenPage = $VisualCanvas/ScreenPage
+@onready var _system_page: ConfigSystemPage = $VisualCanvas/SystemPage
+@onready var _audio_page: ConfigAudioPage = $VisualCanvas/AudioPage
+@onready var _status_label: Label = $VisualCanvas/ConfigStatus
+@onready var _key_popup: Control = $VisualCanvas/KeyPopup
+@onready var _confirm_dialog: ConfigConfirmDialog = $VisualCanvas/ConfigConfirm
 
 
 func configure(settings: Dictionary) -> void:
@@ -51,27 +52,16 @@ func configure(settings: Dictionary) -> void:
 func _ready() -> void:
 	super._ready()
 	set_visual_background(SETTINGS_ROOT + "bg.png")
-	_commit_timer = Timer.new()
-	_commit_timer.name = "ConfigCommitTimer"
-	_commit_timer.one_shot = true
 	_commit_timer.wait_time = COMMIT_DELAY
 	_commit_timer.timeout.connect(_commit)
-	add_child(_commit_timer)
-	_status_clear_timer = Timer.new()
-	_status_clear_timer.name = "StatusClearTimer"
-	_status_clear_timer.one_shot = true
 	_status_clear_timer.wait_time = 4.0
 	_status_clear_timer.timeout.connect(func() -> void: _status_label.text = "")
-	add_child(_status_clear_timer)
-	_voice_sample = ConfigVoiceSample.new()
-	_voice_sample.name = "VoiceSample"
-	add_child(_voice_sample)
-	_build_tabs()
-	_build_pages()
-	_build_footer()
-	_build_status_label()
-	_build_key_popup()
-	_build_confirm_dialog()
+	_configure_tabs()
+	_configure_pages()
+	_configure_footer()
+	_configure_status_label()
+	_configure_key_popup()
+	_configure_confirm_dialog()
 	_sync_pages()
 	_show_tab(0)
 	if not _tabs.is_empty():
@@ -184,35 +174,26 @@ func cancel_pending_action() -> void:
 	_set_status("已取消。")
 
 
-## --- Builders ---
+## --- Scene wiring ---
 
-func _build_tabs() -> void:
+func _configure_tabs() -> void:
 	for index in TAB_BUTTONS.size():
 		var entry: Dictionary = TAB_BUTTONS[index]
-		var tab := ConfigToggleButton.new()
+		var tab := visual_canvas().get_node(str(entry.node)) as ConfigToggleButton
 		tab.configure_dual(SETTINGS_ROOT + str(entry.normal), SETTINGS_ROOT + str(entry.selected))
-		tab.position = entry.pos
 		tab.pressed.connect(_on_tab_pressed.bind(index))
-		visual_canvas().add_child(tab)
 		_tabs.append(tab)
 
 
-func _build_pages() -> void:
-	_screen_page = ConfigScreenPage.new()
-	_screen_page.name = "ScreenPage"
+func _configure_pages() -> void:
 	_attach_page(_screen_page)
-	_system_page = ConfigSystemPage.new()
-	_system_page.name = "SystemPage"
 	_attach_page(_system_page)
-	_audio_page = ConfigAudioPage.new()
-	_audio_page.name = "AudioPage"
 	_audio_page.sample_requested.connect(_on_voice_sample_requested)
 	_attach_page(_audio_page)
 
 
 func _attach_page(page: ConfigPageBase) -> void:
 	page.patch_requested.connect(_on_patch)
-	visual_canvas().add_child(page)
 	_collect_sliders(page)
 
 
@@ -222,72 +203,39 @@ func _collect_sliders(page: ConfigPageBase) -> void:
 		slider.drag_ended.connect(func(_changed: bool) -> void: _commit())
 
 
-func _build_footer() -> void:
-	_add_footer_button("reset_seetting.png", Vector2(42, 1037), request_reset_settings)
-	_add_footer_button("reset_text.png", Vector2(245, 1037), request_reset_read)
-	_add_footer_button("key.png", Vector2(520, 1037), open_key_popup, 3, 105, 105)
-	_add_footer_button("title.png", Vector2(1607, 995), func() -> void: close_requested.emit())
+func _configure_footer() -> void:
+	var reset_settings := $VisualCanvas/ResetSettings as ConfigStripButton
+	reset_settings.configure_strip(SETTINGS_ROOT + "reset_seetting.png", 2)
+	reset_settings.pressed.connect(request_reset_settings)
+	var reset_read := $VisualCanvas/ResetRead as ConfigStripButton
+	reset_read.configure_strip(SETTINGS_ROOT + "reset_text.png", 2)
+	reset_read.pressed.connect(request_reset_read)
+	var open_key := $VisualCanvas/OpenKeyPopup as ConfigStripButton
+	open_key.configure_strip(SETTINGS_ROOT + "key.png", 3, 105, 105)
+	open_key.pressed.connect(open_key_popup)
+	var close := $VisualCanvas/CloseConfiguration as ConfigStripButton
+	close.configure_strip(SETTINGS_ROOT + "title.png", 2)
+	close.pressed.connect(func() -> void: close_requested.emit())
 
 
-func _add_footer_button(
-		texture_name: String,
-		position_value: Vector2,
-		callback: Callable,
-		state_count := 2,
-		first_state_width := 0,
-		last_state_width := 0
-) -> ConfigStripButton:
-	var button := ConfigStripButton.new()
-	button.configure_strip(SETTINGS_ROOT + texture_name, state_count, first_state_width, last_state_width)
-	button.position = position_value
-	button.pressed.connect(callback)
-	visual_canvas().add_child(button)
-	return button
-
-
-func _build_status_label() -> void:
-	_status_label = Label.new()
-	_status_label.name = "ConfigStatus"
-	_status_label.position = Vector2(460, 955)
-	_status_label.size = Vector2(1000, 40)
-	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+func _configure_status_label() -> void:
 	_status_label.add_theme_font_size_override("font_size", 24)
 	_status_label.add_theme_color_override("font_color", Color.WHITE)
 	_status_label.add_theme_color_override("font_outline_color", Color(0.05, 0.08, 0.12, 0.9))
 	_status_label.add_theme_constant_override("outline_size", 4)
-	visual_canvas().add_child(_status_label)
 
 
-func _build_key_popup() -> void:
-	_key_popup = Control.new()
-	_key_popup.name = "KeyPopup"
-	_key_popup.position = Vector2.ZERO
-	_key_popup.size = TitleVisualPage.DESIGN_SIZE
-	_key_popup.mouse_filter = Control.MOUSE_FILTER_STOP
-	_key_popup.visible = false
-	var image := TextureRect.new()
-	image.name = "KeyPopupImage"
-	image.position = Vector2(568, 191)
-	image.texture = load(SETTINGS_ROOT + "key_popup.png") as Texture2D
-	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_key_popup.add_child(image)
+func _configure_key_popup() -> void:
 	_key_popup.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 			_close_key_popup()
 	)
-	visual_canvas().add_child(_key_popup)
 
 
-func _build_confirm_dialog() -> void:
-	_confirm_dialog = ConfigConfirmDialog.new()
-	_confirm_dialog.name = "ConfigConfirm"
+func _configure_confirm_dialog() -> void:
 	_confirm_dialog.confirmed.connect(_on_confirm_confirmed)
 	_confirm_dialog.canceled.connect(cancel_pending_action)
 	_confirm_dialog.always_toggled.connect(_on_confirm_always_toggled)
-	visual_canvas().add_child(_confirm_dialog)
 
 
 ## --- State flow ---

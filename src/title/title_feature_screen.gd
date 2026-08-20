@@ -6,22 +6,25 @@ signal back_requested
 signal bonus_back_requested
 signal content_requested(request: TitleContentRequest)
 signal scenario_requested(request: ScenarioLaunchRequest)
-signal read_flags_reset_requested
 
-@onready var _title_label: Label = $Center/Panel/Margin/Content/Title
-@onready var _description_label: Label = $Center/Panel/Margin/Content/Description
-@onready var _status_label: Label = $Center/Panel/Margin/Content/Status
-@onready var _entry_list: VBoxContainer = $Center/Panel/Margin/Content/EntryScroll/EntryList
-@onready var _primary_button: Button = $Center/Panel/Margin/Content/Primary
-@onready var _back_button: Button = $Center/Panel/Margin/Content/Back
+const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/scenario/scenario_unavailable_notice.tscn")
+const ALBUM_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_album_page.tscn")
+const MUSIC_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_music_page.tscn")
+const MEMORIES_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_memories_page.tscn")
+const VOICE_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_voice_page.tscn")
+
+@onready var _title_label: Label = $Content/Title
+@onready var _description_label: Label = $Content/Description
+@onready var _status_label: Label = $Content/Status
+@onready var _entry_list: VBoxContainer = $Content/EntryList
+@onready var _primary_button: Button = $Content/Primary
+@onready var _back_button: Button = $Content/Back
 @onready var _background: TextureRect = $Background
-@onready var _center: Control = $Center
 
 var feature_id: StringName = &""
 var _save_service: SaveService
 var _voice_service: VoiceCollectionService
 var _content_page: Control
-var _settings_page: TitleConfigurationPage
 var _selected_save: SaveData
 var _selected_save_path := ""
 var _delete_confirmation: ConfirmationDialog
@@ -39,13 +42,10 @@ func _ready() -> void:
 	InputActions.ensure_actions()
 	if _save_service == null:
 		_save_service = SaveService.new()
+		_save_service.name = "SaveService"
 		add_child(_save_service)
-	_voice_service = VoiceCollectionService.new()
-	add_child(_voice_service)
 	_primary_button.pressed.connect(_on_primary_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
-	_build_delete_confirmation()
-	_build_scenario_notice()
 	_populate()
 	_back_button.grab_focus()
 
@@ -60,9 +60,6 @@ func _input(event: InputEvent) -> void:
 		var album_page := _content_page as TitleAlbumPage
 		if album_page.get_viewer() != null and album_page.get_viewer().visible:
 			return
-	if _settings_page != null and is_instance_valid(_settings_page) and _settings_page.is_visible_in_tree():
-		# The HD config window owns cancel/key input while it is open.
-		return
 	if StartupInput.is_cancel_event(event):
 		back_requested.emit()
 		get_viewport().set_input_as_handled()
@@ -84,7 +81,9 @@ func is_scenario_notice_visible() -> bool:
 	return is_instance_valid(_scenario_notice) and _scenario_notice.visible
 
 
-func _build_delete_confirmation() -> void:
+func _ensure_delete_confirmation() -> void:
+	if is_instance_valid(_delete_confirmation):
+		return
 	_delete_confirmation = ConfirmationDialog.new()
 	_delete_confirmation.name = "DeleteSaveConfirmation"
 	_delete_confirmation.title = "删除存档"
@@ -93,10 +92,19 @@ func _build_delete_confirmation() -> void:
 	add_child(_delete_confirmation)
 
 
-func _build_scenario_notice() -> void:
-	_scenario_notice = ScenarioUnavailableNotice.new()
-	_scenario_notice.name = "ScenarioUnavailableNotice"
+func _ensure_scenario_notice() -> void:
+	if is_instance_valid(_scenario_notice):
+		return
+	_scenario_notice = SCENARIO_NOTICE_SCENE.instantiate() as ScenarioUnavailableNotice
 	add_child(_scenario_notice)
+
+
+func _ensure_voice_service() -> void:
+	if is_instance_valid(_voice_service):
+		return
+	_voice_service = VoiceCollectionService.new()
+	_voice_service.name = "VoiceCollectionService"
+	add_child(_voice_service)
 
 
 func _populate() -> void:
@@ -112,8 +120,6 @@ func _populate() -> void:
 			_title_label.text = "读取存档"
 			_description_label.text = "选择自动存档或 20 个手动存档槽；确认后才会删除。"
 			_populate_load_page()
-		&"configuration":
-			_populate_configuration_page()
 		&"album", &"music", &"memories", &"voice":
 			_title_label.text = _catalog_title(feature_id)
 			_description_label.text = _catalog_description(feature_id)
@@ -133,8 +139,6 @@ func _on_back_pressed() -> void:
 
 
 func _background_path(route: StringName) -> String:
-	if route == &"configuration":
-		return "res://assets/content/settings/bg.png"
 	if route == &"load_game":
 		return "res://assets/content/save_load_hd/background_load.png"
 	return "res://assets/content/appreciation/bg.png"
@@ -159,6 +163,7 @@ func _style_navigation() -> void:
 
 
 func _populate_load_page() -> void:
+	_clear_entries()
 	_add_load_row(-1, true, _save_service.load_autosave())
 	for slot_id in SaveService.MAX_SLOT_COUNT:
 		_add_load_row(slot_id, false, _save_service.load_slot(slot_id))
@@ -167,15 +172,18 @@ func _populate_load_page() -> void:
 
 func _add_load_row(slot_id: int, is_autosave: bool, data: SaveData) -> void:
 	var row := HBoxContainer.new()
+	row.name = "AutosaveRow" if is_autosave else "SaveSlot%02dRow" % (slot_id + 1)
 	row.custom_minimum_size.y = 54.0
 	row.add_theme_constant_override("separation", 12)
 	var select_button := Button.new()
+	select_button.name = "Select"
 	select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	select_button.focus_mode = Control.FOCUS_ALL
 	select_button.text = _save_label(slot_id, is_autosave, data)
 	select_button.pressed.connect(_on_load_selected.bind(slot_id, is_autosave))
 	row.add_child(select_button)
 	var delete_button := Button.new()
+	delete_button.name = "Delete"
 	delete_button.text = "删除"
 	delete_button.custom_minimum_size.x = 100.0
 	delete_button.disabled = data == null
@@ -213,12 +221,15 @@ func _on_load_deleted(slot_id: int, is_autosave: bool) -> void:
 		return
 	_pending_delete_slot_id = slot_id
 	_pending_delete_is_autosave = is_autosave
+	_ensure_delete_confirmation()
 	var target_name := "自动存档" if is_autosave else "槽位 %02d" % (slot_id + 1)
 	_delete_confirmation.dialog_text = "确定删除%s吗？取消不会删除文件。" % target_name
 	_delete_confirmation.popup_centered(Vector2i(640, 220))
 
 
 func _confirm_pending_delete() -> void:
+	if not is_instance_valid(_delete_confirmation):
+		return
 	_delete_confirmation.hide()
 	var slot_id := _pending_delete_slot_id
 	var is_autosave := _pending_delete_is_autosave
@@ -241,73 +252,32 @@ func _cancel_pending_delete() -> void:
 	_status_label.text = "已取消删除。"
 
 
-func _populate_configuration_page() -> void:
-	# The HD config window replaces the generic feature chrome, like the
-	# source ConfigWindowHD overlays the whole 1920×1080 surface.
-	_center.visible = false
-	# TitleConfigurationPage owns the safe-area-aware background. Avoid drawing
-	# the route placeholder a second time underneath the same source artwork.
-	_background.visible = false
-	var page := TitleConfigurationPage.new()
-	page.name = "ConfigurationPage"
-	page.configure(_save_service.read_settings())
-	page.settings_preview_changed.connect(_on_settings_preview)
-	page.settings_commit_requested.connect(_on_settings_commit)
-	page.close_requested.connect(_on_back_pressed)
-	page.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
-	_content_page = page
-	_settings_page = page
-	add_child(page)
-	page.call_deferred("grab_config_focus")
-
-
-func _on_settings_preview(settings: Dictionary) -> void:
-	_save_service.preview_settings(settings)
-
-
-func _on_settings_commit(settings: Dictionary) -> void:
-	if _save_service.write_settings(settings):
-		return
-	if is_instance_valid(_settings_page):
-		var write_error := _save_service.last_error
-		# Keep the UI and live runtime state aligned with the last durable
-		# snapshot. A failed write must not leave a session-only value looking
-		# as though it was saved successfully.
-		var persisted := _save_service.read_settings()
-		_settings_page.configure(persisted)
-		_save_service.preview_settings(persisted)
-		_settings_page.report_error("设置保存失败：%s" % write_error)
-
-
 func _populate_catalog_page() -> void:
 	var manifest := TitleCatalog.load_manifest()
 	var profile := _save_service.load_profile()
 	match feature_id:
 		TitleCatalog.ALBUM:
-			var album := TitleAlbumPage.new()
-			album.name = "AlbumPage"
+			var album := ALBUM_PAGE_SCENE.instantiate() as TitleAlbumPage
 			album.configure(manifest, profile)
 			album.content_requested.connect(_on_content_request)
 			album.status_changed.connect(_on_page_status)
 			_attach_content_page(album)
 		TitleCatalog.MUSIC:
-			var music := TitleMusicPage.new()
-			music.name = "MusicPage"
+			var music := MUSIC_PAGE_SCENE.instantiate() as TitleMusicPage
 			music.configure(manifest)
 			music.content_requested.connect(_on_content_request)
 			music.status_changed.connect(_on_page_status)
 			_attach_content_page(music)
 		TitleCatalog.MEMORIES:
-			var memories := TitleMemoriesPage.new()
-			memories.name = "MemoriesPage"
+			var memories := MEMORIES_PAGE_SCENE.instantiate() as TitleMemoriesPage
 			memories.configure(manifest, profile)
 			memories.content_requested.connect(_on_content_request)
 			memories.scenario_requested.connect(_on_scenario_request)
 			memories.status_changed.connect(_on_page_status)
 			_attach_content_page(memories)
 		TitleCatalog.VOICE:
-			var voice := TitleVoicePage.new()
-			voice.name = "VoicePage"
+			_ensure_voice_service()
+			var voice := VOICE_PAGE_SCENE.instantiate() as TitleVoicePage
 			voice.configure(_voice_service)
 			voice.content_requested.connect(_on_content_request)
 			voice.scenario_requested.connect(_on_scenario_request)
@@ -333,8 +303,8 @@ func _on_scenario_request(request: ScenarioLaunchRequest) -> void:
 
 
 func _show_scenario_notice(request: ScenarioLaunchRequest) -> void:
-	if _scenario_notice != null:
-		_scenario_notice.show_request(request)
+	_ensure_scenario_notice()
+	_scenario_notice.show_request(request)
 	_status_label.text = "正文运行层待迁移：请求已发出。"
 
 
@@ -380,4 +350,6 @@ func _catalog_description(catalog_id: StringName) -> String:
 
 func _clear_entries() -> void:
 	for child in _entry_list.get_children():
+		_entry_list.remove_child(child)
 		child.queue_free()
+	_content_page = null

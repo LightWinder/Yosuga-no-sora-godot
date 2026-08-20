@@ -8,12 +8,12 @@ const SCENES: Dictionary = {
 	&"title_press": preload("res://src/title/title_screen.tscn"),
 }
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const CONFIGURATION_SCENE: PackedScene = preload("res://src/title/config/title_configuration_screen.tscn")
 const FEATURE_ROUTES: Dictionary = {
 	&"album": &"album",
 	&"music": &"music",
 	&"memories": &"memories",
 	&"voice": &"voice",
-	&"config": &"configuration",
 	&"load": &"load_game",
 }
 
@@ -58,14 +58,22 @@ func _capture() -> void:
 		return
 
 	var screen_name := StringName(arguments[0])
-	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name):
+	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name != &"config":
 		push_error("Unknown startup screen: %s" % screen_name)
 		quit(2)
 		return
 
 	var screen: Control
-	if FEATURE_ROUTES.has(screen_name):
+	if screen_name == &"config":
 		var service := CaptureSaveService.new()
+		service.name = "CaptureSaveService"
+		_unlock_capture_content(service.capture_profile)
+		root.add_child(service)
+		screen = CONFIGURATION_SCENE.instantiate() as TitleConfigurationScreen
+		(screen as TitleConfigurationScreen).configure(service)
+	elif FEATURE_ROUTES.has(screen_name):
+		var service := CaptureSaveService.new()
+		service.name = "CaptureSaveService"
 		_unlock_capture_content(service.capture_profile)
 		root.add_child(service)
 		screen = FEATURE_SCENE.instantiate() as TitleFeatureScreen
@@ -76,7 +84,7 @@ func _capture() -> void:
 	root.add_child(screen)
 	await create_timer(float(arguments[2])).timeout
 	if screen_name == &"config" and arguments.size() == 4:
-		var config_page := (screen as TitleFeatureScreen).get_node("ConfigurationPage") as TitleConfigurationPage
+		var config_page := (screen as TitleConfigurationScreen).configuration_page()
 		if config_page == null:
 			push_error("ConfigurationPage was not created before visual capture.")
 			quit(1)
@@ -84,12 +92,12 @@ func _capture() -> void:
 		var tab := clampi(int(arguments[3]), 0, 2)
 		config_page.show_tab(tab)
 		await process_frame
-	if FEATURE_ROUTES.has(screen_name) and screen_name != &"config":
+	if FEATURE_ROUTES.has(screen_name):
 		var feature := screen as TitleFeatureScreen
-		var panel := feature.get_node("Center/Panel") as Control
-		var entries := feature.get_node("Center/Panel/Margin/Content/EntryScroll") as Control
-		var back := feature.get_node("Center/Panel/Margin/Content/Back") as Control
-		print("Layout probe: panel=", panel.get_global_rect(), " entries=", entries.get_global_rect(), " back=", back.get_global_rect())
+		var content := feature.get_node("Content") as Control
+		var entries := feature.get_node("Content/EntryList") as Control
+		var back := feature.get_node("Content/Back") as Control
+		print("Layout probe: content=", content.get_global_rect(), " entries=", entries.get_global_rect(), " back=", back.get_global_rect())
 	if screen_name == &"title_press":
 		var title := screen as TitleScreen
 		title.get_menu_buttons()[0].play_press_feedback()

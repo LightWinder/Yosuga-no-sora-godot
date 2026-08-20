@@ -99,11 +99,17 @@ func add_slider(
 	return slider
 
 
-func add_vector_slider(key: String, from: Vector2, to: Vector2) -> ConfigKnobSlider:
+func add_vector_slider(
+		key: String,
+		from: Vector2,
+		to: Vector2,
+		parent: Node = null
+) -> ConfigKnobSlider:
 	var slider := ConfigKnobSlider.new()
 	slider.name = key
 	slider.configure_vector_track(from, to)
-	add_child(slider)
+	var host: Node = self if parent == null else parent
+	host.add_child(slider)
 	_setting_sliders.append(slider)
 	return slider
 
