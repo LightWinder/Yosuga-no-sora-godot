@@ -13,6 +13,7 @@ class MemorySaveService extends SaveService:
 	var memory_flags: Dictionary = {}
 	var settings_write_count := 0
 	var settings_disk_read_count := 0
+	var fail_settings_write := false
 
 	func _ready() -> void:
 		# Keep this contract test independent from the host's user:// location.
@@ -30,6 +31,9 @@ class MemorySaveService extends SaveService:
 
 	func write_settings(settings: Dictionary) -> bool:
 		settings_write_count += 1
+		if fail_settings_write:
+			last_error = "forced settings write failure"
+			return false
 		return super.write_settings(settings)
 
 	func _read_dictionary(path: String) -> Dictionary:
@@ -377,6 +381,21 @@ func _test_title_state() -> void:
 	_expect(config_page.find_setting_slider("movie_volume") != null, "Config must expose movie volume.")
 	_expect(config_page.find_setting_slider("voice_detail") != null, "Config must expose the per-character voice slider.")
 	_expect(config_page.find_setting_slider("window_depth") != null, "Config must expose the textbox depth slider.")
+	_expect(config_page.screen_page().get_node_or_null("PageBackground") == null, "Screen config chrome must not regress to a baked 1920x1080 UI background.")
+	_expect(config_page.find_setting_slider("window_depth").uses_vector_visual(), "Screen config slider must use resolution-independent drawing.")
+	_expect(config_page.screen_page().get_node_or_null("PreviewArtwork") != null, "Screen config must retain the scenic preview as artwork.")
+	var font_selection_title := config_page.screen_page().get_node("FontSelectionTitle") as ConfigSectionTitle
+	_expect(font_selection_title != null and font_selection_title.caption == "字体选择", "Screen headings must be rendered from live text.")
+	_expect(font_selection_title.find_children("*", "TextureRect", true, false).is_empty(), "Screen headings must not regress to cropped source textures.")
+	_expect(font_selection_title.get_child_count() == 2, "A section heading must own exactly its two reusable text layers.")
+	_expect(font_selection_title.get_node_or_null("OuterKeyline") is Label and font_selection_title.get_node_or_null("Foreground") is Label, "Section heading stroke layers must remain explicit code-rendered labels.")
+	var preview_artwork := config_page.screen_page().get_node("PreviewArtwork") as TextureRect
+	var preview_region := preview_artwork.texture as AtlasTexture
+	_expect(preview_region != null and preview_region.region.position.y >= 361.0, "Preview artwork must crop out the baked source heading before live text is overlaid.")
+	var preview_textbox := config_page.screen_page().get_node("PreviewTextbox") as TextureRect
+	var preview_avatar := config_page.screen_page().get_node("PreviewAvatar") as TextureRect
+	_expect(preview_textbox != null and preview_textbox.texture != null, "Screen preview must retain the source textbox artwork.")
+	_expect(preview_avatar != null and preview_avatar.texture != null and preview_avatar.size.x > 0.0, "Screen preview avatar artwork must have a visible rect.")
 	_expect(config_page.find_setting_slider("message_speed") != null, "Config must expose message speed.")
 	_expect(config_page.find_setting_slider("auto_speed") != null, "Config must expose auto speed.")
 	_expect(config_page.audio_page() != null and config_page.audio_page().voice_button_count() == 9, "Config audio page must expose the nine source voice characters.")
@@ -419,7 +438,6 @@ func _test_title_state() -> void:
 	_expect(int(service.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
 	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", false)
 	_expect(service.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
-	var preview_avatar := config_page.screen_page().get_node("PreviewAvatar") as TextureRect
 	_expect(not preview_avatar.visible, "Screen preview must hide the avatar immediately when portrait display is disabled.")
 	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", true)
 	_expect(preview_avatar.visible, "Screen preview must restore the avatar immediately when portrait display is enabled.")
@@ -467,11 +485,22 @@ func _test_title_state() -> void:
 	_expect(not config_page.is_confirm_visible(), "Reset settings must skip the dialog when confirmations.default is disabled.")
 	_expect(service.settings_write_count == writes_before_silent_reset + 1, "Silent reset must persist once.")
 	var read_reset_events: Array[bool] = []
+	var feature_read_reset_events: Array[bool] = []
 	config_page.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
+	config.read_flags_reset_requested.connect(func() -> void: feature_read_reset_events.append(true))
 	config_page.request_reset_read()
 	_expect(config_page.is_confirm_visible(), "Reset read flags must ask when confirmations.clear_read is enabled.")
 	config_page.confirm_pending_action()
 	_expect(read_reset_events.size() == 1, "Reset read flags must emit a typed seam request.")
+	_expect(feature_read_reset_events.size() == 1, "Configuration feature must forward the read-reset request to StartupFlow.")
+
+	service.fail_settings_write = true
+	config_page.screen_page().set_font_for_test(4)
+	var config_status := config_page.get_node("VisualCanvas/ConfigStatus") as Label
+	_expect(config_status.text.contains("设置保存失败"), "A settings persistence failure must remain visible in the configuration window.")
+	_expect(int(config_page.get_current_settings().get("font_type", -1)) == 0, "A failed settings write must roll the UI back to the durable snapshot.")
+	service.fail_settings_write = false
+	config_page.screen_page().set_font_for_test(0)
 
 	var close_events: Array[bool] = []
 	config_page.close_requested.connect(func() -> void: close_events.append(true))

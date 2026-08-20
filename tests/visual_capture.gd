@@ -20,12 +20,27 @@ const FEATURE_ROUTES: Dictionary = {
 
 class CaptureSaveService extends SaveService:
 	var capture_profile := ProfileData.create_empty("visual-capture")
+	var capture_settings := TitleSettingsModel.defaults()
 
 	func _ready() -> void:
 		_ready_for_io = true
 
 	func load_profile() -> ProfileData:
 		return capture_profile
+
+	func read_settings() -> Dictionary:
+		return capture_settings.duplicate(true)
+
+	func write_settings(settings: Dictionary) -> bool:
+		capture_settings = TitleSettingsModel.normalize(settings)
+		settings_changed.emit(capture_settings.duplicate(true))
+		return true
+
+	func preview_settings(settings: Dictionary) -> void:
+		var preview := capture_settings.duplicate(true)
+		for key in settings:
+			preview[key] = settings[key]
+		settings_preview_changed.emit(TitleSettingsModel.normalize(preview))
 
 	func is_global_flag_set(flag_id: int) -> bool:
 		return capture_profile.is_global_flag_set(flag_id)

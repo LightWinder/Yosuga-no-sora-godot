@@ -3,6 +3,7 @@ extends Node
 
 
 signal scenario_requested(request: ScenarioLaunchRequest)
+signal read_flags_reset_requested
 
 
 enum Stage {
@@ -94,6 +95,7 @@ func _show_title_feature(feature_id: StringName) -> void:
 	screen.bonus_back_requested.connect(_show_title_bonus)
 	screen.scenario_requested.connect(_on_scenario_requested)
 	screen.content_requested.connect(_on_content_requested)
+	screen.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
 
 
 func _show_title_bonus() -> void:

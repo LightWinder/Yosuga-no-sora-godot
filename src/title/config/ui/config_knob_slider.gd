@@ -22,6 +22,7 @@ var _track_to := Vector2.ZERO
 var _frame_size := Vector2.ZERO
 var _hovered := false
 var _dragging := false
+var _vector_visual := false
 
 var value: float:
 	get:
@@ -57,6 +58,15 @@ func configure_track(from: Vector2, to: Vector2, min_scale := 1.0, max_scale := 
 	mouse_exited.connect(_on_mouse_exited)
 	focus_entered.connect(func() -> void: queue_redraw())
 	focus_exited.connect(func() -> void: queue_redraw())
+
+
+## Code-rendered track/knob variant for DPI-independent pages. The legacy
+## texture variant remains available while the other two pages are migrated.
+func configure_vector_track(from: Vector2, to: Vector2) -> void:
+	_vector_visual = true
+	configure_track(from, to, 1.0, 1.0)
+
+
 func set_value_silent(next: float) -> void:
 	_value = clampf(next, min_value, max_value)
 	queue_redraw()
@@ -74,6 +84,10 @@ func step_by(delta: float) -> void:
 
 func is_hovered() -> bool:
 	return _hovered
+
+
+func uses_vector_visual() -> bool:
+	return _vector_visual
 
 
 func _on_mouse_entered() -> void:
@@ -121,6 +135,9 @@ func _set_value_from_x(local_x: float) -> void:
 
 
 func _draw() -> void:
+	if _vector_visual:
+		_draw_vector_slider()
+		return
 	if KNOB_TEXTURE == null:
 		return
 	var t := 0.0
@@ -140,3 +157,24 @@ func _draw() -> void:
 		Rect2(center - knob_size * 0.5, knob_size),
 		region
 	)
+
+
+func _draw_vector_slider() -> void:
+	var t := 0.0
+	if not is_equal_approx(max_value, min_value):
+		t = clampf((_value - min_value) / (max_value - min_value), 0.0, 1.0)
+	var from := _track_from - position
+	var to := _track_to - position
+	var center := from.lerp(to, t)
+	var track := Color(0.31, 0.68, 0.84, 0.92)
+	if disabled:
+		track = Color(0.58, 0.67, 0.72, 0.48)
+	# The reference uses one cyan rail with a white rim; the knob communicates
+	# the value rather than a modern filled-progress treatment.
+	draw_line(from, to, Color(0.65, 0.88, 0.96, 0.28), 22.0, true)
+	draw_line(from, to, Color.WHITE, 18.0, true)
+	draw_line(from, to, track, 14.0, true)
+	var radius := 14.0 if (_hovered or has_focus()) else 12.0
+	draw_circle(center, radius + 3.0, Color(0.36, 0.72, 0.87, 0.40), true, -1.0, true)
+	draw_circle(center, radius, Color(0.91, 0.98, 1.0, 1.0), true, -1.0, true)
+	draw_circle(center, radius, ConfigVisualTokens.ACCENT, false, 2.0, true)

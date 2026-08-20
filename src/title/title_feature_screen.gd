@@ -27,7 +27,6 @@ var _selected_save_path := ""
 var _delete_confirmation: ConfirmationDialog
 var _pending_delete_slot_id := -1
 var _pending_delete_is_autosave := false
-var _audio_settings := TitleAudioSettingsService.new()
 var _scenario_notice: ScenarioUnavailableNotice
 
 
@@ -264,12 +263,20 @@ func _populate_configuration_page() -> void:
 
 func _on_settings_preview(settings: Dictionary) -> void:
 	_save_service.preview_settings(settings)
-	_audio_settings.apply(settings)
 
 
 func _on_settings_commit(settings: Dictionary) -> void:
-	_save_service.write_settings(settings)
-	_audio_settings.apply(settings)
+	if _save_service.write_settings(settings):
+		return
+	if is_instance_valid(_settings_page):
+		var write_error := _save_service.last_error
+		# Keep the UI and live runtime state aligned with the last durable
+		# snapshot. A failed write must not leave a session-only value looking
+		# as though it was saved successfully.
+		var persisted := _save_service.read_settings()
+		_settings_page.configure(persisted)
+		_save_service.preview_settings(persisted)
+		_settings_page.report_error("设置保存失败：%s" % write_error)
 
 
 func _populate_catalog_page() -> void:

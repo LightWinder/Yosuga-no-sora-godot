@@ -19,13 +19,21 @@ const TAB_BUTTONS: Array[Dictionary] = [
 	{"normal": "audio1.png", "selected": "audio2.png", "pos": Vector2(1565, 190)},
 ]
 
+enum Tab {
+	SCREEN,
+	SYSTEM,
+	AUDIO,
+}
+
 var _values: Dictionary = {}
 var _commit_timer: Timer
 var _status_clear_timer: Timer
 var _pending_commit := false
 var _tabs: Array[ConfigToggleButton] = []
-var _pages: Dictionary = {}
-var _current_tab := 0
+var _screen_page: ConfigScreenPage
+var _system_page: ConfigSystemPage
+var _audio_page: ConfigAudioPage
+var _current_tab := Tab.SCREEN
 var _sliders: Dictionary = {}
 var _key_popup: Control
 var _confirm_dialog: ConfigConfirmDialog
@@ -105,15 +113,15 @@ func find_setting_slider(key: String) -> ConfigKnobSlider:
 
 
 func screen_page() -> ConfigScreenPage:
-	return _pages.get("screen") as ConfigScreenPage
+	return _screen_page
 
 
 func system_page() -> ConfigSystemPage:
-	return _pages.get("system") as ConfigSystemPage
+	return _system_page
 
 
 func audio_page() -> ConfigAudioPage:
-	return _pages.get("audio") as ConfigAudioPage
+	return _audio_page
 
 
 func show_tab(index: int) -> void:
@@ -144,6 +152,10 @@ func is_key_popup_visible() -> bool:
 
 func is_confirm_visible() -> bool:
 	return _confirm_dialog != null and _confirm_dialog.is_open()
+
+
+func report_error(message: String) -> void:
+	_set_status(message)
 
 
 func request_reset_settings() -> void:
@@ -186,57 +198,51 @@ func _build_tabs() -> void:
 
 
 func _build_pages() -> void:
-	var screen := ConfigScreenPage.new()
-	screen.name = "ScreenPage"
-	screen.patch_requested.connect(_on_patch)
-	visual_canvas().add_child(screen)
-	_pages["screen"] = screen
-	var system := ConfigSystemPage.new()
-	system.name = "SystemPage"
-	system.patch_requested.connect(_on_patch)
-	visual_canvas().add_child(system)
-	_pages["system"] = system
-	var audio := ConfigAudioPage.new()
-	audio.name = "AudioPage"
-	audio.patch_requested.connect(_on_patch)
-	audio.sample_requested.connect(_on_voice_sample_requested)
-	visual_canvas().add_child(audio)
-	_pages["audio"] = audio
-	_collect_sliders(screen)
-	_collect_sliders(system)
-	_collect_sliders(audio)
+	_screen_page = ConfigScreenPage.new()
+	_screen_page.name = "ScreenPage"
+	_attach_page(_screen_page)
+	_system_page = ConfigSystemPage.new()
+	_system_page.name = "SystemPage"
+	_attach_page(_system_page)
+	_audio_page = ConfigAudioPage.new()
+	_audio_page.name = "AudioPage"
+	_audio_page.sample_requested.connect(_on_voice_sample_requested)
+	_attach_page(_audio_page)
+
+
+func _attach_page(page: ConfigPageBase) -> void:
+	page.patch_requested.connect(_on_patch)
+	visual_canvas().add_child(page)
+	_collect_sliders(page)
 
 
 func _collect_sliders(page: ConfigPageBase) -> void:
-	for child in page.get_children():
-		if child is ConfigKnobSlider:
-			var slider := child as ConfigKnobSlider
-			_sliders[slider.name] = slider
-			slider.drag_ended.connect(func(_changed: bool) -> void: _commit())
+	for slider in page.setting_sliders():
+		_sliders[slider.name] = slider
+		slider.drag_ended.connect(func(_changed: bool) -> void: _commit())
 
 
 func _build_footer() -> void:
-	var canvas := visual_canvas()
-	var reset_setting := ConfigStripButton.new()
-	reset_setting.configure_strip(SETTINGS_ROOT + "reset_seetting.png", 2)
-	reset_setting.position = Vector2(42, 1037)
-	reset_setting.pressed.connect(request_reset_settings)
-	canvas.add_child(reset_setting)
-	var reset_text := ConfigStripButton.new()
-	reset_text.configure_strip(SETTINGS_ROOT + "reset_text.png", 2)
-	reset_text.position = Vector2(245, 1037)
-	reset_text.pressed.connect(request_reset_read)
-	canvas.add_child(reset_text)
-	var key := ConfigStripButton.new()
-	key.configure_strip(SETTINGS_ROOT + "key.png", 3, 105, 105)
-	key.position = Vector2(520, 1037)
-	key.pressed.connect(open_key_popup)
-	canvas.add_child(key)
-	var title := ConfigStripButton.new()
-	title.configure_strip(SETTINGS_ROOT + "title.png", 2)
-	title.position = Vector2(1607, 995)
-	title.pressed.connect(func() -> void: close_requested.emit())
-	canvas.add_child(title)
+	_add_footer_button("reset_seetting.png", Vector2(42, 1037), request_reset_settings)
+	_add_footer_button("reset_text.png", Vector2(245, 1037), request_reset_read)
+	_add_footer_button("key.png", Vector2(520, 1037), open_key_popup, 3, 105, 105)
+	_add_footer_button("title.png", Vector2(1607, 995), func() -> void: close_requested.emit())
+
+
+func _add_footer_button(
+		texture_name: String,
+		position_value: Vector2,
+		callback: Callable,
+		state_count := 2,
+		first_state_width := 0,
+		last_state_width := 0
+) -> ConfigStripButton:
+	var button := ConfigStripButton.new()
+	button.configure_strip(SETTINGS_ROOT + texture_name, state_count, first_state_width, last_state_width)
+	button.position = position_value
+	button.pressed.connect(callback)
+	visual_canvas().add_child(button)
+	return button
 
 
 func _build_status_label() -> void:
@@ -287,20 +293,28 @@ func _build_confirm_dialog() -> void:
 ## --- State flow ---
 
 func _sync_pages() -> void:
-	for page in _pages.values():
-		(page as ConfigPageBase).sync_from(_values)
+	for page in _all_pages():
+		page.sync_from(_values)
+
+
+func _all_pages() -> Array[ConfigPageBase]:
+	var pages: Array[ConfigPageBase] = []
+	for page in [_screen_page, _system_page, _audio_page]:
+		if page != null:
+			pages.append(page)
+	return pages
 
 
 func _show_tab(index: int) -> void:
-	if _tabs.is_empty() or _pages.is_empty():
+	if _tabs.is_empty() or _screen_page == null or _system_page == null or _audio_page == null:
 		return
 	index = clampi(index, 0, _tabs.size() - 1)
 	_current_tab = index
 	for tab_index in _tabs.size():
 		_tabs[tab_index].selected = tab_index == index
-	_pages["screen"].visible = index == 0
-	_pages["system"].visible = index == 1
-	_pages["audio"].visible = index == 2
+	_screen_page.visible = index == Tab.SCREEN
+	_system_page.visible = index == Tab.SYSTEM
+	_audio_page.visible = index == Tab.AUDIO
 	if _key_popup != null and _key_popup.visible:
 		_close_key_popup()
 
@@ -338,6 +352,8 @@ func _preview_and_debounce() -> void:
 
 
 func _commit() -> void:
+	if not _pending_commit:
+		return
 	if _commit_timer != null:
 		_commit_timer.stop()
 	_pending_commit = false
@@ -374,6 +390,8 @@ func _on_confirm_always_toggled(checked: bool) -> void:
 	var confirmations: Dictionary = _values.get("confirmations", {}).duplicate(true)
 	confirmations[key] = checked
 	_values["confirmations"] = confirmations
+	_sync_pages()
+	_preview_and_debounce()
 	_commit()
 
 
@@ -404,9 +422,11 @@ func _run_reset_settings() -> void:
 	_values["window_mode"] = preserved_mode
 	_values["window_width"] = preserved_width
 	_sync_pages()
-	settings_preview_changed.emit(_values.duplicate(true))
-	_commit()
+	# Report the optimistic UI action first. If persistence fails, the owner
+	# reports the write error afterward and it remains visible to the user.
 	_set_status("已恢复初始设定。")
+	_preview_and_debounce()
+	_commit()
 
 
 func _run_reset_read() -> void:

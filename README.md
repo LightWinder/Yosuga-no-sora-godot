@@ -24,7 +24,7 @@ Continue/Load 也发出统一的 `ScenarioLaunchRequest`。当前正文 ADV runn
 环境设定现在完整复刻源 `ConfigWindowHD2` 的 HD 信息架构：
 
 - 全屏 1920×1080 配置窗口，覆盖 Title 功能 chrome；`settings/bg.png` 拉伸为窗口边框，右上三个图像页签（Screen/System/Audio）使用真实 `graphics1/2`、`systems1/2`、`audio1/2` 双态贴图。
-- Screen 页：全屏/窗口、1080p/900p/720p、透明度滑块（带 `slider_knob.png` 旋钮）、六个字体双态按钮、简体/日语按钮（日语按源工程禁用）、带头像的预览文本框——已读文字颜色与头像可见性随设置实时刷新。
+- Screen 页作为高 DPI 重构模板：包含全屏/窗口、1080p/900p/720p、透明度滑块、六个字体选项、简体/日语选项（日语按源工程禁用）和带头像的预览文本框。场景、`textbox.png` 对话框与 `avatar.png` 头像保留原美术素材；面板、标题、文字光带选项、开关与滑杆由 Godot 主题和 CanvasItem 绘制，不再整页渲染 `graphic/bg.png` 中烘焙的 UI chrome；已读文字颜色与头像可见性随设置实时刷新。
 - System 页：五组 YES/NO 图像开关、文字速度/自动播放等待滑块、11 个确认窗口勾选框（checkbox.png 开/关帧）。
 - Audio 页：九个角色语音按钮（sora/nao/akira/kazuha/motoka/ryohei/yahiro/kozue/npc 源坐标）与立绘切换；每角色独立音量使用源梯形滑块（旋钮随值 115%→155% 缩放）；六个固定 100% 全局通道滑块；角色音量拖动结束后播放源 `個別音声` 样本，音量 = Master × Voice × 角色细节（经由 Godot 总线等效实现）。
 - 页脚：初始化设定/初始化已读/按键配置/返回标题四个 strip 按钮；按键配置弹出源 `key_popup.png`；右击或 Esc 先关弹窗再关窗口。

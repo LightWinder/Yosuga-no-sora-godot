@@ -32,6 +32,7 @@ const TITLE_CALLS: Array[AudioStream] = [
 
 var _random := RandomNumberGenerator.new()
 var _system_voice_muted := false
+var _settings_applier := TitleAudioSettingsService.new()
 
 
 func _ready() -> void:
@@ -65,17 +66,11 @@ func stop_all() -> void:
 
 
 func apply_settings(settings: Dictionary) -> void:
-	var bgm_bus := AudioServer.get_bus_index(&"BGM")
-	var voice_bus := AudioServer.get_bus_index(&"SystemVoice")
-	var master_bus := AudioServer.get_bus_index(&"Master")
-	if master_bus >= 0:
-		AudioServer.set_bus_volume_db(master_bus, linear_to_db(clampf(float(settings.get("master_volume", 1.0)), 0.0, 1.0)))
-	if bgm_bus >= 0:
-		AudioServer.set_bus_volume_db(bgm_bus, linear_to_db(clampf(float(settings.get("bgm_volume", 1.0)), 0.0, 1.0)))
-	if voice_bus >= 0:
-		AudioServer.set_bus_volume_db(voice_bus, linear_to_db(clampf(float(settings.get("system_voice_volume", 1.0)), 0.0, 1.0)))
+	# StartupFlow is the single runtime owner for persisted and previewed audio
+	# settings. Apply every declared bus here; configuration pages only emit
+	# values and never mutate AudioServer directly.
+	_settings_applier.apply(settings)
 	_system_voice_muted = bool(settings.get("mute_system_voice", false))
-	_voice_player.volume_db = -80.0 if _system_voice_muted else 0.0
 
 
 func _play_random_voice(streams: Array[AudioStream]) -> void:

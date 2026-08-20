@@ -8,6 +8,8 @@ signal patch_requested(patch: Dictionary, immediate: bool)
 
 const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 
+var _setting_sliders: Array[ConfigKnobSlider] = []
+
 
 func _ready() -> void:
 	position = Vector2.ZERO
@@ -17,6 +19,10 @@ func _ready() -> void:
 
 func sync_from(_settings: Dictionary) -> void:
 	pass
+
+
+func setting_sliders() -> Array[ConfigKnobSlider]:
+	return _setting_sliders
 
 
 func add_page_background(texture_path: String) -> TextureRect:
@@ -89,6 +95,16 @@ func add_slider(
 	slider.name = key
 	slider.configure_track(from, to, min_scale, max_scale)
 	add_child(slider)
+	_setting_sliders.append(slider)
+	return slider
+
+
+func add_vector_slider(key: String, from: Vector2, to: Vector2) -> ConfigKnobSlider:
+	var slider := ConfigKnobSlider.new()
+	slider.name = key
+	slider.configure_vector_track(from, to)
+	add_child(slider)
+	_setting_sliders.append(slider)
 	return slider
 
 

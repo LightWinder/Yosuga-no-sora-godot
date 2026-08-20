@@ -34,7 +34,11 @@ required_files=(
 	"src/title/config/ui/config_toggle_button.gd"
 	"src/title/config/ui/config_strip_button.gd"
 	"src/title/config/ui/config_check_button.gd"
+	"src/title/config/ui/config_choice_button.gd"
+	"src/title/config/ui/config_choice_group.gd"
+	"src/title/config/ui/config_section_title.gd"
 	"src/title/config/ui/config_knob_slider.gd"
+	"src/title/config/ui/config_visual_tokens.gd"
 	"src/title/scenario/scenario_launch_request.gd"
 	"assets/manifests/title_content_manifest.json"
 	"assets/fonts/Xiaolai-Regular.fontdata"
@@ -119,16 +123,26 @@ for preset_name in "Windows Desktop" "macOS" "Android" "iOS"; do
 	fi
 done
 
-rg -q 'pointing/emulate_mouse_from_touch=true' "$project_root/project.godot"
-rg -q 'vn_advance=' "$project_root/project.godot"
-rg -q 'schema_version' "$project_root/src/core/save/save_data.gd"
-rg -q 'com.lightwinder.yosuganosora.hdremake' "$project_root/export_presets.cfg"
-rg -q 'theme/custom="res://assets/themes/yosuga_theme.tres"' "$project_root/project.godot"
-rg -q 'default_bus_layout="res://default_bus_layout.tres"' "$project_root/project.godot"
-rg -q '"album_cards": 79' "$project_root/assets/manifests/title_content_manifest.json"
-rg -q '"album_variants": 214' "$project_root/assets/manifests/title_content_manifest.json"
-rg -q '"memories": 24' "$project_root/assets/manifests/title_content_manifest.json"
-rg -q '"music_tracks": 21' "$project_root/assets/manifests/title_content_manifest.json"
+require_pattern() {
+	local pattern="$1"
+	local target="$2"
+	local message="$3"
+	if ! rg -q "$pattern" "$target"; then
+		echo "$message" >&2
+		exit 1
+	fi
+}
+
+require_pattern 'pointing/emulate_mouse_from_touch=true' "$project_root/project.godot" "Touch-to-mouse emulation must remain enabled."
+require_pattern 'vn_advance=' "$project_root/project.godot" "The vn_advance input action is missing."
+require_pattern 'schema_version' "$project_root/src/core/save/save_data.gd" "SaveData must expose schema migration metadata."
+require_pattern 'com.lightwinder.yosuganosora.hdremake' "$project_root/export_presets.cfg" "Export bundle identifiers are missing."
+require_pattern 'theme/custom="res://assets/themes/yosuga_theme.tres"' "$project_root/project.godot" "The project CJK theme is not configured."
+require_pattern 'default_bus_layout="res://default_bus_layout.tres"' "$project_root/project.godot" "The project audio bus layout is not configured."
+require_pattern '"album_cards": 79' "$project_root/assets/manifests/title_content_manifest.json" "Album card manifest count changed unexpectedly."
+require_pattern '"album_variants": 214' "$project_root/assets/manifests/title_content_manifest.json" "Album variant manifest count changed unexpectedly."
+require_pattern '"memories": 24' "$project_root/assets/manifests/title_content_manifest.json" "Memory manifest count changed unexpectedly."
+require_pattern '"music_tracks": 21' "$project_root/assets/manifests/title_content_manifest.json" "Music manifest count changed unexpectedly."
 if rg -q 'title_screen_v2|title_screen_legacy|LegacyTitleScreen' "$project_root/src"; then
 	echo "Obsolete Title implementation remains under src/." >&2
 	exit 1

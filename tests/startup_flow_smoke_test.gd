@@ -43,6 +43,28 @@ func _run() -> void:
 	root.add_child(startup_flow)
 	await create_timer(1.5, true, false, true).timeout
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "Automatic startup flow did not reach Title.")
+	var startup_audio := startup_flow.get_node("StartupAudio") as StartupAudio
+	var runtime_settings := TitleSettingsModel.defaults()
+	runtime_settings["voice_volume"] = 0.31
+	runtime_settings["env_se_volume"] = 0.41
+	runtime_settings["se_volume"] = 0.63
+	runtime_settings["movie_volume"] = 0.27
+	runtime_settings["mute_env_se"] = true
+	startup_audio.apply_settings(runtime_settings)
+	_expect(_bus_volume_is("Voice", 0.31), "Startup audio must apply the persisted Voice bus gain.")
+	_expect(_bus_volume_is("EnvSE", 0.41), "Startup audio must apply the persisted environment SE bus gain.")
+	_expect(_bus_volume_is("SE", 0.63), "Startup audio must apply the persisted SE bus gain.")
+	_expect(_bus_volume_is("Movie", 0.27), "Startup audio must apply the persisted Movie bus gain.")
+	_expect(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"EnvSE")), "Startup audio must apply persisted bus mute flags.")
+	startup_audio.apply_settings(TitleSettingsModel.defaults())
+	var read_reset_events: Array[bool] = []
+	startup_flow.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
+	startup_flow._show_title_feature(&"configuration")
+	await process_frame
+	var screen_host := startup_flow.get_node("ScreenHost") as Control
+	var configuration_feature := screen_host.get_child(screen_host.get_child_count() - 1) as TitleFeatureScreen
+	configuration_feature.read_flags_reset_requested.emit()
+	_expect(read_reset_events.size() == 1, "StartupFlow must expose the configuration read-reset integration seam.")
 	startup_flow.free()
 	Engine.time_scale = 1.0
 	# Give the audio mixing thread time to release stopped Vorbis playback objects.
@@ -61,3 +83,10 @@ func _run() -> void:
 func _expect(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
+
+
+func _bus_volume_is(bus_name: StringName, expected_linear: float) -> bool:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		return false
+	return is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(bus_index)), expected_linear)
