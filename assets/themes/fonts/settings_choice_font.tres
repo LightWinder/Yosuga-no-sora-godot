@@ -1,0 +1,7 @@
+[gd_resource type="FontVariation" format=3 uid="uid://cgnfe1btgql5p"]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Xiaolai-Regular.fontdata" id="1_font"]
+
+[resource]
+base_font = ExtResource("1_font")
+variation_embolden = 0.2

@@ -32,7 +32,7 @@ const TITLE_CALLS: Array[AudioStream] = [
 
 var _random := RandomNumberGenerator.new()
 var _system_voice_muted := false
-var _settings_applier := TitleAudioSettingsService.new()
+var _settings_applier := AudioSettingsApplier.new()
 
 
 func _ready() -> void:

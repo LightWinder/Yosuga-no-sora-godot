@@ -1,5 +1,5 @@
 class_name TitleMemoriesPage
-extends TitleVisualPage
+extends DesignCanvasPage
 
 
 signal content_requested(request: TitleContentRequest)
@@ -10,17 +10,25 @@ const ADV_PENDING_MESSAGE := "ADV剧情运行层待迁移：已生成 typed Scen
 
 var _manifest: TitleContentManifest
 var _profile: ProfileData
-var _entry_list: GridContainer
-var _group_buttons: Array[BaseButton] = []
 var _group_keys: Array[String] = ["穹", "奈绪", "瑛", "一叶", "初佳", "其他"]
 var _group_index := 0
 var _page_index := 0
-var _page_label: Label
-var _previous_page: BaseButton
-var _next_page: BaseButton
-var _status: Label
-var _video_player: VideoStreamPlayer
-var _video_stop: Button
+
+@onready var _entry_list: GridContainer = %MemoryList
+@onready var _group_buttons: Array[BaseButton] = [
+	%Group01,
+	%Group02,
+	%Group03,
+	%Group04,
+	%Group05,
+	%Group06,
+]
+@onready var _page_label: Label = %PageNumber
+@onready var _previous_page: TitleSpriteButton = %PreviousPage
+@onready var _next_page: TitleSpriteButton = %NextPage
+@onready var _status: Label = %Status
+@onready var _video_player: VideoStreamPlayer = %MemoryVideoPlayer
+@onready var _video_stop: Button = %StopVideo
 
 
 func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
@@ -32,7 +40,19 @@ func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
 
 func _ready() -> void:
 	super._ready()
-	_build_shell()
+	for index in _group_buttons.size():
+		var tab := _group_buttons[index] as TitleSpriteButton
+		tab.configure_sprite(_group_texture(index), 3, 18.0)
+		tab.set_design_size(Vector2(245.0, 58.0))
+		tab.tooltip_text = _group_keys[index]
+		tab.pressed.connect(_select_group.bind(index))
+	_previous_page.configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
+	_previous_page.set_design_size(Vector2(72.0, 42.0))
+	_previous_page.pressed.connect(_change_page.bind(-1))
+	_next_page.configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
+	_next_page.set_design_size(Vector2(72.0, 42.0))
+	_next_page.pressed.connect(_change_page.bind(1))
+	_video_stop.pressed.connect(_stop_video)
 	_refresh()
 
 
@@ -52,75 +72,6 @@ func adv_count() -> int:
 
 func video_count() -> int:
 	return entry_count() - adv_count()
-
-
-func _build_shell() -> void:
-	var root := Control.new()
-	root.name = "MemoriesContent"
-	root.position = Vector2(80.0, 120.0)
-	root.size = Vector2(1760.0, 900.0)
-	visual_canvas().add_child(root)
-	add_design_texture(root, "res://assets/content/appreciation/scene.png", Rect2(95, 18, 300, 52))
-	add_design_label(root, "回忆 · 24 条（18 条剧情回想 + 开场 / 5 条 Staff Roll）", Rect2(720, 20, 900, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
-	for index in _group_keys.size():
-		var tab := TitleSpriteButton.new()
-		tab.name = "Group%02d" % (index + 1)
-		tab.configure_sprite(_group_texture(index), 3, 18.0)
-		tab.set_design_size(Vector2(245.0, 58.0))
-		tab.position = Vector2(95.0 + float(index % 3) * 260.0, 84.0 + float(index / 3) * 70.0)
-		tab.tooltip_text = _group_keys[index]
-		tab.pressed.connect(_select_group.bind(index))
-		root.add_child(tab)
-		_group_buttons.append(tab)
-	_video_player = VideoStreamPlayer.new()
-	_video_player.name = "MemoryVideoPlayer"
-	_video_player.position = Vector2(450.0, 275.0)
-	_video_player.size = Vector2(1000.0, 430.0)
-	_video_player.expand = true
-	_video_player.visible = false
-	root.add_child(_video_player)
-	_video_stop = add_design_button(root, Rect2(800, 720, 300, 56), "停止视频", 22)
-	_video_stop.name = "StopVideo"
-	_video_stop.visible = false
-	_video_stop.pressed.connect(_stop_video)
-	_entry_list = GridContainer.new()
-	_entry_list.name = "MemoryList"
-	_entry_list.columns = 4
-	_entry_list.position = Vector2(95.0, 245.0)
-	_entry_list.size = Vector2(1510.0, 505.0)
-	_entry_list.add_theme_constant_override("h_separation", 14)
-	_entry_list.add_theme_constant_override("v_separation", 12)
-	root.add_child(_entry_list)
-	_previous_page = TitleSpriteButton.new()
-	_previous_page.name = "PreviousPage"
-	(_previous_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
-	(_previous_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_previous_page.position = Vector2(680.0, 785.0)
-	_previous_page.pressed.connect(_change_page.bind(-1))
-	root.add_child(_previous_page)
-	_page_label = Label.new()
-	_page_label.name = "PageNumber"
-	_page_label.position = Vector2(760.0, 785.0)
-	_page_label.size = Vector2(160.0, 42.0)
-	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_page_label.add_theme_color_override("font_color", Color(0.12, 0.30, 0.40, 1.0))
-	_page_label.add_theme_font_size_override("font_size", 22)
-	root.add_child(_page_label)
-	_next_page = TitleSpriteButton.new()
-	_next_page.name = "NextPage"
-	(_next_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
-	(_next_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_next_page.position = Vector2(925.0, 785.0)
-	_next_page.pressed.connect(_change_page.bind(1))
-	root.add_child(_next_page)
-	_status = Label.new()
-	_status.name = "Status"
-	_status.position = Vector2(300.0, 840.0)
-	_status.size = Vector2(1180.0, 42.0)
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_status)
 
 
 func _group_texture(index: int) -> String:
@@ -196,7 +147,11 @@ func _select_memory(memory: TitleMemoryEntry) -> void:
 	if memory.is_video():
 		_play_video(memory)
 		return
-	var scenario_request := ScenarioLaunchRequest.from_memory(memory)
+	var scenario_request := ScenarioLaunchRequest.for_recollection(
+		memory.scenario_id,
+		memory.label,
+		memory.unlock_flag
+	)
 	scenario_requested.emit(scenario_request)
 	_status.text = ADV_PENDING_MESSAGE + "（%s）" % scenario_request.summary()
 	status_changed.emit(_status.text)

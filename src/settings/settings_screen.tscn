@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://8g4cgpkgd3k1"]
+
+[ext_resource type="Script" uid="uid://bjkop00upyoby" path="res://src/settings/settings_screen.gd" id="1_screen"]
+[ext_resource type="PackedScene" uid="uid://43bb7t2ltmb6" path="res://src/settings/settings_page.tscn" id="2_page"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="3_background_blur"]
+
+[node name="SettingsScreen" type="Control" unique_id=248356803]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_screen")
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="." unique_id=2092420048]
+copy_mode = 2
+
+[node name="BackgroundBlur" type="ColorRect" parent="." unique_id=127629182]
+material = ExtResource("3_background_blur")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=727651385]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0.31764707, 0.627451, 0.8235294, 0.39215687)
+
+[node name="SettingsPage" parent="." unique_id=1925898205 instance=ExtResource("2_page")]
+layout_mode = 1
+offset_right = 3.0
+offset_bottom = 6.0

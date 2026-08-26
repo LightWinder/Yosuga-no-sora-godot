@@ -1,0 +1,326 @@
+[gd_scene format=3 uid="uid://bcjh5xfm4vw7o"]
+
+[ext_resource type="Script" uid="uid://b8xcadgp3pnr4" path="res://src/settings/pages/audio_settings_page.gd" id="1_page"]
+[ext_resource type="Script" uid="uid://bx2nqvcbt8rs2" path="res://src/settings/settings_voice_sample.gd" id="2_voice_sample"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_section_title.tscn" id="4_title"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_voice_choice_button.tscn" id="5_voice_choice"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="6_slider"]
+[ext_resource type="Texture2D" uid="uid://bl7yu2ty8e42l" path="res://assets/content/settings/voices/portraits/sora.png" id="8_sora_portrait"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.96, 0.99, 1, 0.7)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[node name="AudioSettingsPage" type="Control" unique_id=644159893]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1853.0
+offset_bottom = 585.0
+mouse_filter = 2
+script = ExtResource("1_page")
+
+[node name="MainColumns" type="HBoxContainer" parent="." unique_id=934174074]
+custom_minimum_size = Vector2(1851, 583)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="CharacterVolumeCard" type="PanelContainer" parent="MainColumns" unique_id=924356835]
+custom_minimum_size = Vector2(1090, 583)
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="BusinessContent" type="Control" parent="MainColumns/CharacterVolumeCard" unique_id=307245450]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CharacterVolumeTitle" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=1480720210 instance=ExtResource("4_title")]
+layout_mode = 0
+offset_left = 4.0
+offset_top = -12.0
+offset_right = 504.0
+offset_bottom = 58.0
+caption = "角色音量设置"
+
+[node name="PortraitFrame" type="PanelContainer" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=1143988494]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 70.0
+offset_right = 310.0
+offset_bottom = 530.0
+mouse_filter = 2
+theme_type_variation = &"SettingsPortraitFrame"
+
+[node name="PortraitMargin" type="MarginContainer" parent="MainColumns/CharacterVolumeCard/BusinessContent/PortraitFrame" unique_id=482184761]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VoicePortrait" type="TextureRect" parent="MainColumns/CharacterVolumeCard/BusinessContent/PortraitFrame/PortraitMargin" unique_id=127655153]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8_sora_portrait")
+expand_mode = 1
+stretch_mode = 3
+
+[node name="VoiceChoiceGrid" type="GridContainer" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=1717145418]
+layout_mode = 0
+offset_left = 334.0
+offset_top = 75.0
+offset_right = 1044.0
+offset_bottom = 327.0
+mouse_filter = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 9
+columns = 3
+
+[node name="SoraVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=1022890842 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "春日野 穹"
+selected = true
+
+[node name="NaoVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=268093233 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "依媛 奈绪"
+
+[node name="AkiraVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=843730625 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "天女目 瑛"
+
+[node name="KazuhaVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=1445921190 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "渚 一叶"
+
+[node name="MotokaVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=862118627 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "乃木坂 初佳"
+
+[node name="RyoheiVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=369347389 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "中里 亮平"
+
+[node name="YahiroVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=558871027 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "伊福部 八寻"
+
+[node name="KozueVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=239727394 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "仓永 梢"
+
+[node name="NpcVoice" parent="MainColumns/CharacterVolumeCard/BusinessContent/VoiceChoiceGrid" unique_id=876527663 instance=ExtResource("5_voice_choice")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "其他角色"
+
+[node name="VoiceDetailLabel" type="Label" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=534670491]
+layout_mode = 0
+offset_left = 334.0
+offset_top = 374.0
+offset_right = 574.0
+offset_bottom = 430.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "当前角色音量"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="voice_detail" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=1881567128 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 584.0
+offset_top = 374.0
+offset_right = 1039.0
+offset_bottom = 430.0
+
+[node name="MinimumLabel" type="Label" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=873921835]
+layout_mode = 0
+offset_left = 569.0
+offset_top = 418.0
+offset_right = 619.0
+offset_bottom = 466.0
+theme_type_variation = &"SettingsRangeLabel"
+text = "MIN"
+vertical_alignment = 1
+
+[node name="MaximumLabel" type="Label" parent="MainColumns/CharacterVolumeCard/BusinessContent" unique_id=1431272166]
+layout_mode = 0
+offset_left = 939.0
+offset_top = 418.0
+offset_right = 1039.0
+offset_bottom = 466.0
+theme_type_variation = &"SettingsRangeLabel"
+text = "MAX"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="GlobalVolumeCard" type="PanelContainer" parent="MainColumns" unique_id=1253716854]
+custom_minimum_size = Vector2(751, 583)
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="BusinessContent" type="Control" parent="MainColumns/GlobalVolumeCard" unique_id=1137625207]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="GlobalVolumeTitle" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=538877717 instance=ExtResource("4_title")]
+layout_mode = 0
+offset_left = 4.0
+offset_top = -12.0
+offset_right = 454.0
+offset_bottom = 58.0
+caption = "总音量设置"
+
+[node name="MasterVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1681259694]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 66.0
+offset_right = 209.0
+offset_bottom = 122.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "总音量"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="master_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=805682796 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 66.0
+offset_right = 707.0
+offset_bottom = 122.0
+
+[node name="VoiceVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1350543539]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 150.0
+offset_right = 209.0
+offset_bottom = 206.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "语音"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="voice_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=642999075 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 150.0
+offset_right = 707.0
+offset_bottom = 206.0
+
+[node name="BgmVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=567593084]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 234.0
+offset_right = 209.0
+offset_bottom = 290.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "背景音乐"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="bgm_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1195962730 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 234.0
+offset_right = 707.0
+offset_bottom = 290.0
+
+[node name="EnvironmentVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1811846053]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 318.0
+offset_right = 209.0
+offset_bottom = 374.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "环境音"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="env_se_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1651840466 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 318.0
+offset_right = 707.0
+offset_bottom = 374.0
+
+[node name="EffectVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=304119784]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 402.0
+offset_right = 209.0
+offset_bottom = 458.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "效果音效"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="se_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1959630721 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 402.0
+offset_right = 707.0
+offset_bottom = 458.0
+
+[node name="MovieVolumeLabel" type="Label" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1657766392]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 486.0
+offset_right = 209.0
+offset_bottom = 542.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "视频音效"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="movie_volume" parent="MainColumns/GlobalVolumeCard/BusinessContent" unique_id=1012547960 instance=ExtResource("6_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 486.0
+offset_right = 707.0
+offset_bottom = 542.0
+
+[node name="VoiceSample" type="Node" parent="." unique_id=1312174427]
+script = ExtResource("2_voice_sample")

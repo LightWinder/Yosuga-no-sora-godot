@@ -10,43 +10,65 @@ signal exit_confirmation_changed(is_visible: bool)
 signal menu_mode_changed(is_bonus_mode: bool)
 
 const DESIGN_SIZE := Vector2(1920.0, 1080.0)
-const MENU_Y := 979.0
-const BUTTON_SPACING := 12.0
 const SAFE_AREA_PADDING_PIXELS := 24.0
-const BUTTON_SCENE: PackedScene = preload("res://src/title/title_menu_button.tscn")
-const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/scenario/scenario_unavailable_notice.tscn")
+const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/components/scenario_unavailable_notice.tscn")
 const EXIT_CONFIRMATION_SCENE: PackedScene = preload("res://src/title/title_exit_confirmation.tscn")
 
-const CHARACTER_LAYERS: Array[Dictionary] = [
-	{"flag": 25, "texture": preload("res://assets/ui/title/QD-13-motoka.png")},
-	{"flag": 24, "texture": preload("res://assets/ui/title/QD-13-kazuha.png")},
-	{"flag": 22, "texture": preload("res://assets/ui/title/QD-13-nao.png")},
-	{"flag": 21, "texture": preload("res://assets/ui/title/QD-13-sora.png")},
-	{"flag": 23, "texture": preload("res://assets/ui/title/QD-13-akira.png")},
-]
+const CHARACTER_NODE_FLAGS := {
+	&"CharacterMotoka": 25,
+	&"CharacterKazuha": 24,
+	&"CharacterNao": 22,
+	&"CharacterSora": 21,
+	&"CharacterAkira": 23,
+}
 
 @export_range(0.0, 3.0, 0.05) var reveal_seconds := 1.0
 @export_range(0.0, 3.0, 0.05) var menu_fade_seconds := 0.5
+@export_range(0.0, 1.0, 0.01) var subscreen_exit_seconds := 0.18
+@export_range(0.0, 1.0, 0.01) var subscreen_return_seconds := 0.32
+@export_range(0.0, 400.0, 1.0) var subscreen_exit_offset_y := 180.0
 @export var show_exit_button := true
 @export var safe_area_padding_pixels := SAFE_AREA_PADDING_PIXELS
 
 @onready var _design_root: Control = $DesignRoot
 @onready var _character_layer: Control = $DesignRoot/CharacterLayer
-@onready var _menu_layer: Control = $DesignRoot/MenuLayer
-@onready var _version_label: Label = $DesignRoot/VersionLabel
-@onready var _autosave_info: Label = $DesignRoot/AutosaveInfo
+@onready var _logo: TextureRect = $DesignRoot/Logo
+@onready var _bottom_chrome: Control = $DesignRoot/BottomChrome
+@onready var _menu_layer: Control = $DesignRoot/BottomChrome/MenuLayer
+@onready var _main_menu_center: CenterContainer = $DesignRoot/BottomChrome/MenuLayer/MainMenuCenter
+@onready var _bonus_menu_center: CenterContainer = $DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter
+@onready var _declared_main_buttons: Array[TitleMenuButton] = [
+	%ContinueGame,
+	%NewGame,
+	%LoadGame,
+	%Settings,
+	%Bonus,
+	%ExitGame,
+]
+@onready var _declared_bonus_buttons: Array[TitleMenuButton] = [
+	%Album,
+	%Music,
+	%Memories,
+	%Voice,
+]
+@onready var _back_button: Button = %BonusBackButton
+@onready var _version_label: Label = $DesignRoot/BottomChrome/VersionLabel
+@onready var _autosave_info: Label = $DesignRoot/BottomChrome/AutosaveInfo
+@onready var _blur_warmup: Control = $BlurWarmup
 @onready var _white_cover: ColorRect = $WhiteCover
 
 var _save_service: SaveService
 var _main_buttons: Array[TitleMenuButton] = []
 var _bonus_buttons: Array[TitleMenuButton] = []
 var _active_controls: Array[Control] = []
-var _back_button: Button
 var _exit_confirmation: TitleExitConfirmation
 var _reveal_tween: Tween
 var _bonus_mode := false
 var _exit_confirmation_visible := false
 var _scenario_notice: ScenarioUnavailableNotice
+var _subscreen_tween: Tween
+var _subscreen_departed := false
+var _bottom_chrome_rest_position := Vector2.ZERO
 
 
 func configure(save_service: SaveService) -> void:
@@ -59,11 +81,13 @@ func _ready() -> void:
 		_save_service = SaveService.new()
 		_save_service.name = "SaveService"
 		add_child(_save_service)
-	_build_character_layers()
-	_build_menu()
+	_configure_character_layers()
+	_configure_menu()
+	_bottom_chrome_rest_position = _bottom_chrome.position
 	_version_label.text = "version %s" % str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
 	_apply_design_transform()
 	_start_reveal_animation()
+	_finish_blur_warmup_after_first_draw()
 	_resolve_initial_focus()
 
 
@@ -71,6 +95,9 @@ func _exit_tree() -> void:
 	if _reveal_tween != null and _reveal_tween.is_valid():
 		_reveal_tween.kill()
 	_reveal_tween = null
+	if _subscreen_tween != null and _subscreen_tween.is_valid():
+		_subscreen_tween.kill()
+	_subscreen_tween = null
 
 
 func _notification(what: int) -> void:
@@ -136,92 +163,104 @@ func is_scenario_notice_visible() -> bool:
 	return is_instance_valid(_scenario_notice) and _scenario_notice.visible
 
 
-func _build_character_layers() -> void:
-	for entry in CHARACTER_LAYERS:
-		if not _save_service.is_global_flag_set(int(entry.flag)):
-			continue
-		var layer := TextureRect.new()
-		layer.name = "Character_%d" % int(entry.flag)
-		layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		layer.texture = entry.texture as Texture2D
-		layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_character_layer.add_child(layer)
+## Semantic transition used by the route coordinator before presenting any
+## Title-owned child screen. Title keeps ownership of its internal node motion.
+func play_subscreen_exit() -> void:
+	if _subscreen_departed:
+		return
+	_subscreen_departed = true
+	_set_menu_interaction_enabled(false)
+	_finish_reveal_animation()
+	_kill_subscreen_tween()
+	var tween := create_tween().set_parallel(true)
+	_subscreen_tween = tween
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(
+		_bottom_chrome,
+		"position",
+		_bottom_chrome_rest_position + Vector2(0.0, subscreen_exit_offset_y),
+		subscreen_exit_seconds
+	)
+	tween.tween_property(_logo, "modulate:a", 0.0, subscreen_exit_seconds * 0.8)
+	await tween.finished
+	if _subscreen_tween == tween:
+		_subscreen_tween = null
 
 
-func _build_menu() -> void:
-	var main_items := _build_main_items()
-	for item in main_items:
-		_main_buttons.append(_create_menu_button(item))
-	_layout_buttons(_main_buttons)
+## Reverses play_subscreen_exit when a transparent overlay such as settings
+## closes and the same Title instance becomes interactive again.
+func play_subscreen_return() -> void:
+	if not _subscreen_departed:
+		return
+	if _subscreen_tween != null and _subscreen_tween.is_valid():
+		var departure_tween := _subscreen_tween
+		await departure_tween.finished
+	_subscreen_departed = false
+	_kill_subscreen_tween()
+	var tween := create_tween().set_parallel(true)
+	_subscreen_tween = tween
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(
+		_bottom_chrome,
+		"position",
+		_bottom_chrome_rest_position,
+		subscreen_return_seconds
+	)
+	tween.tween_property(_logo, "modulate:a", 1.0, subscreen_return_seconds)
+	await tween.finished
+	if _subscreen_tween == tween:
+		_subscreen_tween = null
+	_set_menu_interaction_enabled(true)
 
-	var bonus_items: Array[TitleMenuItem] = [
-		TitleMenuItem.create(&"album", "相册", preload("res://assets/ui/title/QD-08.png"), true),
-		TitleMenuItem.create(&"music", "音乐鉴赏", preload("res://assets/ui/title/QD-07.png"), true),
-		TitleMenuItem.create(&"memories", "回忆", preload("res://assets/ui/title/QD-09.png"), true),
-		TitleMenuItem.create(&"voice", "语音鉴赏", preload("res://assets/ui/title/QD-10.png"), true),
-	]
-	for item in bonus_items:
-		_bonus_buttons.append(_create_menu_button(item))
-	_layout_buttons(_bonus_buttons)
 
-	_back_button = Button.new()
-	_back_button.name = "BonusBackButton"
-	_back_button.text = "返回标题"
-	_back_button.tooltip_text = "返回标题菜单"
-	_back_button.focus_mode = Control.FOCUS_ALL
-	_back_button.custom_minimum_size = Vector2(180.0, 64.0)
-	_back_button.position = Vector2(DESIGN_SIZE.x - 220.0, 36.0)
+func is_subscreen_departed() -> bool:
+	return _subscreen_departed
+
+
+func _configure_character_layers() -> void:
+	for layer_name in CHARACTER_NODE_FLAGS:
+		var layer := _character_layer.get_node(NodePath(String(layer_name))) as TextureRect
+		layer.visible = _save_service.is_global_flag_set(int(CHARACTER_NODE_FLAGS[layer_name]))
+
+
+func _configure_menu() -> void:
+	_main_buttons.clear()
+	_bonus_buttons.clear()
+	for button in _declared_main_buttons:
+		button.visible = _is_main_option_available(button.option_id)
+		if button.visible:
+			_main_buttons.append(button)
+			_connect_menu_button(button)
+	for button in _declared_bonus_buttons:
+		_bonus_buttons.append(button)
+		_connect_menu_button(button)
 	_back_button.pressed.connect(_leave_bonus)
-	_menu_layer.add_child(_back_button)
 	_set_bonus_visibility(false)
 
 
-func _build_main_items() -> Array[TitleMenuItem]:
-	var items: Array[TitleMenuItem] = []
-	if _save_service.has_autosave():
-		items.append(TitleMenuItem.create(&"continue_game", "继续游戏", preload("res://assets/ui/title/QD-02.png")))
-	items.append(TitleMenuItem.create(&"new_game", "新的开始", preload("res://assets/ui/title/QD-01.png")))
-	items.append(TitleMenuItem.create(&"load_game", "读取存档", preload("res://assets/ui/title/QD-03.png")))
-	items.append(TitleMenuItem.create(&"configuration", "环境设定", preload("res://assets/ui/title/QD-04.png")))
-	if _save_service.is_global_flag_set(1):
-		items.append(TitleMenuItem.create(&"bonus", "鉴赏", preload("res://assets/ui/title/QD-05.png")))
-	if show_exit_button and not _is_mobile_platform():
-		items.append(TitleMenuItem.create(&"exit_game", "结束游戏", preload("res://assets/ui/title/QD-06.png")))
-	return items
+func _is_main_option_available(option_id: StringName) -> bool:
+	match option_id:
+		&"continue_game":
+			return _save_service.has_autosave()
+		&"bonus":
+			return _save_service.is_global_flag_set(1)
+		&"exit_game":
+				return show_exit_button and not DesignViewportLayout.is_mobile_platform()
+	return true
 
 
-func _create_menu_button(item: TitleMenuItem) -> TitleMenuButton:
-	var button := BUTTON_SCENE.instantiate() as TitleMenuButton
-	button.configure(item.id, item.label, item.texture)
+func _connect_menu_button(button: TitleMenuButton) -> void:
 	button.option_activated.connect(_on_option_activated)
 	button.focus_entered.connect(func() -> void: _show_autosave_info(button))
 	button.mouse_entered.connect(func() -> void: _show_autosave_info(button))
 	button.focus_exited.connect(_hide_autosave_info)
 	button.mouse_exited.connect(_hide_autosave_info)
-	_menu_layer.add_child(button)
-	return button
-
-
-func _layout_buttons(buttons: Array[TitleMenuButton]) -> void:
-	if buttons.is_empty():
-		return
-	var total_width := BUTTON_SPACING * float(buttons.size() - 1)
-	for button in buttons:
-		total_width += button.size.x
-	var next_x := (DESIGN_SIZE.x - total_width) * 0.5
-	for button in buttons:
-		button.position = Vector2(next_x, MENU_Y)
-		next_x += button.size.x + BUTTON_SPACING
 
 
 func _set_bonus_visibility(enabled: bool) -> void:
 	_bonus_mode = enabled
-	for button in _main_buttons:
-		button.visible = not enabled
-	for button in _bonus_buttons:
-		button.visible = enabled
+	_main_menu_center.visible = not enabled
+	_bonus_menu_center.visible = enabled
 	_back_button.visible = enabled
 	_active_controls.clear()
 	if enabled:
@@ -263,7 +302,7 @@ func _on_option_activated(option_id: StringName) -> void:
 			# Gameplay is intentionally left as an integration seam for the next
 			# migration phase.
 			pass
-		&"load_game", &"configuration", &"album", &"music", &"memories", &"voice":
+		&"load_game", &"settings", &"album", &"music", &"memories", &"voice":
 			feature_requested.emit(option_id)
 		&"exit_game":
 			_show_exit_confirmation()
@@ -307,7 +346,7 @@ func _show_scenario_notice(request: ScenarioLaunchRequest) -> void:
 
 
 func _show_exit_confirmation() -> void:
-	if _is_mobile_platform():
+	if DesignViewportLayout.is_mobile_platform():
 		return
 	_ensure_exit_confirmation()
 	_exit_confirmation_visible = true
@@ -357,56 +396,36 @@ func _start_reveal_animation() -> void:
 	_reveal_tween.tween_property(_menu_layer, "modulate:a", 1.0, menu_fade_seconds)
 
 
+func _finish_blur_warmup_after_first_draw() -> void:
+	# This two-pixel probe compiles the exact screen-texture shader used by
+	# settings and allocates its viewport mip chain before the first click.
+	await RenderingServer.frame_post_draw
+	if is_instance_valid(_blur_warmup):
+		_blur_warmup.visible = false
+
+
+func _finish_reveal_animation() -> void:
+	if _reveal_tween != null and _reveal_tween.is_valid():
+		_reveal_tween.kill()
+	_reveal_tween = null
+	_set_cover_alpha(0.0)
+	_set_menu_alpha(1.0)
+
+
+func _kill_subscreen_tween() -> void:
+	if _subscreen_tween != null and _subscreen_tween.is_valid():
+		_subscreen_tween.kill()
+	_subscreen_tween = null
+
+
+func _set_menu_interaction_enabled(enabled: bool) -> void:
+	for control in _active_controls:
+		if control is BaseButton:
+			(control as BaseButton).disabled = not enabled
+
+
 func _apply_design_transform() -> void:
-	if not is_instance_valid(_design_root):
-		return
-	var viewport_size := size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return
-	var safe_rect := _get_safe_area_rect(viewport_size)
-	var scale := minf(safe_rect.size.x / DESIGN_SIZE.x, safe_rect.size.y / DESIGN_SIZE.y)
-	_design_root.scale = Vector2.ONE * scale
-	_design_root.position = safe_rect.position + (safe_rect.size - DESIGN_SIZE * scale) * 0.5
-
-
-func _get_safe_area_rect(viewport_size: Vector2) -> Rect2:
-	if not _is_mobile_platform():
-		return Rect2(Vector2.ZERO, viewport_size)
-
-	var fallback := maxf(0.0, safe_area_padding_pixels)
-	var safe_area := DisplayServer.get_display_safe_area()
-	if safe_area.size.x <= 0 or safe_area.size.y <= 0:
-		return Rect2(Vector2(fallback, fallback), Vector2(
-			maxf(1.0, viewport_size.x - fallback * 2.0),
-			maxf(1.0, viewport_size.y - fallback * 2.0)
-		))
-
-	# Safe-area coordinates are reported in display pixels. Map them to the
-	# viewport before fitting the fixed design canvas; if the platform cannot
-	# report a display size, the conservative inset remains the fallback.
-	var display_size := DisplayServer.screen_get_size()
-	if display_size.x <= 0 or display_size.y <= 0:
-		return Rect2(Vector2(fallback, fallback), Vector2(
-			maxf(1.0, viewport_size.x - fallback * 2.0),
-			maxf(1.0, viewport_size.y - fallback * 2.0)
-		))
-	var display_to_viewport := Vector2(
-		viewport_size.x / float(display_size.x),
-		viewport_size.y / float(display_size.y)
-	)
-	var safe_position := Vector2(safe_area.position) * display_to_viewport
-	var safe_end := Vector2(safe_area.position + safe_area.size) * display_to_viewport
-	safe_position.x = clampf(safe_position.x, 0.0, viewport_size.x)
-	safe_position.y = clampf(safe_position.y, 0.0, viewport_size.y)
-	safe_end.x = clampf(safe_end.x, safe_position.x, viewport_size.x)
-	safe_end.y = clampf(safe_end.y, safe_position.y, viewport_size.y)
-	var safe_size := safe_end - safe_position
-	if safe_size.x <= 1.0 or safe_size.y <= 1.0:
-		return Rect2(Vector2(fallback, fallback), Vector2(
-			maxf(1.0, viewport_size.x - fallback * 2.0),
-			maxf(1.0, viewport_size.y - fallback * 2.0)
-		))
-	return Rect2(safe_position, safe_size)
+	DesignViewportLayout.apply(_design_root, size, DESIGN_SIZE, safe_area_padding_pixels)
 
 
 func _set_menu_alpha(alpha: float) -> void:
@@ -419,7 +438,3 @@ func _set_cover_alpha(alpha: float) -> void:
 	var color := _white_cover.color
 	color.a = alpha
 	_white_cover.color = color
-
-
-func _is_mobile_platform() -> bool:
-	return OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")

@@ -1,0 +1,43 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/settings/ui/settings_section_title.gd" id="1_title"]
+
+[node name="SettingsSectionTitle" type="Control"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 330.0
+offset_bottom = 70.0
+mouse_filter = 2
+theme_type_variation = &"SettingsSectionTitle"
+script = ExtResource("1_title")
+
+[node name="GradientStrip" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 17.0
+offset_right = 200.0
+offset_bottom = 55.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 0
+
+[node name="OuterKeyline" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 10.0
+offset_right = 330.0
+offset_bottom = 70.0
+mouse_filter = 2
+theme_type_variation = &"SettingsSectionTitleOuter"
+vertical_alignment = 1
+
+[node name="Foreground" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 10.0
+offset_right = 330.0
+offset_bottom = 70.0
+mouse_filter = 2
+theme_type_variation = &"SettingsSectionTitleForeground"
+vertical_alignment = 1

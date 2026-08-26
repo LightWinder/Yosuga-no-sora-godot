@@ -1,3 +1,4 @@
+@tool
 class_name TitleMenuButton
 extends TextureButton
 
@@ -10,11 +11,27 @@ signal option_activated(option_id: StringName)
 @export_range(0.01, 0.5, 0.01) var release_seconds := 0.16
 @export_range(0.0, 96.0, 1.0) var touch_hit_padding := 24.0
 
-var option_id: StringName = &""
+@export_group("Content")
+@export var option_id: StringName = &""
+@export var display_name := "":
+	set(value):
+		display_name = value
+		if is_node_ready():
+			tooltip_text = display_name
+@export var sprite_sheet: Texture2D:
+	set(value):
+		sprite_sheet = value
+		if is_node_ready() and sprite_sheet != null:
+			_apply_configuration()
+
 var _scale_tween: Tween
 
 
 func _ready() -> void:
+	if sprite_sheet != null:
+		_apply_configuration()
+	if Engine.is_editor_hint():
+		return
 	button_down.connect(_on_button_down)
 	button_up.connect(_on_button_up)
 	pressed.connect(_on_pressed)
@@ -26,10 +43,7 @@ func _exit_tree() -> void:
 	_kill_scale_tween()
 
 
-func configure(id: StringName, display_name: String, sprite_sheet: Texture2D) -> void:
-	assert(sprite_sheet != null, "A title menu button requires a sprite sheet.")
-	option_id = id
-	name = String(id).to_pascal_case()
+func _apply_configuration() -> void:
 	tooltip_text = display_name
 
 	var frame_size := Vector2(sprite_sheet.get_width() / 2.0, sprite_sheet.get_height())

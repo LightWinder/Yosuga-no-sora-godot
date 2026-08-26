@@ -1,16 +1,18 @@
 class_name TitleMusicPage
-extends TitleVisualPage
+extends DesignCanvasPage
 
 
 signal content_requested(request: TitleContentRequest)
 signal status_changed(message: String)
 
 var _manifest: TitleContentManifest
-var _track_list: GridContainer
-var _status: Label
-var _player: AudioStreamPlayer
 var _selected: TitleMusicTrack
 var _playing := false
+
+@onready var _track_list: GridContainer = %TrackList
+@onready var _status: Label = %Status
+@onready var _player: AudioStreamPlayer = %MusicAppreciationPlayer
+@onready var _stop_button: Button = %StopPlayback
 
 
 func configure(manifest: TitleContentManifest) -> void:
@@ -21,12 +23,8 @@ func configure(manifest: TitleContentManifest) -> void:
 
 func _ready() -> void:
 	super._ready()
-	_player = AudioStreamPlayer.new()
-	_player.name = "MusicAppreciationPlayer"
-	_player.bus = &"BGM"
 	_player.finished.connect(_on_finished)
-	visual_canvas().add_child(_player)
-	_build_shell()
+	_stop_button.pressed.connect(stop)
 	_refresh()
 
 
@@ -66,35 +64,6 @@ func _exit_tree() -> void:
 		_player.stream = null
 	_playing = false
 	_selected = null
-
-
-func _build_shell() -> void:
-	var root := Control.new()
-	root.name = "MusicContent"
-	root.position = Vector2(80.0, 120.0)
-	root.size = Vector2(1760.0, 900.0)
-	visual_canvas().add_child(root)
-	add_design_texture(root, "res://assets/content/appreciation/ost.png", Rect2(95, 18, 300, 52))
-	add_design_texture(root, "res://assets/content/appreciation/bgm_hitbox.png", Rect2(170, 105, 1460, 67))
-	add_design_label(root, "21 首原声音乐 · 选择曲目播放 / 再次选择切换", Rect2(840, 20, 720, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
-	_track_list = GridContainer.new()
-	_track_list.name = "TrackList"
-	_track_list.columns = 3
-	_track_list.position = Vector2(170.0, 195.0)
-	_track_list.size = Vector2(1460.0, 620.0)
-	_track_list.add_theme_constant_override("h_separation", 18)
-	_track_list.add_theme_constant_override("v_separation", 12)
-	root.add_child(_track_list)
-	var stop_button := add_design_button(root, Rect2(765, 835, 390, 58), "停止播放", 22)
-	stop_button.name = "StopPlayback"
-	stop_button.pressed.connect(stop)
-	_status = Label.new()
-	_status.name = "Status"
-	_status.position = Vector2(270.0, 890.0)
-	_status.size = Vector2(1280.0, 38.0)
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_status)
 
 
 func _refresh() -> void:

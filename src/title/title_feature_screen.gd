@@ -7,7 +7,7 @@ signal bonus_back_requested
 signal content_requested(request: TitleContentRequest)
 signal scenario_requested(request: ScenarioLaunchRequest)
 
-const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/scenario/scenario_unavailable_notice.tscn")
+const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/components/scenario_unavailable_notice.tscn")
 const ALBUM_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_album_page.tscn")
 const MUSIC_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_music_page.tscn")
 const MEMORIES_PAGE_SCENE: PackedScene = preload("res://src/title/content/title_memories_page.tscn")

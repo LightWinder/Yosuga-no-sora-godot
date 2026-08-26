@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/settings/ui/settings_voice_choice_button.gd" id="1_voice_choice"]
+
+[node name="SettingsVoiceChoiceButton" type="Button"]
+custom_minimum_size = Vector2(230, 78)
+theme_type_variation = &"SettingsVoiceChoiceButton"
+text = "角色名称"
+script = ExtResource("1_voice_choice")

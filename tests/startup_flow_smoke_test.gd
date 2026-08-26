@@ -44,7 +44,7 @@ func _run() -> void:
 	await create_timer(1.5, true, false, true).timeout
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "Automatic startup flow did not reach Title.")
 	var startup_audio := startup_flow.get_node("StartupAudio") as StartupAudio
-	var runtime_settings := TitleSettingsModel.defaults()
+	var runtime_settings := SettingsModel.defaults()
 	runtime_settings["voice_volume"] = 0.31
 	runtime_settings["env_se_volume"] = 0.41
 	runtime_settings["se_volume"] = 0.63
@@ -56,16 +56,33 @@ func _run() -> void:
 	_expect(_bus_volume_is("SE", 0.63), "Startup audio must apply the persisted SE bus gain.")
 	_expect(_bus_volume_is("Movie", 0.27), "Startup audio must apply the persisted Movie bus gain.")
 	_expect(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"EnvSE")), "Startup audio must apply persisted bus mute flags.")
-	startup_audio.apply_settings(TitleSettingsModel.defaults())
+	startup_audio.apply_settings(SettingsModel.defaults())
 	var read_reset_events: Array[bool] = []
 	startup_flow.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
-	startup_flow._show_title_feature(&"configuration")
-	await process_frame
 	var screen_host := startup_flow.get_node("ScreenHost") as Control
-	var configuration_screen := screen_host.get_child(screen_host.get_child_count() - 1) as TitleConfigurationScreen
-	_expect(configuration_screen != null, "Configuration must use its dedicated route scene.")
-	configuration_screen.configuration_page().read_flags_reset_requested.emit()
-	_expect(read_reset_events.size() == 1, "StartupFlow must expose the configuration read-reset integration seam.")
+	var overlay_host := startup_flow.get_node("OverlayHost") as Control
+	var title_underlay := screen_host.get_child(0) as TitleScreen
+	var prepared_settings := overlay_host.get_child(overlay_host.get_child_count() - 1) as SettingsScreen
+	_expect(prepared_settings != null and not prepared_settings.visible, "Settings must finish its first-time scene setup invisibly before the first click.")
+	_expect(prepared_settings.process_mode == Node.PROCESS_MODE_DISABLED, "Prepared settings must not process input behind Title.")
+	var previous_max_fps := Engine.max_fps
+	startup_flow._show_title_feature(&"settings")
+	await create_timer(0.4, true, false, true).timeout
+	var settings_screen := overlay_host.get_child(overlay_host.get_child_count() - 1) as SettingsScreen
+	_expect(settings_screen != null, "Settings must use its dedicated route scene.")
+	_expect(settings_screen == prepared_settings and settings_screen.visible, "First open must activate the already prepared Settings instance.")
+	_expect(Engine.max_fps == previous_max_fps, "Settings UI must retain the application's original frame rate.")
+	_expect((settings_screen.get_node("BackBufferCopy") as BackBufferCopy).copy_mode == BackBufferCopy.COPY_MODE_VIEWPORT, "Settings must copy the live route behind it directly from the root viewport.")
+	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 1, "Settings must overlay the live Title route instead of replacing it.")
+	_expect(not title_underlay.is_processing_input() and not title_underlay.is_processing_unhandled_input(), "The scene behind settings must stop receiving route input while it remains visible.")
+	_expect(title_underlay.is_subscreen_departed(), "Opening settings must run the reusable Title child-screen departure animation.")
+	settings_screen.settings_page().read_flags_reset_requested.emit()
+	_expect(read_reset_events.size() == 1, "StartupFlow must expose the settings read-reset integration seam.")
+	settings_screen.back_requested.emit()
+	await create_timer(0.7, true, false, true).timeout
+	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 0, "Closing settings must reveal the same Title instance without replaying its route.")
+	_expect(title_underlay.is_processing_input() and title_underlay.is_processing_unhandled_input(), "Closing settings must restore input to the underlying route.")
+	_expect(Engine.max_fps == previous_max_fps, "Closing settings must leave the application frame rate unchanged.")
 	startup_flow.free()
 	Engine.time_scale = 1.0
 	# Give the audio mixing thread time to release stopped Vorbis playback objects.

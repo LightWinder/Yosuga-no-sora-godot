@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="26" viewBox="0 0 96 26">
+  <defs>
+    <linearGradient id="track" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0" stop-color="#8acae6"/>
+      <stop offset="1" stop-color="#58abda"/>
+    </linearGradient>
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Two translucent layers replace the former StyleBoxFlat shadow. -->
+  <rect x="0" y="2" width="96" height="22" rx="11" fill="#A6E6F5" fill-opacity="0.10"/>
+  <rect x="1" y="3" width="94" height="20" rx="10" fill="#A6E6F5" fill-opacity="0.18"/>
+
+  <rect x="2" y="4" width="92" height="18" rx="9" fill="url(#track)" stroke="#FFFFFF" stroke-width="2"/>
+  <path d="M11 5h74a8 8 0 0 1 8 8H3a8 8 0 0 1 8-8Z" fill="url(#highlight)"/>
+</svg>

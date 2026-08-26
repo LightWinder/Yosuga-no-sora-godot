@@ -1,5 +1,5 @@
 class_name TitleVoicePage
-extends TitleVisualPage
+extends DesignCanvasPage
 
 
 signal content_requested(request: TitleContentRequest)
@@ -7,13 +7,14 @@ signal scenario_requested(request: ScenarioLaunchRequest)
 signal status_changed(message: String)
 
 var _service: VoiceCollectionService
-var _entry_list: GridContainer
-var _status: Label
 var _playing_id := ""
 var _page_index := 0
-var _page_label: Label
-var _previous_page: BaseButton
-var _next_page: BaseButton
+
+@onready var _entry_list: GridContainer = %FavoriteList
+@onready var _status: Label = %Status
+@onready var _page_label: Label = %PageNumber
+@onready var _previous_page: TitleSpriteButton = %PreviousPage
+@onready var _next_page: TitleSpriteButton = %NextPage
 
 
 func configure(service: VoiceCollectionService) -> void:
@@ -29,62 +30,18 @@ func _ready() -> void:
 		_service = VoiceCollectionService.new()
 		_service.name = "VoiceCollectionService"
 		add_child(_service)
-	_build_shell()
+	_previous_page.configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
+	_previous_page.set_design_size(Vector2(72.0, 42.0))
+	_previous_page.pressed.connect(_change_page.bind(-1))
+	_next_page.configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
+	_next_page.set_design_size(Vector2(72.0, 42.0))
+	_next_page.pressed.connect(_change_page.bind(1))
 	_connect_service()
 	_refresh()
 
 
 func favorite_count() -> int:
 	return _service.count() if _service != null else 0
-
-
-func _build_shell() -> void:
-	var root := Control.new()
-	root.name = "VoiceContent"
-	root.position = Vector2(80.0, 120.0)
-	root.size = Vector2(1760.0, 900.0)
-	visual_canvas().add_child(root)
-	add_design_texture(root, "res://assets/content/appreciation/fav.voices.png", Rect2(95, 18, 300, 52))
-	add_design_texture(root, "res://assets/content/appreciation/cover.png", Rect2(130, 105, 1660, 600))
-	add_design_label(root, "语音收藏 · 4×3 / 页", Rect2(930, 20, 600, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
-	_entry_list = GridContainer.new()
-	_entry_list.name = "FavoriteList"
-	_entry_list.columns = 4
-	_entry_list.position = Vector2(170.0, 180.0)
-	_entry_list.size = Vector2(1460.0, 530.0)
-	_entry_list.add_theme_constant_override("h_separation", 12)
-	_entry_list.add_theme_constant_override("v_separation", 12)
-	root.add_child(_entry_list)
-	_previous_page = TitleSpriteButton.new()
-	_previous_page.name = "PreviousPage"
-	(_previous_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
-	(_previous_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_previous_page.position = Vector2(680.0, 765.0)
-	_previous_page.pressed.connect(_change_page.bind(-1))
-	root.add_child(_previous_page)
-	_page_label = Label.new()
-	_page_label.name = "PageNumber"
-	_page_label.position = Vector2(760.0, 765.0)
-	_page_label.size = Vector2(160.0, 42.0)
-	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_page_label.add_theme_color_override("font_color", Color(0.12, 0.30, 0.40, 1.0))
-	_page_label.add_theme_font_size_override("font_size", 22)
-	root.add_child(_page_label)
-	_next_page = TitleSpriteButton.new()
-	_next_page.name = "NextPage"
-	(_next_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
-	(_next_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_next_page.position = Vector2(925.0, 765.0)
-	_next_page.pressed.connect(_change_page.bind(1))
-	root.add_child(_next_page)
-	_status = Label.new()
-	_status.name = "Status"
-	_status.position = Vector2(250.0, 825.0)
-	_status.size = Vector2(1280.0, 44.0)
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_status)
 
 
 func _connect_service() -> void:

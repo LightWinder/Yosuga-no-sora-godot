@@ -1,0 +1,96 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/settings/settings_key_popup.gd" id="1_popup"]
+[ext_resource type="Script" path="res://src/settings/ui/settings_text_button.gd" id="2_text_button"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_modal_blur_material.tres" id="3_blur_material"]
+
+[node name="SettingsKeyPopup" type="Control"]
+visible = false
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 0
+script = ExtResource("1_popup")
+motion_target_path = NodePath("Center")
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="."]
+copy_mode = 2
+
+[node name="BlurLayer" type="ColorRect" parent="."]
+material = ExtResource("3_blur_material")
+layout_mode = 0
+offset_left = 580.0
+offset_top = 121.0
+offset_right = 1340.0
+offset_bottom = 959.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="Shade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.015, 0.055, 0.08, 0.58)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="PopupPanel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(760, 838)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"SettingsPopupPanel"
+
+[node name="Margin" type="MarginContainer" parent="Center/PopupPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 22
+
+[node name="Content" type="VBoxContainer" parent="Center/PopupPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/PopupPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsPopupTitle"
+text = "快捷键"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShortcutRows" type="GridContainer" parent="Center/PopupPanel/Margin/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 3
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="Hint" type="Label" parent="Center/PopupPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsPopupHint"
+text = "Esc、鼠标右键或点击窗口外关闭"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Center/PopupPanel/Margin/Content"]
+custom_minimum_size = Vector2(220, 58)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"SettingsPopupCloseButton"
+text = "关闭"
+script = ExtResource("2_text_button")

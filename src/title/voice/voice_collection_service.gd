@@ -13,6 +13,7 @@ var last_error: String = ""
 var _storage_path := DEFAULT_PATH
 var _favorites: Array[VoiceFavorite] = []
 var _player: AudioStreamPlayer
+var _store := AtomicJsonStore.new()
 
 
 func configure_storage(path: String) -> void:
@@ -82,27 +83,9 @@ func clear() -> bool:
 
 
 func restore_backup() -> bool:
-	var global_path := ProjectSettings.globalize_path(_storage_path)
-	var backup_path := "%s.bak" % global_path
-	if not FileAccess.file_exists(backup_path):
-		last_error = "没有可恢复的语音收藏备份。"
+	if not _store.restore_backup(_storage_path):
+		last_error = "无法恢复语音收藏备份：%s" % _store.last_error
 		return false
-	var temporary_path := "%s.restore.tmp" % global_path
-	if FileAccess.file_exists(temporary_path):
-		DirAccess.remove_absolute(temporary_path)
-	if FileAccess.file_exists(global_path):
-		var stage_error := DirAccess.rename_absolute(global_path, temporary_path)
-		if stage_error != OK:
-			last_error = "无法暂存当前语音收藏：%s" % error_string(stage_error)
-			return false
-	var restore_error := DirAccess.rename_absolute(backup_path, global_path)
-	if restore_error != OK:
-		if FileAccess.file_exists(temporary_path) and not FileAccess.file_exists(global_path):
-			DirAccess.rename_absolute(temporary_path, global_path)
-		last_error = "无法恢复语音收藏备份：%s" % error_string(restore_error)
-		return false
-	if FileAccess.file_exists(temporary_path):
-		DirAccess.rename_absolute(temporary_path, backup_path)
 	_load()
 	favorites_changed.emit(list_favorites())
 	return true
@@ -153,18 +136,16 @@ func _find(favorite_id: String) -> VoiceFavorite:
 func _load() -> void:
 	last_error = ""
 	_favorites.clear()
-	if not FileAccess.file_exists(_storage_path):
+	var parsed := _store.read_dictionary(_storage_path)
+	if not _store.last_error.is_empty():
+		last_error = "无法读取语音收藏：%s" % _store.last_error
 		return
-	var file := FileAccess.open(_storage_path, FileAccess.READ)
-	if file == null:
-		last_error = "无法读取语音收藏。"
+	if parsed.is_empty():
 		return
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	file.close()
-	if not parsed is Dictionary or int((parsed as Dictionary).get("schema_version", 0)) > SCHEMA_VERSION:
+	if int(parsed.get("schema_version", 0)) > SCHEMA_VERSION:
 		last_error = "语音收藏 schema 无法迁移。"
 		return
-	var raw_items: Variant = (parsed as Dictionary).get("favorites", [])
+	var raw_items: Variant = parsed.get("favorites", [])
 	if raw_items is Array:
 		for raw in raw_items:
 			if raw is Dictionary:
@@ -177,60 +158,16 @@ func _load() -> void:
 
 func _save() -> bool:
 	last_error = ""
-	var global_path := ProjectSettings.globalize_path(_storage_path)
-	var directory := global_path.get_base_dir()
-	var make_error := DirAccess.make_dir_recursive_absolute(directory)
-	if make_error != OK and make_error != ERR_ALREADY_EXISTS:
-		last_error = "无法创建语音收藏目录：%s" % error_string(make_error)
-		return false
-	var temporary_path := "%s.tmp" % global_path
-	var backup_path := "%s.bak" % global_path
-	var previous_backup_path := "%s.previous" % backup_path
 	var payload: Array[Dictionary] = []
 	for favorite in _favorites:
 		payload.append(favorite.to_dictionary())
-	var payload_text := JSON.stringify({"schema_version": SCHEMA_VERSION, "favorites": payload}, "\t", false)
-	var verify_payload: Variant = JSON.parse_string(payload_text)
-	if not verify_payload is Dictionary:
-		last_error = "语音收藏序列化校验失败。"
-		return false
-	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
-	if file == null:
-		last_error = "无法写入语音收藏临时文件。"
-		return false
-	file.store_string(payload_text)
-	file.flush()
-	file.close()
-	if FileAccess.file_exists(previous_backup_path):
-		var clear_previous_error := DirAccess.remove_absolute(previous_backup_path)
-		if clear_previous_error != OK:
-			last_error = "无法清理语音收藏备份暂存文件：%s" % error_string(clear_previous_error)
-			return false
-	var staged_old_backup := false
-	if FileAccess.file_exists(backup_path) and FileAccess.file_exists(global_path):
-		var stage_backup_error := DirAccess.rename_absolute(backup_path, previous_backup_path)
-		if stage_backup_error != OK:
-			last_error = "无法暂存既有语音收藏备份：%s" % error_string(stage_backup_error)
-			return false
-		staged_old_backup = true
-	if FileAccess.file_exists(global_path):
-		var backup_error := DirAccess.rename_absolute(global_path, backup_path)
-		if backup_error != OK:
-			if staged_old_backup:
-				DirAccess.rename_absolute(previous_backup_path, backup_path)
-			last_error = "无法保护既有语音收藏：%s" % error_string(backup_error)
-			return false
-	var rename_error := DirAccess.rename_absolute(temporary_path, global_path)
-	if rename_error != OK:
-		if FileAccess.file_exists(backup_path) and not FileAccess.file_exists(global_path):
-			DirAccess.rename_absolute(backup_path, global_path)
-		if staged_old_backup and not FileAccess.file_exists(backup_path):
-			DirAccess.rename_absolute(previous_backup_path, backup_path)
-		last_error = "无法替换语音收藏文件：%s" % error_string(rename_error)
-		return false
-	if staged_old_backup and FileAccess.file_exists(previous_backup_path):
-		DirAccess.remove_absolute(previous_backup_path)
-	return true
+	if _store.write_dictionary_atomic(
+		_storage_path,
+		{"schema_version": SCHEMA_VERSION, "favorites": payload}
+	):
+		return true
+	last_error = "无法保存语音收藏：%s" % _store.last_error
+	return false
 
 
 func _on_playback_finished() -> void:

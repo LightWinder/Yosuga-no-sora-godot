@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="缘之空重制版"
+config/name="ヨスガのそら"
 config/version="0.1.0"
 run/main_scene="res://src/app/startup_flow.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
@@ -24,8 +24,8 @@ default_bus_layout="res://default_bus_layout.tres"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/window_width_override=1280
-window/size/window_height_override=720
+window/size/window_width_override=2560
+window/size/window_height_override=1440
 window/stretch/mode="canvas_items"
 
 [gui]

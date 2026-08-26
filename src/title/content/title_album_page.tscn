@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/title/content/title_album_page.gd" id="1_page"]
+[ext_resource type="Script" path="res://src/title/ui/title_sprite_button.gd" id="2_sprite_button"]
+[ext_resource type="Texture2D" path="res://assets/content/appreciation/CG.png" id="3_title"]
+[ext_resource type="PackedScene" path="res://src/title/content/title_album_viewer.tscn" id="4_viewer"]
 
 [node name="AlbumPage" type="Control"]
 layout_mode = 3
@@ -17,3 +20,142 @@ layout_mode = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 1
+
+[node name="AlbumContent" type="Control" parent="VisualCanvas"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 120.0
+offset_right = 1840.0
+offset_bottom = 1020.0
+
+[node name="TitleArtwork" type="TextureRect" parent="VisualCanvas/AlbumContent"]
+layout_mode = 0
+offset_left = 95.0
+offset_top = 18.0
+offset_right = 395.0
+offset_bottom = 70.0
+mouse_filter = 2
+texture = ExtResource("3_title")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Summary" type="Label" parent="VisualCanvas/AlbumContent"]
+layout_mode = 0
+offset_left = 900.0
+offset_top = 20.0
+offset_right = 1590.0
+offset_bottom = 64.0
+theme_override_colors/font_color = Color(0.12, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "前六组 · 79 张卡片 / 214 个差分"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Group01" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 95.0
+offset_top = 84.0
+offset_right = 340.0
+offset_bottom = 142.0
+script = ExtResource("2_sprite_button")
+
+[node name="Group02" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 355.0
+offset_top = 84.0
+offset_right = 600.0
+offset_bottom = 142.0
+script = ExtResource("2_sprite_button")
+
+[node name="Group03" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 615.0
+offset_top = 84.0
+offset_right = 860.0
+offset_bottom = 142.0
+script = ExtResource("2_sprite_button")
+
+[node name="Group04" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 95.0
+offset_top = 154.0
+offset_right = 340.0
+offset_bottom = 212.0
+script = ExtResource("2_sprite_button")
+
+[node name="Group05" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 355.0
+offset_top = 154.0
+offset_right = 600.0
+offset_bottom = 212.0
+script = ExtResource("2_sprite_button")
+
+[node name="Group06" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 615.0
+offset_top = 154.0
+offset_right = 860.0
+offset_bottom = 212.0
+script = ExtResource("2_sprite_button")
+
+[node name="CardList" type="GridContainer" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 95.0
+offset_top = 245.0
+offset_right = 1605.0
+offset_bottom = 750.0
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 18
+columns = 4
+
+[node name="PreviousPage" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 680.0
+offset_top = 785.0
+offset_right = 752.0
+offset_bottom = 827.0
+script = ExtResource("2_sprite_button")
+
+[node name="PageNumber" type="Label" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 760.0
+offset_top = 785.0
+offset_right = 920.0
+offset_bottom = 827.0
+theme_override_colors/font_color = Color(0.12, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NextPage" type="TextureButton" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 925.0
+offset_top = 785.0
+offset_right = 997.0
+offset_bottom = 827.0
+script = ExtResource("2_sprite_button")
+
+[node name="Status" type="Label" parent="VisualCanvas/AlbumContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 320.0
+offset_top = 840.0
+offset_right = 1440.0
+offset_bottom = 882.0
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="AlbumViewer" parent="VisualCanvas" instance=ExtResource("4_viewer")]
+unique_name_in_owner = true
+z_index = 100

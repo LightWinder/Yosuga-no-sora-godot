@@ -1,7 +1,231 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" format=3 uid="uid://cgctrmnusuvqu"]
 
 [ext_resource type="FontFile" path="res://assets/fonts/Xiaolai-Regular.fontdata" id="1_xiaolai"]
+[ext_resource type="FontVariation" uid="uid://cgnfe1btgql5p" path="res://assets/themes/fonts/settings_choice_font.tres" id="2_choice_font"]
+[ext_resource type="FontVariation" path="res://assets/themes/fonts/settings_section_title_font.tres" id="3_title_font"]
+[ext_resource type="Texture2D" uid="uid://13kv0n0wgrea" path="res://assets/themes/settings/choice/state_glow.tres" id="4_choice_glow"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/common/empty_style.tres" id="5_empty_style"]
+[ext_resource type="StyleBox" uid="uid://hf7bk8g4js42" path="res://assets/themes/settings/footer/focus.tres" id="7_footer_focus"]
+[ext_resource type="StyleBox" uid="uid://bi0r4doh1cjik" path="res://assets/themes/settings/footer/hover.tres" id="8_footer_hover"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/footer/pressed.tres" id="10_footer_pressed"]
+[ext_resource type="StyleBox" uid="uid://cx0v4mkqtf8fy" path="res://assets/themes/settings/footer/primary_normal.tres" id="11_footer_primary_normal"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/popup/action_row.tres" id="12_popup_action"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/popup/key_row.tres" id="13_popup_key"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/popup/panel.tres" id="14_popup_panel"]
+[ext_resource type="Texture2D" uid="uid://dwjfgu8yfes0j" path="res://assets/themes/settings/section/title_strip.tres" id="16_title_strip"]
+[ext_resource type="StyleBox" uid="uid://by573t4uy11df" path="res://assets/themes/settings/slider/track.tres" id="17_slider_track"]
+[ext_resource type="Texture2D" uid="uid://b5p6tlqngie1s" path="res://assets/themes/settings/slider/grabber.tres" id="18_slider_grabber"]
+[ext_resource type="Texture2D" uid="uid://db50sct4uj0p1" path="res://assets/themes/settings/slider/grabber_hover.tres" id="19_slider_grabber_hover"]
+[ext_resource type="Texture2D" uid="uid://dho4oucg1n1o8" path="res://assets/themes/settings/slider/grabber_disabled.tres" id="20_slider_grabber_disabled"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/section/portrait_frame.tres" id="21_portrait_frame"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/choice/check_choice_empty.tres" id="22_check_choice_empty"]
 
 [resource]
 default_font = ExtResource("1_xiaolai")
 default_font_size = 24
+SettingsCheckChoiceButton/base_type = &"SettingsChoiceButtonConfirmation"
+SettingsCheckChoiceButton/colors/check_fill_active_color = Color(0.72, 0.9, 0.96, 0.28)
+SettingsCheckChoiceButton/colors/check_fill_color = Color(0.72, 0.9, 0.96, 0.12)
+SettingsCheckChoiceButton/colors/check_inner_color = Color(0.96, 1, 1, 1)
+SettingsCheckChoiceButton/colors/check_mark_color = Color(1, 0.105882, 0.0352941, 1)
+SettingsCheckChoiceButton/colors/check_outer_color = Color(0.203922, 0.627451, 0.760784, 1)
+SettingsCheckChoiceButton/constants/check_corner_radius = 4
+SettingsCheckChoiceButton/constants/check_gap = 18
+SettingsCheckChoiceButton/constants/check_inner_width = 2
+SettingsCheckChoiceButton/constants/check_outer_width = 3
+SettingsCheckChoiceButton/constants/check_size = 30
+SettingsCheckChoiceButton/styles/disabled = ExtResource("22_check_choice_empty")
+SettingsCheckChoiceButton/styles/focus = ExtResource("22_check_choice_empty")
+SettingsCheckChoiceButton/styles/hover = ExtResource("22_check_choice_empty")
+SettingsCheckChoiceButton/styles/normal = ExtResource("22_check_choice_empty")
+SettingsCheckChoiceButton/styles/pressed = ExtResource("22_check_choice_empty")
+SettingsChoiceButton/base_type = &"Button"
+SettingsChoiceButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+SettingsChoiceButton/colors/font_disabled_color = Color(0.78, 0.88, 0.93, 0.58)
+SettingsChoiceButton/colors/font_focus_color = Color(1, 1, 1, 1)
+SettingsChoiceButton/colors/font_hover_color = Color(1, 1, 1, 1)
+SettingsChoiceButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+SettingsChoiceButton/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
+SettingsChoiceButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+SettingsChoiceButton/constants/outline_size = 6
+SettingsChoiceButton/font_sizes/font_size = 32
+SettingsChoiceButton/fonts/font = ExtResource("2_choice_font")
+SettingsChoiceButton/icons/state_glow = ExtResource("4_choice_glow")
+SettingsChoiceButton/styles/disabled = ExtResource("5_empty_style")
+SettingsChoiceButton/styles/focus = ExtResource("5_empty_style")
+SettingsChoiceButton/styles/hover = ExtResource("5_empty_style")
+SettingsChoiceButton/styles/normal = ExtResource("5_empty_style")
+SettingsChoiceButton/styles/pressed = ExtResource("5_empty_style")
+SettingsChoiceButtonCompact/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonCompact/font_sizes/font_size = 32
+SettingsChoiceButtonConfirmation/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonConfirmation/font_sizes/font_size = 29
+SettingsChoiceButtonFont/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonFont/font_sizes/font_size = 33
+SettingsChoiceButtonLarge/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonLarge/font_sizes/font_size = 40
+SettingsChoiceButtonResolution/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonResolution/font_sizes/font_size = 34
+SettingsChoiceButtonToggle/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonToggle/font_sizes/font_size = 36
+SettingsChoiceButtonVoice/base_type = &"SettingsChoiceButton"
+SettingsChoiceButtonVoice/font_sizes/font_size = 30
+SettingsConfirmMessage/base_type = &"Label"
+SettingsConfirmMessage/colors/font_color = Color(1, 1, 1, 1)
+SettingsConfirmMessage/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
+SettingsConfirmMessage/constants/outline_size = 6
+SettingsConfirmMessage/font_sizes/font_size = 50
+SettingsFooterButton/base_type = &"Button"
+SettingsFooterButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+SettingsFooterButton/colors/font_disabled_color = Color(0.78, 0.88, 0.93, 0.58)
+SettingsFooterButton/colors/font_focus_color = Color(1, 1, 1, 1)
+SettingsFooterButton/colors/font_hover_color = Color(1, 1, 1, 1)
+SettingsFooterButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+SettingsFooterButton/colors/font_outline_color = Color(0, 0, 0, 0)
+SettingsFooterButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+SettingsFooterButton/colors/font_shadow_color = Color(0.02, 0.12, 0.18, 0.35)
+SettingsFooterButton/colors/hover_outline_color = Color(0.05, 0.42, 0.72, 1)
+SettingsFooterButton/constants/hover_outline_size = 4
+SettingsFooterButton/constants/outline_size = 4
+SettingsFooterButton/constants/shadow_offset_x = 1
+SettingsFooterButton/constants/shadow_offset_y = 2
+SettingsFooterButton/font_sizes/font_size = 32
+SettingsFooterButton/fonts/font = ExtResource("2_choice_font")
+SettingsFooterButton/styles/disabled = ExtResource("5_empty_style")
+SettingsFooterButton/styles/focus = ExtResource("5_empty_style")
+SettingsFooterButton/styles/hover = ExtResource("5_empty_style")
+SettingsFooterButton/styles/normal = ExtResource("5_empty_style")
+SettingsFooterButton/styles/pressed = ExtResource("5_empty_style")
+SettingsFooterPrimaryButton/base_type = &"SettingsFooterButton"
+SettingsFooterPrimaryButton/colors/font_outline_color = Color(0.05, 0.42, 0.72, 1)
+SettingsFooterPrimaryButton/constants/outline_size = 6
+SettingsFooterPrimaryButton/font_sizes/font_size = 46
+SettingsFooterPrimaryButton/styles/disabled = ExtResource("5_empty_style")
+SettingsFooterPrimaryButton/styles/focus = ExtResource("7_footer_focus")
+SettingsFooterPrimaryButton/styles/hover = ExtResource("8_footer_hover")
+SettingsFooterPrimaryButton/styles/normal = ExtResource("11_footer_primary_normal")
+SettingsFooterPrimaryButton/styles/pressed = ExtResource("10_footer_pressed")
+SettingsImageButton/base_type = &"Button"
+SettingsImageButton/styles/disabled = ExtResource("5_empty_style")
+SettingsImageButton/styles/focus = ExtResource("5_empty_style")
+SettingsImageButton/styles/hover = ExtResource("5_empty_style")
+SettingsImageButton/styles/normal = ExtResource("5_empty_style")
+SettingsImageButton/styles/pressed = ExtResource("5_empty_style")
+SettingsKnobSlider/base_type = &"HSlider"
+SettingsKnobSlider/constants/center_grabber = 1
+SettingsKnobSlider/constants/grabber_offset = 0
+SettingsKnobSlider/icons/grabber = ExtResource("18_slider_grabber")
+SettingsKnobSlider/icons/grabber_disabled = ExtResource("20_slider_grabber_disabled")
+SettingsKnobSlider/icons/grabber_highlight = ExtResource("19_slider_grabber_hover")
+SettingsKnobSlider/styles/grabber_area = ExtResource("5_empty_style")
+SettingsKnobSlider/styles/grabber_area_highlight = ExtResource("5_empty_style")
+SettingsKnobSlider/styles/slider = ExtResource("17_slider_track")
+SettingsOptionLabel/base_type = &"Label"
+SettingsOptionLabel/colors/font_color = Color(0.96, 0.99, 1, 1)
+SettingsOptionLabel/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
+SettingsOptionLabel/constants/outline_size = 5
+SettingsOptionLabel/font_sizes/font_size = 31
+SettingsOptionLabel/fonts/font = ExtResource("2_choice_font")
+SettingsPopupAction/base_type = &"Label"
+SettingsPopupAction/colors/font_color = Color(0.1, 0.48, 0.67, 1)
+SettingsPopupAction/colors/font_outline_color = Color(0.04, 0.34, 0.52, 0.72)
+SettingsPopupAction/constants/outline_size = 1
+SettingsPopupAction/font_sizes/font_size = 29
+SettingsPopupAction/fonts/font = ExtResource("2_choice_font")
+SettingsPopupAction/styles/normal = ExtResource("12_popup_action")
+SettingsPopupCloseButton/base_type = &"SettingsFooterPrimaryButton"
+SettingsPopupCloseButton/font_sizes/font_size = 30
+SettingsPopupHint/base_type = &"Label"
+SettingsPopupHint/colors/font_color = Color(0.17, 0.45, 0.59, 0.9)
+SettingsPopupHint/font_sizes/font_size = 22
+SettingsPopupHint/fonts/font = ExtResource("2_choice_font")
+SettingsPopupKey/base_type = &"Label"
+SettingsPopupKey/colors/font_color = Color(1, 1, 1, 1)
+SettingsPopupKey/colors/font_outline_color = Color(0.04, 0.34, 0.52, 0.72)
+SettingsPopupKey/constants/outline_size = 2
+SettingsPopupKey/font_sizes/font_size = 29
+SettingsPopupKey/fonts/font = ExtResource("2_choice_font")
+SettingsPopupKey/styles/normal = ExtResource("13_popup_key")
+SettingsPopupPanel/base_type = &"PanelContainer"
+SettingsPopupPanel/styles/panel = ExtResource("14_popup_panel")
+SettingsPopupTitle/base_type = &"Label"
+SettingsPopupTitle/colors/font_color = Color(1, 1, 1, 1)
+SettingsPopupTitle/colors/font_outline_color = Color(0.04, 0.42, 0.61, 1)
+SettingsPopupTitle/constants/outline_size = 5
+SettingsPopupTitle/font_sizes/font_size = 48
+SettingsPopupTitle/fonts/font = ExtResource("3_title_font")
+SettingsPortraitFrame/base_type = &"PanelContainer"
+SettingsPortraitFrame/styles/panel = ExtResource("21_portrait_frame")
+SettingsPreviewText/base_type = &"Label"
+SettingsPreviewText/colors/font_outline_color = Color(0.1, 0.1, 0.12, 0.85)
+SettingsPreviewText/constants/outline_size = 3
+SettingsPreviewText/font_sizes/font_size = 30
+SettingsRangeLabel/base_type = &"Label"
+SettingsRangeLabel/colors/font_color = Color(0.82, 0.96, 1, 1)
+SettingsRangeLabel/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
+SettingsRangeLabel/constants/outline_size = 3
+SettingsRangeLabel/font_sizes/font_size = 24
+SettingsRangeLabel/fonts/font = ExtResource("2_choice_font")
+SettingsSectionTitle/base_type = &"Control"
+SettingsSectionTitle/colors/strip_color = Color(0.341176, 0.643137, 0.803922, 1)
+SettingsSectionTitle/constants/font_size = 44
+SettingsSectionTitle/constants/strip_fade_padding = 40
+SettingsSectionTitle/constants/strip_height = 38
+SettingsSectionTitle/constants/text_offset_x = 10
+SettingsSectionTitle/icons/strip = ExtResource("16_title_strip")
+SettingsSectionTitleForeground/base_type = &"Label"
+SettingsSectionTitleForeground/colors/font_color = Color(0.98, 1, 1, 1)
+SettingsSectionTitleForeground/colors/font_outline_color = Color(0.180392, 0.541176, 0.662745, 1)
+SettingsSectionTitleForeground/constants/outline_size = 14
+SettingsSectionTitleForeground/font_sizes/font_size = 44
+SettingsSectionTitleForeground/fonts/font = ExtResource("3_title_font")
+SettingsSectionTitleOuter/base_type = &"Label"
+SettingsSectionTitleOuter/colors/font_color = Color(0.98, 1, 1, 1)
+SettingsSectionTitleOuter/colors/font_outline_color = Color(0.98, 1, 1, 1)
+SettingsSectionTitleOuter/constants/outline_size = 20
+SettingsSectionTitleOuter/font_sizes/font_size = 44
+SettingsSectionTitleOuter/fonts/font = ExtResource("3_title_font")
+SettingsStatusLabel/base_type = &"Label"
+SettingsStatusLabel/colors/font_color = Color(1, 1, 1, 1)
+SettingsStatusLabel/colors/font_outline_color = Color(0.05, 0.08, 0.12, 0.9)
+SettingsStatusLabel/constants/outline_size = 4
+SettingsStatusLabel/font_sizes/font_size = 24
+SettingsTabButton/base_type = &"Button"
+SettingsTabButton/colors/font_color = Color(0.78, 0.9, 0.96, 0.68)
+SettingsTabButton/colors/font_disabled_color = Color(0.65, 0.75, 0.8, 0.42)
+SettingsTabButton/colors/font_focus_color = Color(0.96, 0.99, 1, 1)
+SettingsTabButton/colors/font_hover_color = Color(0.94, 0.98, 1, 0.94)
+SettingsTabButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+SettingsTabButton/colors/font_outline_color = Color(0.08, 0.42, 0.64, 0.72)
+SettingsTabButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+SettingsTabButton/constants/outline_size = 2
+SettingsTabButton/constants/selected_font_size = 64
+SettingsTabButton/font_sizes/font_size = 46
+SettingsTabButton/fonts/font = ExtResource("2_choice_font")
+SettingsTabButton/styles/disabled = ExtResource("5_empty_style")
+SettingsTabButton/styles/focus = ExtResource("5_empty_style")
+SettingsTabButton/styles/hover = ExtResource("5_empty_style")
+SettingsTabButton/styles/normal = ExtResource("5_empty_style")
+SettingsTabButton/styles/pressed = ExtResource("5_empty_style")
+SettingsVoiceChoiceButton/base_type = &"SettingsChoiceButtonVoice"
+SettingsVoiceChoiceButton/colors/voice_fill_color = Color(0.839216, 0.941176, 0.980392, 0.1)
+SettingsVoiceChoiceButton/colors/voice_fill_hover_color = Color(0.760784, 0.909804, 0.968627, 0.22)
+SettingsVoiceChoiceButton/colors/voice_fill_selected_color = Color(0.8, 0.937255, 0.984314, 0.32)
+SettingsVoiceChoiceButton/colors/voice_inner_color = Color(0.960784, 0.992157, 1, 0.68)
+SettingsVoiceChoiceButton/colors/voice_inner_selected_color = Color(0.980392, 1, 1, 1)
+SettingsVoiceChoiceButton/colors/voice_outer_color = Color(0.901961, 0.972549, 1, 0.76)
+SettingsVoiceChoiceButton/colors/voice_outer_hover_color = Color(0.627451, 0.843137, 0.933333, 1)
+SettingsVoiceChoiceButton/colors/voice_outer_selected_color = Color(0.211765, 0.619608, 0.8, 1)
+SettingsVoiceChoiceButton/colors/voice_selected_shadow_color = Color(0.0745098, 0.423529, 0.619608, 0.3)
+SettingsVoiceChoiceButton/constants/voice_corner_radius = 18
+SettingsVoiceChoiceButton/constants/voice_horizontal_inset = 2
+SettingsVoiceChoiceButton/constants/voice_inner_inset = 6
+SettingsVoiceChoiceButton/constants/voice_inner_width = 2
+SettingsVoiceChoiceButton/constants/voice_outer_width = 3
+SettingsVoiceChoiceButton/constants/voice_selected_shadow_size = 4
+SettingsVoiceChoiceButton/constants/voice_vertical_inset = 7
+SettingsVoiceChoiceButton/styles/disabled = ExtResource("5_empty_style")
+SettingsVoiceChoiceButton/styles/focus = ExtResource("5_empty_style")
+SettingsVoiceChoiceButton/styles/hover = ExtResource("5_empty_style")
+SettingsVoiceChoiceButton/styles/normal = ExtResource("5_empty_style")
+SettingsVoiceChoiceButton/styles/pressed = ExtResource("5_empty_style")

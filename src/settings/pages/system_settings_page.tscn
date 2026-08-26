@@ -1,0 +1,386 @@
+[gd_scene format=3 uid="uid://c2srbs4suj53l"]
+
+[ext_resource type="Script" uid="uid://crfwn8cyyue61" path="res://src/settings/pages/system_settings_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_section_title.tscn" id="3_title"]
+[ext_resource type="Script" uid="uid://ctsqr1osembgp" path="res://src/settings/ui/settings_choice_button.gd" id="4_choice"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="5_slider"]
+[ext_resource type="PackedScene" path="res://src/settings/ui/settings_check_choice_button.tscn" id="7_check_choice"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.96, 0.99, 1, 0.7)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[node name="SystemSettingsPage" type="Control" unique_id=1901269018]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1853.0
+offset_bottom = 585.0
+mouse_filter = 2
+script = ExtResource("1_page")
+
+[node name="MainColumns" type="HBoxContainer" parent="." unique_id=173314039]
+custom_minimum_size = Vector2(1851, 583)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="LeftColumn" type="VBoxContainer" parent="MainColumns" unique_id=2133582735]
+custom_minimum_size = Vector2(920, 583)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="BehaviorCard" type="PanelContainer" parent="MainColumns/LeftColumn" unique_id=1087791421]
+custom_minimum_size = Vector2(920, 386)
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/BehaviorCard" unique_id=118745064]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BehaviorTitle" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=469523627 instance=ExtResource("3_title")]
+layout_mode = 0
+offset_left = 4.0
+offset_top = -12.0
+offset_right = 404.0
+offset_bottom = 58.0
+caption = "系统选项"
+
+[node name="ReadSkipLabel" type="Label" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=415980287]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 56.0
+offset_right = 624.0
+offset_bottom = 110.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "允许跳过未读文本"
+vertical_alignment = 1
+
+[node name="ReadSkipYesChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1492382663]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 638.0
+offset_top = 56.0
+offset_right = 756.0
+offset_bottom = 110.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "是"
+script = ExtResource("4_choice")
+
+[node name="ReadSkipNoChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1144835738]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 768.0
+offset_top = 56.0
+offset_right = 886.0
+offset_bottom = 110.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "否"
+script = ExtResource("4_choice")
+
+[node name="VoiceStopLabel" type="Label" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1986022342]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 116.0
+offset_right = 624.0
+offset_bottom = 170.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "下一句时终止播放上句语音"
+vertical_alignment = 1
+
+[node name="VoiceStopYesChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=845708792]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 638.0
+offset_top = 116.0
+offset_right = 756.0
+offset_bottom = 170.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "是"
+script = ExtResource("4_choice")
+
+[node name="VoiceStopNoChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1682224457]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 768.0
+offset_top = 116.0
+offset_right = 886.0
+offset_bottom = 170.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "否"
+script = ExtResource("4_choice")
+
+[node name="LockSkipLabel" type="Label" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1398995744]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 176.0
+offset_right = 624.0
+offset_bottom = 230.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "选项后保持快进"
+vertical_alignment = 1
+
+[node name="LockSkipYesChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1667613097]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 638.0
+offset_top = 176.0
+offset_right = 756.0
+offset_bottom = 230.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "是"
+script = ExtResource("4_choice")
+
+[node name="LockSkipNoChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=199091495]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 768.0
+offset_top = 176.0
+offset_right = 886.0
+offset_bottom = 230.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "否"
+script = ExtResource("4_choice")
+
+[node name="LockAutoLabel" type="Label" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=715626248]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 236.0
+offset_right = 624.0
+offset_bottom = 290.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "选项后保持自动播放"
+vertical_alignment = 1
+
+[node name="LockAutoYesChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=722087155]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 638.0
+offset_top = 236.0
+offset_right = 756.0
+offset_bottom = 290.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "是"
+script = ExtResource("4_choice")
+
+[node name="LockAutoNoChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=491303527]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 768.0
+offset_top = 236.0
+offset_right = 886.0
+offset_bottom = 290.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "否"
+script = ExtResource("4_choice")
+
+[node name="RouteGuideLabel" type="Label" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1672868610]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 296.0
+offset_right = 624.0
+offset_bottom = 350.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "显示剧情线路引导"
+vertical_alignment = 1
+
+[node name="RouteGuideYesChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=1074534297]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 638.0
+offset_top = 296.0
+offset_right = 756.0
+offset_bottom = 350.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "是"
+script = ExtResource("4_choice")
+
+[node name="RouteGuideNoChoice" type="Button" parent="MainColumns/LeftColumn/BehaviorCard/BusinessContent" unique_id=768406513]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 768.0
+offset_top = 296.0
+offset_right = 886.0
+offset_bottom = 350.0
+theme_type_variation = &"SettingsChoiceButtonCompact"
+text = "否"
+script = ExtResource("4_choice")
+
+[node name="SpeedCard" type="PanelContainer" parent="MainColumns/LeftColumn" unique_id=1570951205]
+custom_minimum_size = Vector2(920, 187)
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/SpeedCard" unique_id=534180443]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SpeedTitle" parent="MainColumns/LeftColumn/SpeedCard/BusinessContent" unique_id=1076013395 instance=ExtResource("3_title")]
+layout_mode = 0
+offset_left = 4.0
+offset_right = 334.0
+caption = "文本速度"
+
+[node name="MessageSpeedLabel" type="Label" parent="MainColumns/LeftColumn/SpeedCard/BusinessContent" unique_id=2140921563]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 49.0
+offset_right = 326.0
+offset_bottom = 105.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "文本显示速度"
+vertical_alignment = 1
+
+[node name="message_speed" parent="MainColumns/LeftColumn/SpeedCard/BusinessContent" unique_id=235896459 instance=ExtResource("5_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 334.0
+offset_top = 49.0
+offset_right = 876.0
+offset_bottom = 105.0
+
+[node name="AutoSpeedLabel" type="Label" parent="MainColumns/LeftColumn/SpeedCard/BusinessContent" unique_id=621216260]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 105.0
+offset_right = 326.0
+offset_bottom = 161.0
+theme_type_variation = &"SettingsOptionLabel"
+text = "自动模式文本显示速度"
+vertical_alignment = 1
+
+[node name="auto_speed" parent="MainColumns/LeftColumn/SpeedCard/BusinessContent" unique_id=1921097530 instance=ExtResource("5_slider")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 334.0
+offset_top = 105.0
+offset_right = 876.0
+offset_bottom = 161.0
+
+[node name="ConfirmationCard" type="PanelContainer" parent="MainColumns" unique_id=1758798275]
+custom_minimum_size = Vector2(921, 583)
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="BusinessContent" type="Control" parent="MainColumns/ConfirmationCard" unique_id=1830581258]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ConfirmationTitle" parent="MainColumns/ConfirmationCard/BusinessContent" unique_id=638082195 instance=ExtResource("3_title")]
+layout_mode = 0
+offset_left = 4.0
+offset_top = -12.0
+offset_right = 504.0
+offset_bottom = 58.0
+caption = "选项确认弹窗"
+
+[node name="ConfirmationGrid" type="GridContainer" parent="MainColumns/ConfirmationCard/BusinessContent" unique_id=1175350788]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 72.0
+offset_right = 883.0
+offset_bottom = 544.0
+mouse_filter = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="LoadConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=282084891 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "读档"
+
+[node name="OverwriteConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=186125944 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "存档"
+
+[node name="DeleteConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=446778325 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "删除存档"
+
+[node name="CopyConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=949107614 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "复制存档"
+
+[node name="MoveConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1284327111 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "移动存档"
+
+[node name="TitleConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=160770737 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "回到标题"
+
+[node name="EndConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1127266528 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "结束游戏"
+
+[node name="SelectJumpConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1699892854 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "跳转至选项"
+
+[node name="LogJumpConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=549743653 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "跳转至已读文本"
+
+[node name="DefaultConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=85053688 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "初始化设定"
+
+[node name="ClearReadConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1728491161 instance=ExtResource("7_check_choice")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(287, 112)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "初始化已读文本"

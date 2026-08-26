@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/title/content/title_voice_page.gd" id="1_page"]
+[ext_resource type="Script" path="res://src/title/ui/title_sprite_button.gd" id="2_sprite_button"]
+[ext_resource type="Texture2D" path="res://assets/content/appreciation/fav.voices.png" id="3_title"]
+[ext_resource type="Texture2D" path="res://assets/content/appreciation/cover.png" id="4_cover"]
 
 [node name="VoicePage" type="Control"]
 layout_mode = 3
@@ -17,3 +20,95 @@ layout_mode = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 1
+
+[node name="VoiceContent" type="Control" parent="VisualCanvas"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 120.0
+offset_right = 1840.0
+offset_bottom = 1020.0
+
+[node name="TitleArtwork" type="TextureRect" parent="VisualCanvas/VoiceContent"]
+layout_mode = 0
+offset_left = 95.0
+offset_top = 18.0
+offset_right = 395.0
+offset_bottom = 70.0
+mouse_filter = 2
+texture = ExtResource("3_title")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Summary" type="Label" parent="VisualCanvas/VoiceContent"]
+layout_mode = 0
+offset_left = 930.0
+offset_top = 20.0
+offset_right = 1530.0
+offset_bottom = 64.0
+theme_override_colors/font_color = Color(0.12, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "语音收藏 · 4×3 / 页"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CollectionBackground" type="TextureRect" parent="VisualCanvas/VoiceContent"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 105.0
+offset_right = 1790.0
+offset_bottom = 705.0
+mouse_filter = 2
+texture = ExtResource("4_cover")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="FavoriteList" type="GridContainer" parent="VisualCanvas/VoiceContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 170.0
+offset_top = 180.0
+offset_right = 1630.0
+offset_bottom = 710.0
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 4
+
+[node name="PreviousPage" type="TextureButton" parent="VisualCanvas/VoiceContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 680.0
+offset_top = 765.0
+offset_right = 752.0
+offset_bottom = 807.0
+script = ExtResource("2_sprite_button")
+
+[node name="PageNumber" type="Label" parent="VisualCanvas/VoiceContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 760.0
+offset_top = 765.0
+offset_right = 920.0
+offset_bottom = 807.0
+theme_override_colors/font_color = Color(0.12, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NextPage" type="TextureButton" parent="VisualCanvas/VoiceContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 925.0
+offset_top = 765.0
+offset_right = 997.0
+offset_bottom = 807.0
+script = ExtResource("2_sprite_button")
+
+[node name="Status" type="Label" parent="VisualCanvas/VoiceContent"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 250.0
+offset_top = 825.0
+offset_right = 1530.0
+offset_bottom = 869.0
+horizontal_alignment = 1
+autowrap_mode = 2

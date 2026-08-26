@@ -3,7 +3,7 @@ extends SceneTree
 
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
-const CONFIGURATION_SCENE: PackedScene = preload("res://src/title/config/title_configuration_screen.tscn")
+const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 
 var _failures: Array[String] = []
 
@@ -12,9 +12,6 @@ class MemorySaveService extends SaveService:
 	var memory_autosave: SaveData
 	var memory_profile: ProfileData = ProfileData.create_empty("0.1.0")
 	var memory_flags: Dictionary = {}
-	var settings_write_count := 0
-	var settings_disk_read_count := 0
-	var fail_settings_write := false
 
 	func _ready() -> void:
 		# Keep this contract test independent from the host's user:// location.
@@ -30,18 +27,6 @@ class MemorySaveService extends SaveService:
 		memory_autosave = null
 		return true
 
-	func write_settings(settings: Dictionary) -> bool:
-		settings_write_count += 1
-		if fail_settings_write:
-			last_error = "forced settings write failure"
-			return false
-		return super.write_settings(settings)
-
-	func _read_dictionary(path: String) -> Dictionary:
-		if path.ends_with("settings.json"):
-			settings_disk_read_count += 1
-		return super._read_dictionary(path)
-
 	func load_profile() -> ProfileData:
 		return memory_profile
 
@@ -56,6 +41,23 @@ class MemorySaveService extends SaveService:
 
 	func is_global_flag_set(flag_id: int) -> bool:
 		return bool(memory_flags.get(flag_id, memory_profile.is_global_flag_set(flag_id)))
+
+
+class MemorySettingsRepository extends SettingsRepository:
+	var settings_write_count := 0
+	var settings_disk_read_count := 0
+	var fail_settings_write := false
+
+	func write_settings(settings: Dictionary) -> bool:
+		settings_write_count += 1
+		if fail_settings_write:
+			last_error = "forced settings write failure"
+			return false
+		return super.write_settings(settings)
+
+	func _read_dictionary(path: String) -> Dictionary:
+		settings_disk_read_count += 1
+		return super._read_dictionary(path)
 
 
 func _initialize() -> void:
@@ -221,9 +223,13 @@ func _test_export_presets() -> void:
 func _test_theme_font() -> void:
 	var theme_path := "res://assets/themes/yosuga_theme.tres"
 	var font_path := "res://assets/fonts/Xiaolai-Regular.fontdata"
+	var choice_font_path := "res://assets/themes/fonts/settings_choice_font.tres"
+	var section_title_font_path := "res://assets/themes/fonts/settings_section_title_font.tres"
 	var attribution_path := "res://assets/fonts/Xiaolai-Regular-OFL-1.1.txt"
 	_expect(FileAccess.file_exists(theme_path), "Project CJK theme must exist.")
 	_expect(FileAccess.file_exists(font_path), "Standalone Xiaolai FontFile asset must exist.")
+	_expect(FileAccess.file_exists(choice_font_path), "Settings choice FontVariation must exist.")
+	_expect(FileAccess.file_exists(section_title_font_path), "Settings section-title FontVariation must exist.")
 	_expect(FileAccess.file_exists(attribution_path), "Xiaolai font must ship with OFL 1.1 attribution.")
 	_expect(str(ProjectSettings.get_setting("gui/theme/custom", "")) == theme_path, "Project must register the reusable CJK Theme globally.")
 	var theme := load(theme_path) as Theme
@@ -234,6 +240,13 @@ func _test_theme_font() -> void:
 	_expect(font != null, "Project CJK Theme must expose a default font.")
 	if font == null:
 		return
+	var choice_font := load(choice_font_path) as FontVariation
+	var section_title_font := load(section_title_font_path) as FontVariation
+	_expect(choice_font != null and section_title_font != null, "Settings FontVariation resources must load independently.")
+	_expect(theme.get_type_variation_base(&"SettingsChoiceButton") == &"Button", "Choice styles must be exposed as a Button Theme variation.")
+	_expect(theme.get_type_variation_base(&"SettingsFooterButton") == &"Button", "Footer styles must be exposed as a Button Theme variation.")
+	_expect(theme.get_type_variation_base(&"SettingsKnobSlider") == &"HSlider", "Slider styles must extend Godot's native HSlider Theme type.")
+	_expect(theme.get_type_variation_base(&"SettingsSectionTitle") == &"Control", "Section-title drawing tokens must be exposed as a Control Theme variation.")
 	var glyphs: Array[String] = ["环", "境", "设", "定", "删", "除", "存", "档"]
 	for glyph in glyphs:
 		var codepoint := glyph.unicode_at(0)
@@ -242,9 +255,11 @@ func _test_theme_font() -> void:
 
 func _test_title_state() -> void:
 	var service := MemorySaveService.new()
+	var settings_repository := MemorySettingsRepository.new()
 	var title_root := "/tmp/yosuga-godot-title-contract-%d" % OS.get_process_id()
 	_clear_contract_directory(title_root)
 	service.configure_storage(title_root)
+	settings_repository.configure_storage("%s/settings.json" % title_root)
 	var autosave := SaveData.create_empty("0.1.0")
 	autosave.scenario_id = "00_z000"
 	autosave.autosave_meta = {"valid": true, "label": "测试自动存档"}
@@ -252,6 +267,9 @@ func _test_title_state() -> void:
 	service.memory_flags[1] = true
 	service.memory_profile.set_global_flag(1)
 	var title := TITLE_SCENE.instantiate() as TitleScreen
+	_expect(title.subscreen_exit_seconds < title.subscreen_return_seconds, "Title child-screen departure must be faster than its return animation.")
+	title.subscreen_exit_seconds = 0.01
+	title.subscreen_return_seconds = 0.01
 	title.configure(service)
 	root.add_child(title)
 	await process_frame
@@ -274,6 +292,14 @@ func _test_title_state() -> void:
 	_expect(options.has(&"bonus"), "Bonus must appear after the cleared-game flag.")
 	_expect(options.has(&"exit_game"), "Exit must appear on desktop.")
 	_expect(title.get_menu_buttons().size() == 6, "Cleared save title menu must expose six desktop entries.")
+	var declared_main_row := title.get_node("DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow") as HBoxContainer
+	_expect(declared_main_row.get_child_count() == 6, "Title main-menu buttons must be declared by title_screen.tscn.")
+	for declared_button in declared_main_row.get_children():
+		_expect(declared_button is TitleMenuButton and declared_button.scene_file_path.ends_with("title_menu_button.tscn"), "Every Title action must be a scene-owned TitleMenuButton instance.")
+	var declared_characters := title.get_node("DesignRoot/CharacterLayer") as Control
+	_expect(declared_characters.get_child_count() == 5, "Title character variants must be declared by title_screen.tscn.")
+	var blur_warmup := title.get_node_or_null("BlurWarmup") as Control
+	_expect(blur_warmup != null and blur_warmup.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Title must prewarm the live background-blur pipeline before settings is opened.")
 	_expect(title.get_node_or_null("ExitConfirmationOverlay") == null, "Exit confirmation must remain lazy until requested.")
 	_expect(title.get_node_or_null("ScenarioUnavailableNotice") == null, "Scenario notice must remain lazy until requested.")
 	_expect_no_generated_node_names(title, "Title scene")
@@ -303,7 +329,7 @@ func _test_title_state() -> void:
 	await process_frame
 	_expect(title.is_bonus_mode(), "Bonus must enter the four-item submenu.")
 	_expect(title.get_bonus_buttons().size() == 4, "Bonus must expose Album/Music/Memories/Voice.")
-	var bonus_back := title.get_node("DesignRoot/MenuLayer/BonusBackButton") as Button
+	var bonus_back := title.get_node("DesignRoot/BottomChrome/MenuLayer/BonusBackButton") as Button
 	bonus_back.pressed.emit()
 	_expect(not title.is_bonus_mode(), "Bonus Back button must return through normal GUI.")
 	for button in title.get_menu_buttons():
@@ -335,6 +361,14 @@ func _test_title_state() -> void:
 			break
 	await process_frame
 	_expect(requested.has(&"load_game"), "Load must emit a dedicated feature route.")
+	await title.play_subscreen_exit()
+	var title_bottom_chrome := title.get_node("DesignRoot/BottomChrome") as Control
+	var title_logo := title.get_node("DesignRoot/Logo") as TextureRect
+	_expect(title.is_subscreen_departed() and title_bottom_chrome.position.y > 0.0, "Title child-screen API must slide the complete bottom chrome below the viewport.")
+	_expect(is_zero_approx(title_logo.modulate.a), "Title child-screen API must fade out the logo.")
+	await title.play_subscreen_return()
+	_expect(not title.is_subscreen_departed() and is_zero_approx(title_bottom_chrome.position.y), "Title child-screen return API must restore the same bottom chrome instance.")
+	_expect(is_equal_approx(title_logo.modulate.a, 1.0), "Title child-screen return API must restore the logo.")
 	title.free()
 	await process_frame
 
@@ -392,107 +426,244 @@ func _test_title_state() -> void:
 	feature.free()
 	await process_frame
 
-	var config := CONFIGURATION_SCENE.instantiate() as TitleConfigurationScreen
-	config.configure(service)
-	root.add_child(config)
+	var settings := SETTINGS_SCENE.instantiate() as SettingsScreen
+	settings.open_transition_seconds = 0.01
+	settings.close_transition_seconds = 0.01
+	settings.configure(settings_repository)
+	root.add_child(settings)
 	await process_frame
-	var config_page := config.configuration_page()
-	_expect(config_page != null, "Config must expose a dedicated HD window model.")
-	_expect(config.get_node_or_null("Content") == null, "Configuration route must not retain hidden generic feature chrome.")
-	_expect(config.scene_file_path.ends_with("title_configuration_screen.tscn"), "Configuration must be owned by a dedicated route scene.")
-	_expect(config_page.scene_file_path.ends_with("title_configuration_page.tscn"), "Configuration editor must be a reusable scene instance.")
-	_expect(config_page.find_setting_slider("master_volume") != null, "Config must expose master volume.")
-	_expect(config_page.find_setting_slider("voice_volume") != null, "Config must expose voice volume.")
-	_expect(config_page.find_setting_slider("movie_volume") != null, "Config must expose movie volume.")
-	_expect(config_page.find_setting_slider("voice_detail") != null, "Config must expose the per-character voice slider.")
-	_expect(config_page.find_setting_slider("window_depth") != null, "Config must expose the textbox depth slider.")
-	_expect(config_page.screen_page().get_node_or_null("PageBackground") == null, "Screen config chrome must not regress to a baked 1920x1080 UI background.")
-	_expect(config_page.find_setting_slider("window_depth").uses_vector_visual(), "Screen config slider must use resolution-independent drawing.")
-	var screen_page := config_page.screen_page()
-	_expect(screen_page.scene_file_path.ends_with("config_screen_page.tscn"), "Screen settings layout must be scene-owned instead of rebuilt by its controller.")
-	var main_columns := screen_page.find_child("MainColumns", true, false) as HBoxContainer
-	_expect(main_columns != null, "Screen config must organize its cards with a two-column container layout.")
-	_expect(main_columns.find_child("LeftColumn", true, false) is VBoxContainer, "Screen config must expose a container-managed left column.")
-	_expect(main_columns.find_child("RightColumn", true, false) is VBoxContainer, "Screen config must expose a container-managed right column.")
-	_expect(screen_page.find_child("PreviewArtwork", true, false) != null, "Screen config must retain the scenic preview as artwork.")
-	var font_selection_title := screen_page.find_child("FontSelectionTitle", true, false) as ConfigSectionTitle
+	var settings_page := settings.settings_page()
+	_expect(settings_page != null, "Settings must expose a dedicated HD window model.")
+	_expect(settings.get_node_or_null("Content") == null, "Settings route must not retain hidden generic feature chrome.")
+	_expect(settings.scene_file_path.ends_with("settings_screen.tscn"), "Settings must be owned by a dedicated route scene.")
+	var settings_background_copy := settings.get_node_or_null("BackBufferCopy") as BackBufferCopy
+	_expect(settings_background_copy != null and settings_background_copy.copy_mode == BackBufferCopy.COPY_MODE_VIEWPORT, "Settings must copy the live route rendered behind it every frame.")
+	var settings_background_blur := settings.get_node_or_null("BackgroundBlur") as ColorRect
+	_expect(settings_background_blur != null and settings_background_blur.material is ShaderMaterial, "Settings must render its live route backdrop through a screen-reading blur shader.")
+	_expect(settings_page.scene_file_path.ends_with("settings_page.tscn"), "Settings editor must be a reusable scene instance.")
+	_expect(settings_page.display_page().visible and not settings_page.system_page().visible and not settings_page.audio_page().visible, "Settings must reveal only the selected page after its runtime tab initialization.")
+	_expect(settings_page.find_setting_slider("master_volume") != null, "Settings must expose master volume.")
+	_expect(settings_page.find_setting_slider("voice_volume") != null, "Settings must expose voice volume.")
+	_expect(settings_page.find_setting_slider("movie_volume") != null, "Settings must expose movie volume.")
+	_expect(settings_page.find_setting_slider("voice_detail") != null, "Settings must expose the per-character voice slider.")
+	_expect(settings_page.find_setting_slider("window_depth") != null, "Settings must expose the textbox depth slider.")
+	_expect(settings_page.display_page().get_node_or_null("PageBackground") == null, "Screen settings chrome must not regress to a baked 1920x1080 UI background.")
+	_expect(settings_page.system_page().get_node_or_null("PageBackground") == null, "System settings chrome must be rendered by live scene controls, not a baked page background.")
+	_expect(settings_page.audio_page().get_node_or_null("PageBackground") == null, "Audio settings chrome must be rendered by live scene controls, not a baked page background.")
+	var window_depth_slider := settings_page.find_setting_slider("window_depth")
+	_expect(window_depth_slider is HSlider and window_depth_slider.scene_file_path.ends_with("settings_knob_slider.tscn"), "Screen settings slider must instantiate the reusable native HSlider scene.")
+	var display_page := settings_page.display_page()
+	_expect(display_page.scene_file_path.ends_with("display_settings_page.tscn"), "Screen settings layout must be scene-owned instead of rebuilt by its controller.")
+	var fullscreen_choice := display_page.get_node_or_null("%FullscreenChoice") as SettingsChoiceButton
+	_expect(fullscreen_choice != null, "Screen choices must be declared by the scene and exposed with unique names.")
+	_expect(fullscreen_choice != null and fullscreen_choice.theme_type_variation == &"SettingsChoiceButtonLarge", "Choice sizes must select a semantic Theme variation instead of applying script-side font overrides.")
+	_expect(display_page.get_node_or_null("%window_depth") is SettingsKnobSlider, "Screen depth slider must be declared by the scene.")
+	var main_columns := display_page.find_child("MainColumns", true, false) as HBoxContainer
+	_expect(main_columns != null, "Screen settings must organize its cards with a two-column container layout.")
+	var system_columns := settings_page.system_page().find_child("MainColumns", true, false) as HBoxContainer
+	var audio_columns := settings_page.audio_page().find_child("MainColumns", true, false) as HBoxContainer
+	var display_columns_rect := Rect2(main_columns.position, main_columns.size)
+	settings_page.show_tab(SettingsChrome.Tab.SYSTEM)
+	await process_frame
+	await process_frame
+	var system_columns_rect := Rect2(system_columns.position, system_columns.size)
+	settings_page.show_tab(SettingsChrome.Tab.AUDIO)
+	await process_frame
+	await process_frame
+	var audio_columns_rect := Rect2(audio_columns.position, audio_columns.size)
+	settings_page.show_tab(SettingsChrome.Tab.DISPLAY)
+	await process_frame
+	await process_frame
+	display_columns_rect = Rect2(main_columns.position, main_columns.size)
+	_expect(system_columns != null and system_columns_rect.is_equal_approx(display_columns_rect), "Switching from screen to system settings must not move the inner-frame boundary.")
+	_expect(audio_columns != null and audio_columns_rect.is_equal_approx(display_columns_rect), "Switching from screen to audio settings must not move the inner-frame boundary.")
+	var display_rect := Rect2(Vector2.ZERO, display_page.size)
+	var columns_rect := display_columns_rect
+	var frame_insets := Vector4(
+		columns_rect.position.x - display_rect.position.x,
+		columns_rect.position.y - display_rect.position.y,
+		display_rect.position.x + display_rect.size.x - columns_rect.position.x - columns_rect.size.x,
+		display_rect.position.y + display_rect.size.y - columns_rect.position.y - columns_rect.size.y
+	)
+	_expect(frame_insets.is_equal_approx(Vector4.ZERO), "Settings MainColumns must fill the content-area page supplied by the outer PanelContainer.")
+	var left_column := main_columns.find_child("LeftColumn", true, false) as VBoxContainer
+	_expect(left_column != null, "Screen settings must expose a container-managed left column.")
+	_expect(left_column.get_theme_constant(&"separation") == 10, "Screen settings left-column cards must use one uniform container separation.")
+	_expect(left_column.find_child("Gap01", false, false) == null and left_column.find_child("Gap03", false, false) == null and left_column.find_child("Gap05", false, false) == null, "Screen settings must not emulate container spacing with inconsistent spacer nodes.")
+	var right_column := main_columns.find_child("RightColumn", true, false) as VBoxContainer
+	_expect(right_column != null, "Screen settings must expose a container-managed right column.")
+	var textbox_card := left_column.find_child("TextboxOpacityCard", false, false) as Control
+	var font_card := left_column.find_child("FontSelectionCard", false, false) as Control
+	var upper_row := right_column.find_child("UpperRow", false, false) as Control
+	var lower_row := right_column.find_child("LowerRow", false, false) as Control
+	var left_divider_center := (textbox_card.get_global_rect().end.y + font_card.get_global_rect().position.y) * 0.5
+	var right_divider_center := (upper_row.get_global_rect().end.y + lower_row.get_global_rect().position.y) * 0.5
+	_expect(is_equal_approx(left_divider_center, right_divider_center), "Screen settings left and right horizontal dividers must remain aligned.")
+	_expect(display_page.find_child("PreviewArtwork", true, false) != null, "Screen settings must retain the scenic preview as artwork.")
+	var font_selection_title := display_page.find_child("FontSelectionTitle", true, false) as SettingsSectionTitle
 	_expect(font_selection_title != null and font_selection_title.caption == "字体选择", "Screen headings must be rendered from live text.")
-	_expect(font_selection_title.find_children("*", "TextureRect", true, false).is_empty(), "Screen headings must not regress to cropped source textures.")
-	_expect(font_selection_title.get_child_count() == 2, "A section heading must own exactly its two reusable text layers.")
-	_expect(font_selection_title.get_node_or_null("OuterKeyline") is Label and font_selection_title.get_node_or_null("Foreground") is Label, "Section heading stroke layers must remain explicit code-rendered labels.")
-	var preview_artwork := screen_page.find_child("PreviewArtwork", true, false) as TextureRect
-	var preview_region := preview_artwork.texture as AtlasTexture
-	_expect(preview_region != null and preview_region.region.position.y >= 361.0, "Preview artwork must crop out the baked source heading before live text is overlaid.")
-	var preview_textbox := screen_page.find_child("PreviewTextbox", true, false) as TextureRect
-	var preview_avatar := screen_page.find_child("PreviewAvatar", true, false) as TextureRect
+	_expect(font_selection_title.scene_file_path.ends_with("settings_section_title.tscn"), "Section headings must be reusable scene instances that preview in the editor.")
+	_expect(font_selection_title.get_child_count() == 3, "A section heading must own its static gradient strip and two text layers.")
+	_expect(font_selection_title.get_node_or_null("GradientStrip") is TextureRect, "Section heading gradient must be a scene-owned node.")
+	_expect(font_selection_title.get_node_or_null("OuterKeyline") is Label and font_selection_title.get_node_or_null("Foreground") is Label, "Section heading stroke layers must remain explicit scene-owned labels.")
+	var preview_artwork := display_page.find_child("PreviewArtwork", true, false) as TextureRect
+	var preview_card := display_page.find_child("PreviewCard", true, false) as PanelContainer
+	var preview_background := preview_card.get_node("Background") as Panel
+	var preview_padding := preview_card.get_node("Padding") as MarginContainer
+	var preview_content := preview_padding.get_node("BusinessContent") as Control
+	var preview_mask_style := preview_card.get_theme_stylebox(&"panel") as StyleBoxFlat
+	var preview_background_style := preview_background.get_theme_stylebox(&"panel") as StyleBoxFlat
+	_expect(preview_card != null and preview_card.scene_file_path.is_empty(), "The preview frame must be authored directly in the display page scene.")
+	_expect(preview_card.clip_children == CanvasItem.CLIP_CHILDREN_ONLY, "Only the preview frame must retain rounded descendant clipping.")
+	_expect(preview_mask_style != null and is_equal_approx(preview_mask_style.bg_color.a, 1.0), "The inline preview mask must stay opaque so child colors retain their original intensity.")
+	_expect(preview_background_style != null and is_equal_approx(preview_background_style.bg_color.a, 0.7), "The inline preview background must retain the shared 70% alpha appearance.")
+	_expect(is_equal_approx(preview_content.modulate.a, 1.0), "Preview content must retain full opacity.")
+	_expect(preview_padding.get_theme_constant(&"margin_left") == 16 and preview_padding.get_theme_constant(&"margin_top") == 16, "The inline preview frame must retain its 16 px padding.")
+	_expect(not preview_content.clip_contents, "Preview content must leave clipping to the rounded outer mask.")
+	_expect(preview_artwork.texture.resource_path.ends_with("event_1920/EA01E.png"), "Preview artwork must use the complete source event image instead of cropping the baked settings page.")
+	_expect(preview_artwork.material is ShaderMaterial, "Preview artwork must use a resolution-independent rounded mask.")
+	var preview_texture_size := preview_artwork.texture.get_size()
+	var preview_source_aspect := preview_texture_size.x / preview_texture_size.y
+	_expect(absf(preview_source_aspect - 16.0 / 9.0) < 0.01, "Preview artwork must retain the full source 16:9 composition.")
+	var preview_textbox := display_page.find_child("PreviewTextbox", true, false) as TextureRect
+	var preview_avatar := display_page.find_child("PreviewAvatar", true, false) as TextureRect
 	_expect(preview_textbox != null and preview_textbox.texture != null, "Screen preview must retain the source textbox artwork.")
 	_expect(preview_avatar != null and preview_avatar.texture != null and preview_avatar.size.x > 0.0, "Screen preview avatar artwork must have a visible rect.")
-	_expect(config_page.get_node_or_null("VisualCanvas/ConfigConfirm/Message") is Label, "Config confirmation hierarchy must be declared by its reusable scene.")
-	_expect_no_generated_node_names(config, "Configuration scene")
-	_expect(config_page.find_setting_slider("message_speed") != null, "Config must expose message speed.")
-	_expect(config_page.find_setting_slider("auto_speed") != null, "Config must expose auto speed.")
-	_expect(config_page.audio_page() != null and config_page.audio_page().voice_button_count() == 9, "Config audio page must expose the nine source voice characters.")
-	_expect(TitleSettingsModel.defaults().get("confirmations", {}).size() == 11, "Config must preserve all eleven confirmation toggles.")
-	_expect(TitleSettingsModel.VOICE_DETAIL_NAMES.size() == 11, "Settings must preserve the eleven source VCID detail slots.")
-	var source_defaults := TitleSettingsModel.defaults()
+	var system_page := settings_page.system_page()
+	_expect(system_page.scene_file_path.ends_with("system_settings_page.tscn"), "System settings layout must be owned by its page scene.")
+	_expect(system_page.find_child("MainColumns", true, false) is HBoxContainer, "System settings must use the same container-managed card layout as screen settings.")
+	var behavior_card := system_page.find_child("BehaviorCard", true, false) as PanelContainer
+	_expect(behavior_card != null and behavior_card.clip_contents, "System behavior settings must use an inline square-clipped PanelContainer.")
+	_expect(behavior_card != null and behavior_card.get_node_or_null("BusinessContent") != null, "System card content must be owned directly by the page scene.")
+	_expect(system_page.find_child("BehaviorTitle", true, false) is SettingsSectionTitle, "System headings must reuse the live-text section title.")
+	_expect(system_page.get_node_or_null("%ReadSkipYesChoice") is SettingsChoiceButton, "System YES/NO options must be scene-owned live-text choices.")
+	var load_confirmation := system_page.get_node_or_null("%LoadConfirmation") as SettingsCheckChoiceButton
+	_expect(load_confirmation != null, "System confirmations must use the reusable code-drawn checkbox component.")
+	_expect(load_confirmation != null and load_confirmation.scene_file_path.ends_with("settings_check_choice_button.tscn"), "System confirmation checkboxes must be reusable scene instances.")
+	_expect(load_confirmation != null and load_confirmation.toggle_mode, "System confirmation checkboxes must retain native toggle-button semantics.")
+	_expect(load_confirmation != null and load_confirmation.find_child("StateGlow", false, false) == null, "Confirmation checkboxes must not render the screen-choice glow band.")
+	var confirmation_grid := system_page.find_child("ConfirmationGrid", true, false) as GridContainer
+	_expect(confirmation_grid != null and confirmation_grid.columns == 3, "System confirmations must retain the compact three-column layout.")
+	_expect(confirmation_grid != null and confirmation_grid.get_child_count() == SettingsModel.CONFIRMATION_KEYS.size(), "The confirmation grid must expose all source options.")
+	var audio_page := settings_page.audio_page()
+	_expect(audio_page.scene_file_path.ends_with("audio_settings_page.tscn"), "Audio settings layout must be owned by its page scene.")
+	_expect(audio_page.find_child("MainColumns", true, false) is HBoxContainer, "Audio settings must use the same container-managed card layout as screen settings.")
+	var character_volume_card := audio_page.find_child("CharacterVolumeCard", true, false) as PanelContainer
+	_expect(character_volume_card != null and character_volume_card.clip_contents, "Character volume settings must use an inline square-clipped PanelContainer.")
+	_expect(character_volume_card != null and character_volume_card.get_node_or_null("BusinessContent") != null, "Audio card content must be owned directly by the page scene.")
+	_expect(audio_page.find_child("CharacterVolumeTitle", true, false) is SettingsSectionTitle, "Audio headings must reuse the live-text section title.")
+	var sora_voice := audio_page.get_node_or_null("%SoraVoice") as SettingsVoiceChoiceButton
+	_expect(sora_voice != null, "Voice choices must use the reusable code-drawn audio option component.")
+	_expect(sora_voice != null and sora_voice.scene_file_path.ends_with("settings_voice_choice_button.tscn"), "Voice choices must be reusable scene instances instead of sliced name textures.")
+	_expect(sora_voice != null and sora_voice.find_child("StateGlow", false, false) == null, "Audio voice choices must draw their own rounded keylines without the screen-choice glow band.")
+	_expect(audio_page.get_node_or_null("%VoicePortrait") is TextureRect, "Character portraits must remain scene-owned content artwork.")
+	var footer_labels := {
+		"ResetSettings": "初始化设置",
+		"ResetRead": "初始化已读文本",
+		"OpenKeyPopup": "快捷键",
+		"CloseSettings": "回到标题",
+	}
+	var chrome := settings_page.get_node("VisualCanvas/Chrome") as SettingsChrome
+	_expect(chrome != null and chrome.scene_file_path.ends_with("settings_chrome.tscn"), "Settings navigation and overlays must be owned by a static chrome scene.")
+	for button_name in footer_labels:
+		var footer_button := chrome.get_node(button_name) as SettingsTextButton
+		_expect(footer_button != null and footer_button.text == footer_labels[button_name], "Settings footer action %s must be code-rendered text." % button_name)
+		_expect(footer_button != null and str(footer_button.theme_type_variation).begins_with("SettingsFooter"), "Settings footer action %s must use a semantic Theme variation." % button_name)
+		if button_name != "CloseSettings":
+			_expect(footer_button.get_theme_stylebox(&"normal") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"hover") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"pressed") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"focus") is StyleBoxEmpty, "Text-only footer action %s must stay frameless in every interactive state." % button_name)
+	var close_settings := chrome.get_node("CloseSettings") as SettingsTextButton
+	_expect(close_settings.theme_type_variation == &"SettingsFooterPrimaryButton", "Scene-specific Theme variations must survive script initialization and editor property reordering.")
+	var tabs_row := chrome.get_node("TabsRow") as HBoxContainer
+	var display_tab := chrome.get_node("%DisplayTab") as SettingsTabButton
+	var system_tab := chrome.get_node("%SystemTab") as SettingsTabButton
+	var audio_tab := chrome.get_node("%AudioTab") as SettingsTabButton
+	_expect(tabs_row.get_child_count() == 3 and tabs_row.get_theme_constant(&"separation") == 0, "Settings tabs must occupy three equal, gapless layout slots.")
+	var display_slot_width := (display_tab.get_parent() as Control).size.x
+	var system_slot_width := (system_tab.get_parent() as Control).size.x
+	var audio_slot_width := (audio_tab.get_parent() as Control).size.x
+	_expect(absf(display_slot_width - system_slot_width) <= 1.0 and absf(system_slot_width - audio_slot_width) <= 1.0, "Settings tab slots must remain equal width apart from unavoidable whole-pixel distribution.")
+	_expect(display_tab.tab_label == "画面" and system_tab.tab_label == "系统" and audio_tab.tab_label == "音频", "Settings tabs must serialize localizable live text instead of texture artwork.")
+	_expect(display_tab.text == "• 画面 •" and system_tab.text == "系统" and audio_tab.text == "音频", "The selected settings tab decoration must be generated from live text.")
+	_expect(display_tab.theme_type_variation == &"SettingsTabButton", "Settings tabs must obtain typography and interaction states from a semantic Theme variation.")
+	_expect(display_tab.button_group == system_tab.button_group and system_tab.button_group == audio_tab.button_group, "Settings tabs must use one native exclusive ButtonGroup.")
+	var key_popup := chrome.get_node("KeyPopup") as SettingsKeyPopup
+	_expect(key_popup != null and key_popup.shortcut_count() == 11, "Shortcut popup must expose the eleven source keyboard actions as live text.")
+	_expect(key_popup is SettingsModal, "Settings overlays must share the reusable modal motion implementation.")
+	_expect(key_popup.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Shortcut popup must capture the page behind it before applying blur.")
+	var popup_blur := key_popup.get_node_or_null("BlurLayer") as ColorRect
+	_expect(popup_blur != null and popup_blur.material is ShaderMaterial, "Shortcut popup must render its blurred backdrop with a screen-reading ShaderMaterial.")
+	var popup_panel := key_popup.get_node("Center/PopupPanel") as PanelContainer
+	_expect(popup_panel.theme_type_variation == &"SettingsPopupPanel", "Shortcut popup chrome must come from its Theme variation.")
+	_expect(key_popup.get_node_or_null("Center/PopupPanel/Margin/Content/ShortcutRows") is GridContainer, "Shortcut popup layout must be owned by its reusable scene.")
+	_expect(key_popup.find_child("KeyPopupImage", true, false) == null, "Shortcut popup must not regress to the baked key_popup texture.")
+	var confirm_dialog := chrome.get_node("SettingsConfirm") as SettingsConfirmDialog
+	_expect(confirm_dialog is SettingsModal and confirm_dialog.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Settings confirmation must reuse the same blurred modal presentation.")
+	_expect(confirm_dialog.get_node_or_null("DialogContent/Center/Main/Message") is Label, "Settings confirmation hierarchy must be declared by its reusable scene.")
+	_expect_no_generated_node_names(settings, "Settings scene")
+	_expect(settings_page.find_setting_slider("message_speed") != null, "Settings must expose message speed.")
+	_expect(settings_page.find_setting_slider("auto_speed") != null, "Settings must expose auto speed.")
+	_expect(settings_page.audio_page() != null and settings_page.audio_page().voice_button_count() == 9, "Audio settings page must expose the nine source voice characters.")
+	_expect(SettingsModel.defaults().get("confirmations", {}).size() == 11, "Settings must preserve all eleven confirmation toggles.")
+	_expect(SettingsModel.VOICE_DETAIL_NAMES.size() == 11, "Settings must preserve the eleven source VCID detail slots.")
+	var source_defaults := SettingsModel.defaults()
 	_expect(is_equal_approx(float(source_defaults.get("bgm_volume", 0.0)), 0.5) and is_equal_approx(float(source_defaults.get("se_volume", 0.0)), 0.7), "Audio defaults must match the source System.tjs gains.")
 	_expect(int(source_defaults.get("window_depth", -1)) == 50 and int(source_defaults.get("message_speed", -1)) == 5, "Screen/system defaults must preserve source units.")
-	var normalized_edges := TitleSettingsModel.normalize({"window_mode": "borderless", "window_width": 1500, "font_type": 99, "mute_master": 1})
+	var normalized_edges := SettingsModel.normalize({"window_mode": "borderless", "window_width": 1500, "font_type": 99, "mute_master": 1})
 	_expect(str(normalized_edges.get("window_mode", "")) == "windowed" and int(normalized_edges.get("window_width", 0)) == 1600, "Unsupported desktop modes and widths must normalize to source HD choices.")
 	_expect(int(normalized_edges.get("font_type", -1)) == 5 and normalized_edges.get("mute_master", false) == true, "Font and mute values must be clamped/normalized before persistence.")
 	var preview_updates: Array[Dictionary] = []
-	service.settings_preview_changed.connect(func(settings: Dictionary) -> void: preview_updates.append(settings))
-	var writes_before_preview := service.settings_write_count
-	var settings_reads_before_preview := service.settings_disk_read_count
-	var master_slider := config_page.find_setting_slider("master_volume")
+	settings_repository.settings_preview_changed.connect(func(settings: Dictionary) -> void: preview_updates.append(settings))
+	var writes_before_preview := settings_repository.settings_write_count
+	var settings_reads_before_preview := settings_repository.settings_disk_read_count
+	var master_slider := settings_page.find_setting_slider("master_volume")
 	master_slider.value = 42.0
 	master_slider.value = 43.0
 	master_slider.value = 44.0
-	_expect(preview_updates.size() >= 3, "Config slider must preview each value change in real time.")
-	_expect(service.settings_write_count == writes_before_preview, "Slider preview must not write settings for every value_changed.")
-	_expect(service.settings_disk_read_count == settings_reads_before_preview, "Slider preview must use the settings snapshot without rereading disk.")
+	_expect(preview_updates.size() >= 3, "Settings slider must preview each value change in real time.")
+	_expect(settings_repository.settings_write_count == writes_before_preview, "Slider preview must not write settings for every value_changed.")
+	_expect(settings_repository.settings_disk_read_count == settings_reads_before_preview, "Slider preview must use the settings snapshot without rereading disk.")
 	await create_timer(0.4, true, false, true).timeout
-	_expect(is_equal_approx(float(service.read_settings().get("master_volume", 0.0)), 0.44), "Config slider must persist after debounce.")
-	_expect(service.settings_write_count == writes_before_preview + 1, "Debounced slider changes must persist once.")
+	_expect(is_equal_approx(float(settings_repository.read_settings().get("master_volume", 0.0)), 0.44), "Settings slider must persist after debounce.")
+	_expect(settings_repository.settings_write_count == writes_before_preview + 1, "Debounced slider changes must persist once.")
 	master_slider.value = 55.0
 	master_slider.drag_ended.emit(true)
-	_expect(service.settings_write_count == writes_before_preview + 2, "Ending a slider drag must commit the pending preview immediately.")
+	_expect(settings_repository.settings_write_count == writes_before_preview + 2, "Ending a slider drag must commit the pending preview immediately.")
 	await create_timer(0.3, true, false, true).timeout
-	_expect(is_equal_approx(float(service.read_settings().get("master_volume", 0.0)), 0.55), "Drag-end commit must persist the final slider value.")
+	_expect(is_equal_approx(float(settings_repository.read_settings().get("master_volume", 0.0)), 0.55), "Drag-end commit must persist the final slider value.")
 
-	config_page.screen_page().set_window_mode_for_test("fullscreen")
-	_expect(str(service.read_settings().get("window_mode", "")) == "fullscreen", "Window mode must persist.")
-	config_page.screen_page().set_window_mode_for_test("windowed")
-	_expect(str(service.read_settings().get("window_mode", "")) == "windowed", "Window mode must revert.")
-	config_page.screen_page().set_window_width_for_test(1920)
-	_expect(int(service.read_settings().get("window_width", 0)) == 1920, "Window width must persist.")
-	config_page.screen_page().set_window_width_for_test(1280)
-	config_page.screen_page().set_font_for_test(3)
-	_expect(int(service.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
-	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", false)
-	_expect(service.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
+	settings_page.display_page().select_window_mode("fullscreen")
+	_expect(str(settings_repository.read_settings().get("window_mode", "")) == "fullscreen", "Window mode must persist.")
+	settings_page.display_page().select_window_mode("windowed")
+	_expect(str(settings_repository.read_settings().get("window_mode", "")) == "windowed", "Window mode must revert.")
+	settings_page.display_page().select_resolution(1920)
+	_expect(int(settings_repository.read_settings().get("window_width", 0)) == 1920, "Window width must persist.")
+	settings_page.display_page().select_resolution(1280)
+	settings_page.display_page().select_font(3)
+	_expect(int(settings_repository.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
+	settings_page.display_page().set_screen_toggle(&"portrait_visible", false)
+	_expect(settings_repository.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
 	_expect(not preview_avatar.visible, "Screen preview must hide the avatar immediately when portrait display is disabled.")
-	config_page.screen_page().set_screen_toggle_for_test("portrait_visible", true)
+	settings_page.display_page().set_screen_toggle(&"portrait_visible", true)
 	_expect(preview_avatar.visible, "Screen preview must restore the avatar immediately when portrait display is enabled.")
-	config_page.system_page().set_system_toggle_for_test("read_skip", true)
-	_expect(service.read_settings().get("read_skip", true) == false, "The source readSkip flag is inverted relative to the HD YES/NO label.")
-	config_page.system_page().set_system_toggle_for_test("lock_auto", true)
-	_expect(service.read_settings().get("lock_auto", false) == true, "System toggles must persist.")
-	config_page.system_page().set_confirmation_for_test("delete", false)
-	var confirmations_after: Dictionary = service.read_settings().get("confirmations", {})
+	settings_page.system_page().set_system_toggle_for_test("read_skip", true)
+	_expect(settings_repository.read_settings().get("read_skip", true) == false, "The source readSkip flag is inverted relative to the HD YES/NO label.")
+	settings_page.system_page().set_system_toggle_for_test("lock_auto", true)
+	_expect(settings_repository.read_settings().get("lock_auto", false) == true, "System toggles must persist.")
+	settings_page.system_page().set_confirmation_for_test("delete", false)
+	var confirmations_after: Dictionary = settings_repository.read_settings().get("confirmations", {})
 	_expect(confirmations_after.get("delete", true) == false, "Confirmation toggles must persist.")
 	_expect(confirmations_after.get("load", false) == true and confirmations_after.get("clear_read", false) == true, "Updating one confirmation must preserve the other source flags.")
-	config_page.system_page().set_confirmation_for_test("delete", true)
+	settings_page.system_page().set_confirmation_for_test("delete", true)
 
-	config_page.audio_page().select_voice(2)
-	_expect(config_page.audio_page().selected_voice_detail_index() == 1, "Voice selection must map to the source VCID detail index.")
-	var voice_slider := config_page.find_setting_slider("voice_detail")
+	settings_page.audio_page().select_voice(2)
+	_expect(settings_page.audio_page().selected_voice_detail_index() == 1, "Voice selection must map to the source VCID detail index.")
+	var voice_slider := settings_page.find_setting_slider("voice_detail")
 	voice_slider.value = 30.0
 	voice_slider.drag_ended.emit(true)
-	var details: Array = service.read_settings().get("voice_detail_volumes", [])
+	var details: Array = settings_repository.read_settings().get("voice_detail_volumes", [])
 	_expect(is_equal_approx(float(details[1]), 0.3), "Voice detail volume must persist at the source detail index.")
 
-	var sample_files := TitleSettingsModel.VOICE_SAMPLE_FILES
+	var sample_files := SettingsModel.VOICE_SAMPLE_FILES
 	for detail_index in sample_files.size():
 		_expect(FileAccess.file_exists("res://assets/audio/voice_samples/%s.ogg" % sample_files[detail_index]), "Voice sample must exist: %s" % sample_files[detail_index])
 	_expect(FileAccess.file_exists("res://assets/content/confirm/bg.png"), "Confirm dialog background must exist.")
@@ -500,58 +671,68 @@ func _test_title_state() -> void:
 	_expect(FileAccess.file_exists("res://assets/content/confirm/no.png"), "Confirm no button must exist.")
 	_expect(FileAccess.file_exists("res://assets/content/confirm/ask_always.png"), "Confirm always-ask toggle must exist.")
 
-	config_page.request_reset_settings()
-	_expect(config_page.is_confirm_visible(), "Reset settings must ask when confirmations.default is enabled.")
-	config_page.cancel_pending_action()
-	_expect(not config_page.is_confirm_visible(), "Cancel must dismiss the reset confirm dialog.")
-	var writes_before_reset := service.settings_write_count
-	config_page.request_reset_settings()
-	config_page.confirm_pending_action()
-	_expect(service.settings_write_count == writes_before_reset + 1, "Confirmed reset must persist once.")
-	var reset_values := service.read_settings()
+	settings_page.request_reset_settings()
+	_expect(settings_page.is_confirm_visible(), "Reset settings must ask when confirmations.default is enabled.")
+	settings_page.cancel_pending_action()
+	_expect(not settings_page.is_confirm_visible(), "Cancel must dismiss the reset confirm dialog.")
+	var writes_before_reset := settings_repository.settings_write_count
+	settings_page.request_reset_settings()
+	settings_page.confirm_pending_action()
+	_expect(settings_repository.settings_write_count == writes_before_reset + 1, "Confirmed reset must persist once.")
+	var reset_values := settings_repository.read_settings()
 	_expect(is_equal_approx(float(reset_values.get("master_volume", 0.0)), 1.0), "Reset settings must restore default volumes.")
 	_expect(str(reset_values.get("window_mode", "")) == "windowed", "Reset settings must preserve window mode.")
 	_expect(int(reset_values.get("window_width", 0)) == 1280, "Reset settings must preserve window width.")
-	config_page.system_page().set_confirmation_for_test("default", false)
-	var writes_before_silent_reset := service.settings_write_count
-	config_page.request_reset_settings()
-	_expect(not config_page.is_confirm_visible(), "Reset settings must skip the dialog when confirmations.default is disabled.")
-	_expect(service.settings_write_count == writes_before_silent_reset + 1, "Silent reset must persist once.")
+	settings_page.system_page().set_confirmation_for_test("default", false)
+	var writes_before_silent_reset := settings_repository.settings_write_count
+	settings_page.request_reset_settings()
+	_expect(not settings_page.is_confirm_visible(), "Reset settings must skip the dialog when confirmations.default is disabled.")
+	_expect(settings_repository.settings_write_count == writes_before_silent_reset + 1, "Silent reset must persist once.")
 	var read_reset_events: Array[bool] = []
 	var feature_read_reset_events: Array[bool] = []
-	config_page.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
-	config.read_flags_reset_requested.connect(func() -> void: feature_read_reset_events.append(true))
-	config_page.request_reset_read()
-	_expect(config_page.is_confirm_visible(), "Reset read flags must ask when confirmations.clear_read is enabled.")
-	config_page.confirm_pending_action()
+	settings_page.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
+	settings.read_flags_reset_requested.connect(func() -> void: feature_read_reset_events.append(true))
+	settings_page.request_reset_read()
+	_expect(settings_page.is_confirm_visible(), "Reset read flags must ask when confirmations.clear_read is enabled.")
+	settings_page.confirm_pending_action()
 	_expect(read_reset_events.size() == 1, "Reset read flags must emit a typed seam request.")
-	_expect(feature_read_reset_events.size() == 1, "Configuration feature must forward the read-reset request to StartupFlow.")
+	_expect(feature_read_reset_events.size() == 1, "Settings feature must forward the read-reset request to StartupFlow.")
 
-	service.fail_settings_write = true
-	config_page.screen_page().set_font_for_test(4)
-	var config_status := config_page.get_node("VisualCanvas/ConfigStatus") as Label
-	_expect(config_status.text.contains("设置保存失败"), "A settings persistence failure must remain visible in the configuration window.")
-	_expect(int(config_page.get_current_settings().get("font_type", -1)) == 0, "A failed settings write must roll the UI back to the durable snapshot.")
-	service.fail_settings_write = false
-	config_page.screen_page().set_font_for_test(0)
+	settings_repository.fail_settings_write = true
+	settings_page.display_page().select_font(4)
+	var settings_status := chrome.get_node("SettingsStatus") as Label
+	_expect(settings_status.text.contains("设置保存失败"), "A settings persistence failure must remain visible in the settings window.")
+	_expect(int(settings_page.get_current_settings().get("font_type", -1)) == 0, "A failed settings write must roll the UI back to the durable snapshot.")
+	settings_repository.fail_settings_write = false
+	settings_page.display_page().select_font(0)
+	# The preceding confirmation may still be fading out even though its
+	# logical action has completed. Do not overlap two modal transitions in the
+	# same synthetic test frame.
+	await create_timer(0.2, true, false, true).timeout
 
 	var close_events: Array[bool] = []
-	config_page.close_requested.connect(func() -> void: close_events.append(true))
-	config_page.open_key_popup()
-	_expect(config_page.is_key_popup_visible(), "Key config button must open the popup.")
+	settings_page.close_requested.connect(func() -> void: close_events.append(true))
+	settings_page.open_key_popup()
+	_expect(settings_page.is_key_popup_visible(), "Key settings button must open the popup.")
+	_expect(is_zero_approx(popup_blur.modulate.a), "Modal blur must start transparent until the first live back-buffer frame is available.")
+	await create_timer(0.08, true, false, true).timeout
+	_expect(popup_blur.modulate.a > 0.0 and popup_blur.modulate.a < 1.0, "Modal blur must fade in over the live settings page instead of flashing an opaque frame.")
 	var popup_escape := InputEventKey.new()
 	popup_escape.pressed = true
 	popup_escape.keycode = KEY_ESCAPE
-	config_page._input(popup_escape)
-	_expect(not config_page.is_key_popup_visible(), "Cancel must close the key popup before closing the window.")
-	_expect(close_events.is_empty(), "Popup dismissal must not close the whole config window.")
+	settings_page._input(popup_escape)
+	_expect(not settings_page.is_key_popup_visible(), "Cancel must close the key popup before closing the window.")
+	_expect(close_events.is_empty(), "Popup dismissal must not close the whole settings window.")
+	_expect(key_popup.visible, "Closing a settings modal must keep it rendered while the exit animation plays.")
+	await create_timer(0.2, true, false, true).timeout
+	_expect(not key_popup.visible, "Settings modal must hide after its exit animation finishes.")
 	var window_escape := InputEventKey.new()
 	window_escape.pressed = true
 	window_escape.keycode = KEY_ESCAPE
-	config_page._input(window_escape)
-	_expect(close_events.size() == 1, "Cancel must close the HD config window.")
+	settings_page._input(window_escape)
+	_expect(close_events.size() == 1, "Cancel must close the HD settings window.")
 
-	var legacy_settings := TitleSettingsModel.normalize({
+	var legacy_settings := SettingsModel.normalize({
 		"schema_version": 2,
 		"window_opacity": 0.6,
 		"message_speed": 5,
@@ -562,7 +743,7 @@ func _test_title_state() -> void:
 	var migrated_details: Array = legacy_settings.get("voice_detail_volumes", [])
 	_expect(migrated_details.size() == 11, "Schema 2 voice details must migrate to eleven source slots.")
 	_expect(is_equal_approx(float(migrated_details[0]), 1.0) and is_equal_approx(float(migrated_details[1]), 0.8) and is_equal_approx(float(migrated_details[2]), 0.9) and is_equal_approx(float(migrated_details[10]), 0.2), "Schema 2 voice detail order must remap to source VCID order.")
-	config.free()
+	settings.free()
 	await process_frame
 
 	var manifest := TitleCatalog.load_manifest()

@@ -8,7 +8,7 @@ const SCENES: Dictionary = {
 	&"title_press": preload("res://src/title/title_screen.tscn"),
 }
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
-const CONFIGURATION_SCENE: PackedScene = preload("res://src/title/config/title_configuration_screen.tscn")
+const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const FEATURE_ROUTES: Dictionary = {
 	&"album": &"album",
 	&"music": &"music",
@@ -20,7 +20,6 @@ const FEATURE_ROUTES: Dictionary = {
 
 class CaptureSaveService extends SaveService:
 	var capture_profile := ProfileData.create_empty("visual-capture")
-	var capture_settings := TitleSettingsModel.defaults()
 
 	func _ready() -> void:
 		_ready_for_io = true
@@ -28,11 +27,18 @@ class CaptureSaveService extends SaveService:
 	func load_profile() -> ProfileData:
 		return capture_profile
 
+	func is_global_flag_set(flag_id: int) -> bool:
+		return capture_profile.is_global_flag_set(flag_id)
+
+
+class CaptureSettingsRepository extends SettingsRepository:
+	var capture_settings := SettingsModel.defaults()
+
 	func read_settings() -> Dictionary:
 		return capture_settings.duplicate(true)
 
 	func write_settings(settings: Dictionary) -> bool:
-		capture_settings = TitleSettingsModel.normalize(settings)
+		capture_settings = SettingsModel.normalize(settings)
 		settings_changed.emit(capture_settings.duplicate(true))
 		return true
 
@@ -40,10 +46,7 @@ class CaptureSaveService extends SaveService:
 		var preview := capture_settings.duplicate(true)
 		for key in settings:
 			preview[key] = settings[key]
-		settings_preview_changed.emit(TitleSettingsModel.normalize(preview))
-
-	func is_global_flag_set(flag_id: int) -> bool:
-		return capture_profile.is_global_flag_set(flag_id)
+		settings_preview_changed.emit(SettingsModel.normalize(preview))
 
 
 func _initialize() -> void:
@@ -52,25 +55,32 @@ func _initialize() -> void:
 
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
-	if arguments.size() < 3 or arguments.size() > 4:
-		push_error("Usage: -- <brand|warning|title|title_press|album|music|memories|voice|config|load> <output.png> <delay_seconds> [config_tab:0|1|2]")
+	if arguments.size() < 3 or arguments.size() > 5:
+		push_error("Usage: -- <brand|warning|title|title_press|album|music|memories|voice|settings|load> <output.png> <delay_seconds> [settings_tab:0|1|2] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
 	var screen_name := StringName(arguments[0])
-	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name != &"config":
+	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name != &"settings":
 		push_error("Unknown startup screen: %s" % screen_name)
 		quit(2)
 		return
 
 	var screen: Control
-	if screen_name == &"config":
+	if screen_name == &"settings":
 		var service := CaptureSaveService.new()
+		var settings_repository := CaptureSettingsRepository.new()
 		service.name = "CaptureSaveService"
 		_unlock_capture_content(service.capture_profile)
 		root.add_child(service)
-		screen = CONFIGURATION_SCENE.instantiate() as TitleConfigurationScreen
-		(screen as TitleConfigurationScreen).configure(service)
+		var title_scene := SCENES[&"title"] as PackedScene
+		var title_backdrop := title_scene.instantiate() as TitleScreen
+		title_backdrop.configure(service)
+		title_backdrop.reveal_seconds = 0.0
+		title_backdrop.menu_fade_seconds = 0.0
+		root.add_child(title_backdrop)
+		screen = SETTINGS_SCENE.instantiate() as SettingsScreen
+		(screen as SettingsScreen).configure(settings_repository)
 	elif FEATURE_ROUTES.has(screen_name):
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
@@ -83,15 +93,38 @@ func _capture() -> void:
 		screen = scene.instantiate() as Control
 	root.add_child(screen)
 	await create_timer(float(arguments[2])).timeout
-	if screen_name == &"config" and arguments.size() == 4:
-		var config_page := (screen as TitleConfigurationScreen).configuration_page()
-		if config_page == null:
-			push_error("ConfigurationPage was not created before visual capture.")
+	if screen_name == &"settings" and arguments.size() == 4:
+		var settings_page := (screen as SettingsScreen).settings_page()
+		if settings_page == null:
+			push_error("SettingsPage was not created before visual capture.")
 			quit(1)
 			return
 		var tab := clampi(int(arguments[3]), 0, 2)
-		config_page.show_tab(tab)
-		await process_frame
+		settings_page.show_tab(tab)
+		await create_timer(0.3).timeout
+	if screen_name == &"settings" and arguments.size() == 5:
+		var settings_page := (screen as SettingsScreen).settings_page()
+		var overlay_capture_delay := 0.3
+		match arguments[4]:
+			"key_popup":
+				settings_page.open_key_popup()
+			"key_popup_closing":
+				settings_page.open_key_popup()
+				await create_timer(0.3).timeout
+				settings_page.close_key_popup()
+				overlay_capture_delay = 0.08
+			"reset_confirm":
+				settings_page.request_reset_settings()
+			"reset_confirm_closing":
+				settings_page.request_reset_settings()
+				await create_timer(0.3).timeout
+				settings_page.cancel_pending_action()
+				overlay_capture_delay = 0.08
+			_:
+				push_error("Unknown settings overlay: %s" % arguments[4])
+				quit(2)
+				return
+		await create_timer(overlay_capture_delay).timeout
 	if FEATURE_ROUTES.has(screen_name):
 		var feature := screen as TitleFeatureScreen
 		var content := feature.get_node("Content") as Control

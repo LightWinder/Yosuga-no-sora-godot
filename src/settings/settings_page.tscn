@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://43bb7t2ltmb6"]
+
+[ext_resource type="Script" uid="uid://blst2qdx6pp64" path="res://src/settings/settings_page.gd" id="1_page"]
+[ext_resource type="PackedScene" uid="uid://dh16wc0h3x25m" path="res://src/settings/pages/display_settings_page.tscn" id="2_display"]
+[ext_resource type="PackedScene" uid="uid://c2srbs4suj53l" path="res://src/settings/pages/system_settings_page.tscn" id="3_system"]
+[ext_resource type="PackedScene" uid="uid://bcjh5xfm4vw7o" path="res://src/settings/pages/audio_settings_page.tscn" id="4_audio"]
+[ext_resource type="PackedScene" uid="uid://csq8esx876xsy" path="res://src/settings/settings_chrome.tscn" id="6_chrome"]
+[ext_resource type="StyleBox" uid="uid://2ayy6ufmr8ik" path="res://assets/themes/ui/frame.tres" id="6_vgegu"]
+[ext_resource type="PackedScene" uid="uid://b2de26dkf67x7" path="res://src/ui/page_title.tscn" id="7_page_title"]
+
+[node name="SettingsPage" type="Control" unique_id=336112846]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_page")
+
+[node name="SettingsCommitTimer" type="Timer" parent="." unique_id=1485558885]
+wait_time = 0.25
+one_shot = true
+
+[node name="VisualCanvas" type="Control" parent="." unique_id=1745953229]
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="PageTitle" parent="VisualCanvas" unique_id=1486016150 instance=ExtResource("7_page_title")]
+layout_mode = 0
+offset_top = 106.0
+offset_right = 577.0
+offset_bottom = 303.27002
+
+[node name="ContentContainer" type="PanelContainer" parent="VisualCanvas" unique_id=858481161]
+layout_mode = 1
+offset_left = 8.0
+offset_top = 264.0
+offset_right = 1911.0
+offset_bottom = 899.0
+theme_override_styles/panel = ExtResource("6_vgegu")
+
+[node name="DisplayPage" parent="VisualCanvas/ContentContainer" unique_id=348534185 instance=ExtResource("2_display")]
+layout_mode = 2
+
+[node name="SystemPage" parent="VisualCanvas/ContentContainer" unique_id=1041025945 instance=ExtResource("3_system")]
+visible = false
+layout_mode = 2
+
+[node name="AudioPage" parent="VisualCanvas/ContentContainer" unique_id=636362427 instance=ExtResource("4_audio")]
+visible = false
+layout_mode = 2
+
+[node name="Chrome" parent="VisualCanvas" unique_id=1129931519 instance=ExtResource("6_chrome")]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/settings/ui/settings_knob_slider.gd" id="1_slider"]
+
+[node name="SettingsKnobSlider" type="HSlider"]
+custom_minimum_size = Vector2(100, 56)
+offset_right = 100.0
+offset_bottom = 56.0
+theme_type_variation = &"SettingsKnobSlider"
+max_value = 100.0
+step = 1.0
+value = 50.0
+script = ExtResource("1_slider")

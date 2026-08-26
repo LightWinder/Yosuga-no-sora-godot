@@ -1,0 +1,159 @@
+[gd_scene format=3 uid="uid://csq8esx876xsy"]
+
+[ext_resource type="Script" uid="uid://cg4aau2i3e0av" path="res://src/settings/settings_chrome.gd" id="1_chrome"]
+[ext_resource type="Script" uid="uid://bqypdgjm6vhqd" path="res://src/settings/ui/settings_text_button.gd" id="2_text_button"]
+[ext_resource type="PackedScene" path="res://src/settings/settings_confirm_dialog.tscn" id="3_confirm"]
+[ext_resource type="PackedScene" path="res://src/settings/settings_key_popup.tscn" id="4_key_popup"]
+[ext_resource type="Script" uid="uid://c2cgp816n2ute" path="res://src/settings/ui/settings_tab_button.gd" id="5_tab_button"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_tabs"]
+
+[node name="SettingsChrome" type="Control" unique_id=1543821369]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+script = ExtResource("1_chrome")
+
+[node name="StatusClearTimer" type="Timer" parent="." unique_id=392127762]
+wait_time = 4.0
+one_shot = true
+
+[node name="TabsRow" type="HBoxContainer" parent="." unique_id=143592787]
+layout_mode = 0
+offset_left = 1187.0
+offset_top = 170.0
+offset_right = 1825.0
+offset_bottom = 260.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="DisplaySlot" type="Control" parent="TabsRow" unique_id=1751574302]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="DisplayTab" type="Button" parent="TabsRow/DisplaySlot" unique_id=1862616765]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SettingsTabButton"
+theme_override_font_sizes/font_size = 64
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_tabs")
+text = "• 画面 •"
+script = ExtResource("5_tab_button")
+tab_label = "画面"
+
+[node name="SystemSlot" type="Control" parent="TabsRow" unique_id=2097921161]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="SystemTab" type="Button" parent="TabsRow/SystemSlot" unique_id=239120686]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SettingsTabButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tabs")
+text = "系统"
+script = ExtResource("5_tab_button")
+tab_label = "系统"
+
+[node name="AudioSlot" type="Control" parent="TabsRow" unique_id=872246462]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="AudioTab" type="Button" parent="TabsRow/AudioSlot" unique_id=8539603]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SettingsTabButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tabs")
+text = "音频"
+script = ExtResource("5_tab_button")
+tab_label = "音频"
+
+[node name="ResetSettings" type="Button" parent="." unique_id=837422817]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 42.0
+offset_top = 1027.0
+offset_right = 222.0
+offset_bottom = 1077.0
+theme_type_variation = &"SettingsFooterButton"
+text = "初始化设置"
+script = ExtResource("2_text_button")
+
+[node name="ResetRead" type="Button" parent="." unique_id=325060777]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 245.0
+offset_top = 1027.0
+offset_right = 495.0
+offset_bottom = 1077.0
+theme_type_variation = &"SettingsFooterButton"
+text = "初始化已读文本"
+script = ExtResource("2_text_button")
+
+[node name="OpenKeyPopup" type="Button" parent="." unique_id=244880010]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 520.0
+offset_top = 1027.0
+offset_right = 640.0
+offset_bottom = 1077.0
+theme_type_variation = &"SettingsFooterButton"
+text = "快捷键"
+flat = true
+script = ExtResource("2_text_button")
+
+[node name="CloseSettings" type="Button" parent="." unique_id=1777691812]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1607.0
+offset_top = 995.0
+offset_right = 1880.0
+offset_bottom = 1068.0
+theme_type_variation = &"SettingsFooterPrimaryButton"
+text = "回到标题"
+script = ExtResource("2_text_button")
+
+[node name="SettingsStatus" type="Label" parent="." unique_id=836950120]
+layout_mode = 0
+offset_left = 460.0
+offset_top = 955.0
+offset_right = 1460.0
+offset_bottom = 995.0
+theme_type_variation = &"SettingsStatusLabel"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyPopup" parent="." unique_id=1760308875 instance=ExtResource("4_key_popup")]
+anchors_preset = 0
+
+[node name="SettingsConfirm" parent="." unique_id=409167371 instance=ExtResource("3_confirm")]
+anchors_preset = 0

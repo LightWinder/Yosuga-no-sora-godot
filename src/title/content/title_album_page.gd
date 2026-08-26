@@ -1,23 +1,29 @@
 class_name TitleAlbumPage
-extends TitleVisualPage
+extends DesignCanvasPage
 
 
 signal content_requested(request: TitleContentRequest)
 signal status_changed(message: String)
 
-const VIEWER_SCENE: PackedScene = preload("res://src/title/content/title_album_viewer.tscn")
-
 var _manifest: TitleContentManifest
 var _profile: ProfileData
 var _group_index := 0
 var _page_index := 0
-var _group_buttons: Array[BaseButton] = []
-var _card_list: GridContainer
-var _page_label: Label
-var _previous_page: BaseButton
-var _next_page: BaseButton
-var _status: Label
-var _viewer: TitleAlbumViewer
+
+@onready var _group_buttons: Array[BaseButton] = [
+	%Group01,
+	%Group02,
+	%Group03,
+	%Group04,
+	%Group05,
+	%Group06,
+]
+@onready var _card_list: GridContainer = %CardList
+@onready var _page_label: Label = %PageNumber
+@onready var _previous_page: TitleSpriteButton = %PreviousPage
+@onready var _next_page: TitleSpriteButton = %NextPage
+@onready var _status: Label = %Status
+@onready var _viewer: TitleAlbumViewer = %AlbumViewer
 
 
 func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
@@ -29,7 +35,18 @@ func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
 
 func _ready() -> void:
 	super._ready()
-	_build_shell()
+	for index in _group_buttons.size():
+		var button := _group_buttons[index] as TitleSpriteButton
+		button.configure_sprite(_group_texture(index), 3, 18.0)
+		button.set_design_size(Vector2(245.0, 58.0))
+		button.pressed.connect(_select_group.bind(index))
+	_previous_page.configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
+	_previous_page.set_design_size(Vector2(72.0, 42.0))
+	_previous_page.pressed.connect(_change_page.bind(-1))
+	_next_page.configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
+	_next_page.set_design_size(Vector2(72.0, 42.0))
+	_next_page.pressed.connect(_change_page.bind(1))
+	_viewer.closed.connect(func() -> void: status_changed.emit("已返回相册列表。"))
 	_refresh_groups()
 
 
@@ -57,67 +74,6 @@ func open_card_for_test(group_index: int = 0, card_index: int = 0) -> bool:
 		return false
 	_open_card(group, group.cards[card_index])
 	return _viewer.visible
-
-
-func _build_shell() -> void:
-	var root := Control.new()
-	root.name = "AlbumContent"
-	root.position = Vector2(80.0, 120.0)
-	root.size = Vector2(1760.0, 900.0)
-	visual_canvas().add_child(root)
-	add_design_texture(root, "res://assets/content/appreciation/CG.png", Rect2(95, 18, 300, 52))
-	add_design_label(root, "前六组 · 79 张卡片 / 214 个差分", Rect2(900, 20, 690, 44), 24, Color(0.12, 0.30, 0.40, 1.0))
-	for _index in 6:
-		var button := TitleSpriteButton.new()
-		button.name = "Group%02d" % (_index + 1)
-		button.configure_sprite(_group_texture(_index), 3, 18.0)
-		button.set_design_size(Vector2(245.0, 58.0))
-		button.position = Vector2(95.0 + float(_index % 3) * 260.0, 84.0 + float(_index / 3) * 70.0)
-		button.pressed.connect(_select_group.bind(_index))
-		root.add_child(button)
-		_group_buttons.append(button)
-	_card_list = GridContainer.new()
-	_card_list.name = "CardList"
-	_card_list.columns = 4
-	_card_list.position = Vector2(95.0, 245.0)
-	_card_list.size = Vector2(1510.0, 505.0)
-	_card_list.add_theme_constant_override("h_separation", 18)
-	_card_list.add_theme_constant_override("v_separation", 18)
-	root.add_child(_card_list)
-	_previous_page = TitleSpriteButton.new()
-	_previous_page.name = "PreviousPage"
-	(_previous_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
-	(_previous_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_previous_page.position = Vector2(680.0, 785.0)
-	_previous_page.pressed.connect(_change_page.bind(-1))
-	root.add_child(_previous_page)
-	_page_label = Label.new()
-	_page_label.name = "PageNumber"
-	_page_label.position = Vector2(760.0, 785.0)
-	_page_label.size = Vector2(160.0, 42.0)
-	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_page_label.add_theme_color_override("font_color", Color(0.12, 0.30, 0.40, 1.0))
-	_page_label.add_theme_font_size_override("font_size", 22)
-	root.add_child(_page_label)
-	_next_page = TitleSpriteButton.new()
-	_next_page.name = "NextPage"
-	(_next_page as TitleSpriteButton).configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
-	(_next_page as TitleSpriteButton).set_design_size(Vector2(72.0, 42.0))
-	_next_page.position = Vector2(925.0, 785.0)
-	_next_page.pressed.connect(_change_page.bind(1))
-	root.add_child(_next_page)
-	_status = Label.new()
-	_status.name = "Status"
-	_status.position = Vector2(320.0, 840.0)
-	_status.size = Vector2(1120.0, 42.0)
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_status)
-	_viewer = VIEWER_SCENE.instantiate() as TitleAlbumViewer
-	_viewer.z_index = 100
-	_viewer.closed.connect(func() -> void: status_changed.emit("已返回相册列表。"))
-	visual_canvas().add_child(_viewer)
 
 
 func _group_texture(index: int) -> String:

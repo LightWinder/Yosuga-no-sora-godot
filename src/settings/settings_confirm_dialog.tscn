@@ -1,0 +1,104 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/settings/settings_confirm_dialog.gd" id="1_dialog"]
+[ext_resource type="Texture2D" path="res://assets/content/confirm/bg.png" id="2_background"]
+[ext_resource type="Script" path="res://src/settings/ui/settings_text_button.gd" id="3_button"]
+[ext_resource type="Script" path="res://src/settings/ui/settings_check_button.gd" id="4_check"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_modal_blur_material.tres" id="5_blur_material"]
+
+[node name="SettingsConfirm" type="Control"]
+visible = false
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 0
+script = ExtResource("1_dialog")
+initial_scale = 0.97
+target_blur_lod = 3.0
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="."]
+copy_mode = 2
+
+[node name="BlurLayer" type="ColorRect" parent="."]
+material = ExtResource("5_blur_material")
+layout_mode = 0
+offset_top = 377.0
+offset_right = 1920.0
+offset_bottom = 691.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="Shade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.015, 0.055, 0.08, 0.22)
+
+[node name="BackdropArtwork" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.72)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DialogContent" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="DialogContent"]
+layout_mode = 0
+offset_top = 450.0
+offset_right = 1920.0
+offset_bottom = 600.0
+
+[node name="Main" type="VBoxContainer" parent="DialogContent/Center"]
+layout_mode = 2
+theme_override_constants/separation = 100
+
+[node name="Message" type="Label" parent="DialogContent/Center/Main"]
+custom_minimum_size = Vector2(900, 60)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsConfirmMessage"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="DialogContent/Center/Main"]
+layout_mode = 2
+theme_override_constants/separation = 160
+alignment = 1
+
+[node name="Confirm" type="Button" parent="DialogContent/Center/Main/Buttons"]
+custom_minimum_size = Vector2(220, 60)
+layout_mode = 2
+text="确认"
+script = ExtResource("3_button")
+
+[node name="Cancel" type="Button" parent="DialogContent/Center/Main/Buttons"]
+custom_minimum_size = Vector2(220, 60)
+layout_mode = 2
+text="取消"
+script = ExtResource("3_button")
+
+
+[node name="AlwaysAsk" type="Button" parent="DialogContent"]
+layout_mode = 0
+offset_left = 1723.0
+offset_top = 657.0
+script = ExtResource("4_check")

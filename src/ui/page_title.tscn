@@ -1,0 +1,163 @@
+[gd_scene format=3 uid="uid://b2de26dkf67x7"]
+
+[ext_resource type="StyleBox" uid="uid://oylogb1q2etb" path="res://assets/themes/ui/page_title/dot.tres" id="1_4uhcu"]
+[ext_resource type="Script" uid="uid://bukk8brlhch46" path="res://src/ui/page_title.gd" id="2_page_title"]
+[ext_resource type="FontVariation" path="res://assets/themes/fonts/settings_section_title_font.tres" id="3_title_font"]
+
+[node name="PageTitle" type="Control" unique_id=2021879161]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 566.0
+offset_bottom = 116.0
+mouse_filter = 2
+script = ExtResource("2_page_title")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1586161525]
+layout_mode = 0
+offset_top = 24.0
+offset_right = 566.0
+offset_bottom = 101.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0.11764706)
+
+[node name="FrameLines" type="Control" parent="." unique_id=964281344]
+anchors_preset = 0
+offset_right = 566.0
+offset_bottom = 116.0
+mouse_filter = 2
+
+[node name="TopLeft" type="ColorRect" parent="FrameLines" unique_id=808386600]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 6.0
+offset_right = 70.0
+offset_bottom = 7.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="TopRight" type="ColorRect" parent="FrameLines" unique_id=1739331468]
+layout_mode = 0
+offset_left = 184.0
+offset_top = 6.0
+offset_right = 530.0
+offset_bottom = 7.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="Left" type="ColorRect" parent="FrameLines" unique_id=961193649]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 6.0
+offset_right = 41.0
+offset_bottom = 106.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="Right" type="ColorRect" parent="FrameLines" unique_id=1012936546]
+layout_mode = 0
+offset_left = 530.0
+offset_top = 6.0
+offset_right = 531.0
+offset_bottom = 106.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="BottomLeft" type="ColorRect" parent="FrameLines" unique_id=1165768748]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 106.0
+offset_right = 158.0
+offset_bottom = 107.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="BottomRight" type="ColorRect" parent="FrameLines" unique_id=1531553172]
+layout_mode = 0
+offset_left = 270.0
+offset_top = 106.0
+offset_right = 530.0
+offset_bottom = 107.0
+mouse_filter = 2
+color = Color(0.8, 0.8, 0.8, 0.647059)
+
+[node name="StartDot" type="Panel" parent="." unique_id=1353208706]
+layout_mode = 0
+offset_left = 34.0
+offset_right = 47.0
+offset_bottom = 13.0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("1_4uhcu")
+
+[node name="EndDot" type="Panel" parent="." unique_id=1292708799]
+layout_mode = 0
+offset_left = 523.0
+offset_top = 100.0
+offset_right = 536.0
+offset_bottom = 113.0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("1_4uhcu")
+
+[node name="TextRow" type="Control" parent="." unique_id=1860448760]
+layout_mode = 0
+offset_left = 70.0
+offset_right = 500.0
+offset_bottom = 116.0
+mouse_filter = 2
+
+[node name="ChineseTitle" type="Control" parent="TextRow" unique_id=1631124630]
+layout_mode = 0
+offset_right = 190.0
+offset_bottom = 116.0
+mouse_filter = 2
+
+[node name="FirstChar" type="Label" parent="TextRow/ChineseTitle" unique_id=1752817475]
+layout_mode = 0
+offset_top = -7.0
+offset_right = 100.0
+offset_bottom = 99.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.22, 0.58, 0.72, 0.82)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 5
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = ExtResource("3_title_font")
+theme_override_font_sizes/font_size = 92
+text = "设"
+vertical_alignment = 2
+
+[node name="SecondChar" type="Label" parent="TextRow/ChineseTitle" unique_id=1653575429]
+layout_mode = 0
+offset_left = 90.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 116.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.22, 0.58, 0.72, 0.82)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 5
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = ExtResource("3_title_font")
+theme_override_font_sizes/font_size = 92
+text = "置"
+vertical_alignment = 2
+
+[node name="SubtitleSlot" type="Control" parent="TextRow" unique_id=698857201]
+layout_mode = 0
+offset_left = 200.0
+offset_right = 430.0
+offset_bottom = 116.0
+mouse_filter = 2
+
+[node name="SubTitle" type="Label" parent="TextRow/SubtitleSlot" unique_id=490402365]
+layout_mode = 0
+offset_right = 230.0
+offset_bottom = 106.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.22, 0.58, 0.72, 0.82)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 5
+theme_override_constants/shadow_outline_size = 0
+theme_override_fonts/font = ExtResource("3_title_font")
+theme_override_font_sizes/font_size = 52
+text = "SYSTEM."
+vertical_alignment = 2
