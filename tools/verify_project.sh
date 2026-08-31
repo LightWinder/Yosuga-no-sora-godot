@@ -17,7 +17,6 @@ required_files=(
 	"src/core/save/profile_data.gd"
 	"src/core/save/save_service.gd"
 	"src/title/title_feature_screen.tscn"
-	"src/title/title_exit_confirmation.tscn"
 	"src/title/title_catalog.gd"
 	"src/title/content/title_content_manifest.gd"
 	"src/title/content/title_album_page.gd"
@@ -33,6 +32,12 @@ required_files=(
 	"src/title/voice/voice_collection_service.gd"
 	"src/ui/design_canvas_page.gd"
 	"src/ui/design_viewport_layout.gd"
+	"src/ui/confirmation_overlay.gd"
+	"src/ui/confirmation_overlay.tscn"
+	"src/save_load/save_load_page.gd"
+	"src/save_load/save_load_page.tscn"
+	"src/save_load/save_slot_card.gd"
+	"src/save_load/save_slot_card.tscn"
 	"src/settings/settings_page.gd"
 	"src/settings/settings_page.tscn"
 	"src/settings/settings_screen.gd"
@@ -72,7 +77,44 @@ required_files=(
 	"src/ui/page_title.gd"
 	"src/ui/page_title.tscn"
 	"src/scenario/scenario_launch_request.gd"
-	"src/title/components/scenario_unavailable_notice.tscn"
+	"src/scenario/krkr_scenario_instruction.gd"
+	"src/scenario/krkr_scenario_document.gd"
+	"src/scenario/krkr_scenario_parser.gd"
+	"src/scenario/krkr_scenario_runtime.gd"
+	"src/adv/adv_asset_resolver.gd"
+	"src/adv/adv_progress_catalog.gd"
+	"src/adv/adv_tone_catalog.gd"
+	"src/adv/adv_stage_director.gd"
+	"src/adv/adv_screen.gd"
+	"src/adv/adv_screen.tscn"
+	"src/adv/components/adv_choice_button.gd"
+	"src/adv/components/adv_choice_button.tscn"
+	"tools/import_krkr_scenarios.sh"
+	"tools/import_krkr_adv_assets.sh"
+	"tools/import_krkr_adv_sample_assets.sh"
+	"tools/validate_utf8_scenarios.sh"
+	"assets/content/adv/ui/speaker_name_manifest.csv"
+	"assets/content/adv/cg_unlock_flags.csv"
+	"assets/content/adv/background_tones.csv"
+	"assets/content/adv/ui/name/MP-01.png"
+	"assets/content/adv/ui/DHK-01.png"
+	"assets/content/adv/ui/DHK-16.png"
+	"assets/content/adv/ui/DHK-17.png"
+	"assets/content/adv/ui/DHK-18.png"
+	"assets/content/adv/ui/DHK-19.png"
+	"assets/content/adv/ui/DHK-20.png"
+	"assets/content/adv/ui/DHK-21.png"
+	"assets/content/adv/ui/DHK-22.png"
+	"assets/content/adv/ui/DHK-23.png"
+	"assets/content/adv/ui/DHK-24.png"
+	"assets/content/adv/ui/DHK-25.png"
+	"assets/content/adv/ui/DHK-26.png"
+	"assets/content/adv/ui/DHK-58.png"
+	"assets/content/adv/ui/DHK-60.png"
+	"assets/ui/title/FRM_0513_title_logo.png"
+	"assets/shaders/adv/universal_transition.gdshader"
+	"assets/shaders/adv/universal_transition_material.tres"
+	"assets/themes/adv/eyecatch_panel.tres"
 	"assets/manifests/title_content_manifest.json"
 	"assets/fonts/Xiaolai-Regular.fontdata"
 	"assets/fonts/Xiaolai-Regular-OFL-1.1.txt"
@@ -82,10 +124,10 @@ required_files=(
 	"assets/themes/settings/common/empty_style.tres"
 	"assets/themes/settings/choice/check_choice_empty.tres"
 	"assets/themes/settings/choice/state_glow.tres"
-	"assets/themes/settings/footer/focus.tres"
-	"assets/themes/settings/footer/hover.tres"
-	"assets/themes/settings/footer/pressed.tres"
-	"assets/themes/settings/footer/primary_normal.tres"
+	"assets/themes/ui/action_button/focus.tres"
+	"assets/themes/ui/action_button/hover.tres"
+	"assets/themes/ui/action_button/pressed.tres"
+	"assets/themes/ui/action_button/primary_normal.tres"
 	"assets/themes/settings/popup/action_row.tres"
 	"assets/themes/settings/popup/key_row.tres"
 	"assets/themes/settings/popup/panel.tres"
@@ -97,6 +139,12 @@ required_files=(
 	"assets/themes/settings/slider/grabber_hover.tres"
 	"assets/themes/settings/slider/grabber_disabled.tres"
 	"assets/themes/ui/page_title/dot.tres"
+	"assets/themes/ui/glass_panel.tres"
+	"assets/themes/save_load/preview_frame.tres"
+	"assets/themes/save_load/slot_normal.tres"
+	"assets/themes/save_load/slot_hover.tres"
+	"assets/themes/save_load/slot_pressed.tres"
+	"assets/themes/save_load/slot_disabled.tres"
 	"assets/shaders/ui/settings_modal_blur.gdshader"
 	"assets/shaders/ui/settings_modal_blur_material.tres"
 	"assets/shaders/ui/settings_background_blur_material.tres"
@@ -178,13 +226,25 @@ require_pattern() {
 	fi
 }
 
-require_pattern 'pointing/emulate_mouse_from_touch=true' "$project_root/project.godot" "Touch-to-mouse emulation must remain enabled."
+# Godot's default is true and the editor may omit settings equal to their
+# default. Only an explicit opt-out changes project behavior.
+if rg -q '^[[:space:]]*pointing/emulate_mouse_from_touch[[:space:]]*=[[:space:]]*false[[:space:]]*$' "$project_root/project.godot"; then
+	echo "Touch-to-mouse emulation must not be disabled." >&2
+	exit 1
+fi
 require_pattern '\*\.ogv filter=lfs' "$project_root/.gitattributes" "Large video assets must remain covered by Git LFS."
 require_pattern '\*\.png filter=lfs' "$project_root/.gitattributes" "Image assets must remain covered by Git LFS."
 require_pattern 'vn_advance=' "$project_root/project.godot" "The vn_advance input action is missing."
 require_pattern 'schema_version' "$project_root/src/core/save/save_data.gd" "SaveData must expose schema migration metadata."
 require_pattern 'com.lightwinder.yosuganosora.hdremake' "$project_root/export_presets.cfg" "Export bundle identifiers are missing."
 require_pattern 'theme/custom="res://assets/themes/yosuga_theme.tres"' "$project_root/project.godot" "The project CJK theme is not configured."
+require_pattern '\*\.ks text eol=lf' "$project_root/.gitattributes" "Converted KRKR scripts must be normalized as UTF-8 text."
+scenario_count="$(find "$project_root/assets/scenario" -maxdepth 1 -type f -name '*.ks' | wc -l | tr -d ' ')"
+if [[ "$scenario_count" != "306" ]]; then
+	echo "Expected 306 converted UTF-8 KRKR scenarios, found $scenario_count." >&2
+	exit 1
+fi
+"$project_root/tools/validate_utf8_scenarios.sh" "$project_root/assets/scenario"
 require_pattern 'default_bus_layout="res://default_bus_layout.tres"' "$project_root/project.godot" "The project audio bus layout is not configured."
 require_pattern '"album_cards": 79' "$project_root/assets/manifests/title_content_manifest.json" "Album card manifest count changed unexpectedly."
 require_pattern '"album_variants": 214' "$project_root/assets/manifests/title_content_manifest.json" "Album variant manifest count changed unexpectedly."
@@ -198,13 +258,63 @@ if rg -q 'SettingsPage' "$project_root/src/title/title_feature_screen.gd"; then
 	echo "The generic feature host must not own the settings route." >&2
 	exit 1
 fi
-if rg -q 'ScenarioUnavailableNotice\.new|Title(Album|Music|Memories|Voice)Page\.new' "$project_root/src/title"; then
+if rg -q 'Title(Album|Music|Memories|Voice)Page\.new' "$project_root/src/title"; then
 	echo "Reusable Title pages and overlays must be instantiated from scene resources." >&2
 	exit 1
 fi
 require_pattern 'display_settings_page\.tscn' "$project_root/src/settings/settings_page.tscn" "Screen settings must remain a scene-owned subpage."
 require_pattern 'settings_chrome\.tscn' "$project_root/src/settings/settings_page.tscn" "Settings navigation and overlays must remain a scene-owned chrome component."
 require_pattern 'settings_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route settings through its dedicated scene."
+require_pattern 'adv_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route scenario requests to the ADV scene."
+require_pattern 'scenario_finished\.connect\(_return_to_title_from_adv\)' "$project_root/src/app/startup_flow.gd" "Completed ADV routes must use the deferred return transition before constructing Title."
+require_pattern 'await source_adv\.play_title_exit\(\)' "$project_root/src/app/startup_flow.gd" "StartupFlow must await ADV's source-style black exit before constructing Title."
+require_pattern 'name="RouteBackdrop" type="TextureRect"' "$project_root/src/app/startup_flow.tscn" "Title departure must retain the exact scene-owned blue route artwork."
+require_pattern 'name="LoadTransitionCover" type="TextureRect"' "$project_root/src/app/startup_flow.tscn" "Continue must retain the scene-owned source load cover."
+require_pattern 'FRM_0501\.png' "$project_root/src/app/startup_flow.tscn" "Route transitions must reuse the source FRM_0501 artwork."
+require_pattern '_transition_saved_title_to_adv\(\)' "$project_root/src/app/startup_flow.gd" "Continue must use the source 300/500 ms load-cover hand-off."
+require_pattern 'ScenarioLaunchRequest\.new_game' "$project_root/src/title/title_screen.gd" "Title New Game must emit the typed ADV request."
+require_pattern 'name="Background" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV background must remain scene-owned."
+require_pattern 'name="MessagePanel" type="PanelContainer"' "$project_root/src/adv/adv_screen.tscn" "ADV message panel must remain scene-owned."
+require_pattern 'name="BackgroundScrollLayer" type="Control"' "$project_root/src/adv/adv_screen.tscn" "ADV tiled background-scroll layer must remain scene-owned."
+require_pattern 'func is_action_looping\(target_id: String\) -> bool:' "$project_root/src/adv/adv_stage_director.gd" "ADV stage must expose source infinite-loop action semantics."
+require_pattern '_stage_director\.is_action_looping\(target_id\)' "$project_root/src/adv/adv_screen.gd" "WaitAction must ignore source infinite-loop actions."
+require_pattern 'Tween\.TRANS_QUAD\)\.set_ease\(Tween\.EASE_OUT\)' "$project_root/src/adv/adv_stage_director.gd" "Source accel=2 must remain a quadratic ease-out, not an ease-in-out curve."
+require_pattern 'name="TransitionSnapshot" type="Control"' "$project_root/src/adv/adv_screen.tscn" "ADV transition snapshot must remain scene-owned."
+require_pattern 'name="EyeCatchOverlay" type="PanelContainer"' "$project_root/src/adv/adv_screen.tscn" "ADV eye-catch overlay must remain scene-owned."
+require_pattern 'name="EyeCatchTopBand" type="ColorRect"' "$project_root/src/adv/adv_screen.tscn" "ADV time eye-catch bands must remain scene-owned."
+require_pattern 'name="EyeCatchDateBlack" type="ColorRect"' "$project_root/src/adv/adv_screen.tscn" "ADV date eye-catch blackout must remain scene-owned."
+require_pattern 'name="EyeCatchLogo" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV eye-catch must reuse the source title-logo scene node."
+eye_catch_logo_fades="$(rg -c 'parallel\(\)\.tween_property\(_eye_catch_logo, "modulate:a", 0\.0' "$project_root/src/adv/adv_screen.gd")"
+if [[ "$eye_catch_logo_fades" != "2" ]]; then
+	echo "Both TIME and DATE eye-catches must fade the source logo during their final phase." >&2
+	exit 1
+fi
+require_pattern 'adv_choice_button\.tscn' "$project_root/src/adv/adv_screen.gd" "ADV variable choice rows must reuse their dedicated scene component."
+require_pattern 'name="SystemMenu" type="Control"' "$project_root/src/adv/adv_screen.tscn" "ADV system menu must remain scene-owned."
+require_pattern 'name="PreviousChoiceButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV previous-choice icon must remain scene-owned."
+require_pattern 'name="NextChoiceButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV next-choice icon must remain scene-owned."
+require_pattern 'name="MenuLockButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV system-menu lock must remain scene-owned."
+require_pattern 'name="AutoModeIndicator" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV automatic-mode animation must remain scene-owned."
+require_pattern 'name="SystemMenuRecallButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV system-menu recall strip must remain scene-owned."
+require_pattern 'name="QuickSaveButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV source-style quick-save icon must remain scene-owned."
+require_pattern 'name="SpeakerNameImage" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV speaker-name artwork must remain scene-owned."
+require_pattern 'name="Portrait" type="TextureRect" parent="VisualCanvas/MessagePanel/MessageColumn"' "$project_root/src/adv/adv_screen.tscn" "ADV dialogue portrait must remain on the free-layout message content layer."
+require_pattern 'name="ScenarioRuntime" type="Node"' "$project_root/src/adv/adv_screen.tscn" "ADV parser runtime must be declared by the scene."
+require_pattern 'AdvMessagePanel/base_type' "$project_root/assets/themes/yosuga_theme.tres" "ADV message styling must come from the centralized Theme."
+require_pattern 'assets/scenario/\*\.ks' "$project_root/export_presets.cfg" "Export presets must include raw UTF-8 KRKR scenario files."
+cg_unlock_count="$(awk -F, 'NR > 1 && $1 != "" && ($2 + 0) > 0 {count++} END {print count + 0}' "$project_root/assets/content/adv/cg_unlock_flags.csv")"
+if [[ "$cg_unlock_count" != "942" ]]; then
+	echo "Expected 942 unique nonzero source CgFlag mappings, found $cg_unlock_count." >&2
+	exit 1
+fi
+require_pattern 'AdvProgressCatalog\.load_default' "$project_root/src/adv/adv_screen.gd" "ADV must load the imported CgFlag progress catalog."
+background_tone_count="$(awk -F, 'NR > 1 && $1 != "" && $2 != "" {count++} END {print count + 0}' "$project_root/assets/content/adv/background_tones.csv")"
+if [[ "$background_tone_count" != "95" ]]; then
+	echo "Expected 95 source background-tone mappings, found $background_tone_count." >&2
+	exit 1
+fi
+require_pattern 'AdvToneCatalog\.load_default' "$project_root/src/adv/adv_stage_director.gd" "ADV stage must load normalized UTF-8 CgSetupInfo tone metadata."
+require_pattern 'cg_presented\.connect' "$project_root/src/adv/adv_screen.gd" "Event CG progress must be wired to the runtime profile."
 require_pattern 'name="ContinueGame".*instance=' "$project_root/src/title/title_screen.tscn" "Title menu buttons must be declared as scene instances."
 require_pattern 'parent="DesignRoot/CharacterLayer"' "$project_root/src/title/title_screen.tscn" "Title character layers must be declared by the scene."
 require_pattern '^@tool' "$project_root/src/title/title_menu_button.gd" "Scene-owned Title buttons must preview their serialized artwork in the editor."
@@ -212,12 +322,25 @@ require_pattern 'name="CardList"' "$project_root/src/title/content/title_album_p
 require_pattern 'name="TrackList"' "$project_root/src/title/content/title_music_page.tscn" "Music fixed layout must be declared by its scene."
 require_pattern 'name="MemoryList"' "$project_root/src/title/content/title_memories_page.tscn" "Memories fixed layout must be declared by its scene."
 require_pattern 'name="FavoriteList"' "$project_root/src/title/content/title_voice_page.tscn" "Voice fixed layout must be declared by its scene."
+require_pattern 'name="Slot01".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load slot cards must remain scene-owned instances."
+require_pattern 'name="Slot12".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must serialize the complete 4x3 slot page."
+require_pattern 'confirmation_overlay\.tscn' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must use the shared confirmation overlay."
+require_pattern 'confirmation_overlay\.tscn' "$project_root/src/title/title_screen.gd" "Title must use the shared confirmation overlay."
+require_pattern '_save_service\.autosave_path\(\)' "$project_root/src/title/title_screen.gd" "Title Continue must respect configured SaveService storage."
 if rg -q '_build_shell|add_design_(label|button)' "$project_root/src/title/content" "$project_root/src/ui/design_canvas_page.gd"; then
 	echo "Stable Title page chrome must remain scene-owned."
 	exit 1
 fi
-if rg -q 'res://src/(settings|title)' "$project_root/src/core"; then
-	echo "Core modules must not import feature-owned settings or title resources."
+if rg -q 'res://src/(settings|title|save_load)' "$project_root/src/core"; then
+	echo "Core modules must not import feature-owned resources."
+	exit 1
+fi
+if rg -q 'res://src/title' "$project_root/src/save_load"; then
+	echo "Save/Load must not import Title-owned resources." >&2
+	exit 1
+fi
+if rg -q 'save_load_hd' "$project_root/src/save_load"; then
+	echo "Save/Load must not depend on the removed baked HD chrome assets." >&2
 	exit 1
 fi
 require_pattern 'AtomicJsonStore\.new' "$project_root/src/core/save/save_service.gd" "SaveService must use the shared atomic JSON store."
@@ -252,11 +375,23 @@ require_pattern 'draw_style_box' "$project_root/src/settings/ui/settings_voice_c
 require_pattern 'settings_voice_choice_button\.tscn' "$project_root/src/settings/pages/audio_settings_page.tscn" "Audio character choices must instantiate the reusable code-drawn choice scene."
 require_pattern 'SettingsSectionTitleForeground/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings section title Theme variation is missing."
 require_pattern 'SettingsFooterButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings footer Theme variation is missing."
-require_pattern 'assets/themes/settings/footer/hover\.tres' "$project_root/assets/themes/yosuga_theme.tres" "Settings footer hover style must remain an external centralized Theme resource."
+require_pattern 'ConfirmationOverlayPanel/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Shared confirmation-panel Theme variation is missing."
+require_pattern 'SaveLoadSlotButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Save/Load slot Theme variation is missing."
+require_pattern 'theme_type_variation = &"SaveLoadPreviewFrame"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load preview styling must come from the centralized Theme."
+require_pattern 'theme_type_variation = &"SaveLoadPreviewFrame"' "$project_root/src/save_load/save_slot_card.tscn" "Save slot preview styling must come from the centralized Theme."
+require_pattern 'assets/themes/ui/action_button/hover\.tres' "$project_root/assets/themes/yosuga_theme.tres" "Shared action-button hover style must remain an external centralized Theme resource."
 require_pattern 'SettingsFooterButton/styles/hover = ExtResource\("5_empty_style"\)' "$project_root/assets/themes/yosuga_theme.tres" "Text-only footer buttons must not render a hover frame."
 require_pattern 'hint_screen_texture' "$project_root/assets/shaders/ui/settings_modal_blur.gdshader" "Settings modal blur must read the captured screen texture."
 require_pattern 'type="BackBufferCopy"' "$project_root/src/settings/settings_screen.tscn" "Settings route must capture the live scene rendered behind it."
 require_pattern 'settings_background_blur_material\.tres' "$project_root/src/settings/settings_screen.tscn" "Settings route must render its live backdrop through the blur material."
+require_pattern 'name="PreviewViewport" type="SubViewport"' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings must own a fixed ADV preview viewport."
+require_pattern 'gui_disable_input = true' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings preview must reject GUI input."
+require_pattern 'func configure_preview' "$project_root/src/adv/adv_screen.gd" "ADV must expose a read-only presentation mode without starting gameplay."
+require_pattern 'capture_preview_presentation' "$project_root/src/app/startup_flow.gd" "The app must supply current ADV presentation to Settings."
+if rg -q 'res://src/adv|PreviewTextbox|PreviewAvatar' "$project_root/src/settings"; then
+	echo "Settings must receive the real ADV renderer from the app, not import gameplay or maintain a second fake dialogue frame." >&2
+	exit 1
+fi
 require_pattern 'type="BackBufferCopy"' "$project_root/src/settings/settings_key_popup.tscn" "Shortcut popup must capture the page behind its blur layer."
 require_pattern 'type="BackBufferCopy"' "$project_root/src/settings/settings_confirm_dialog.tscn" "Confirmation popup must capture the page behind its blur layer."
 require_pattern 'name="DisplayTab" type="Button"' "$project_root/src/settings/settings_chrome.tscn" "Settings display tab must remain a native scene-owned Button."
@@ -289,4 +424,10 @@ check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/title_migration_contract_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/krkr_scenario_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_asset_coverage_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_migration_contract_test.gd
 check_runtime_log

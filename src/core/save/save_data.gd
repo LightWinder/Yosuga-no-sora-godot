@@ -2,7 +2,7 @@ class_name SaveData
 extends Resource
 
 
-const CURRENT_SCHEMA_VERSION: int = 1
+const CURRENT_SCHEMA_VERSION: int = 4
 
 @export var schema_version: int = CURRENT_SCHEMA_VERSION
 @export var content_version: String = ""
@@ -12,6 +12,14 @@ const CURRENT_SCHEMA_VERSION: int = 1
 ## progress is canonical in ProfileData, never inferred from autosave.
 @export var global_flags: Dictionary = {}
 @export var local_flags: Dictionary = {}
+@export var scenario_parameters: Dictionary = {}
+## Mirrors the source ADV save contract's `select` log. Replaying these
+## one-based selections reconstructs KRKR condition state before a saved Hitret.
+@export var choice_history: Array[int] = []
+## Mirrors the source `_stackSelect`/`_logSaveInfo` pair so loading a save does
+## not discard the already-visited choice boundaries used by "previous choice".
+@export var choice_navigation_stack: Array[Dictionary] = []
+@export var choice_navigation_position: int = 0
 @export var read_text_ids: Array[String] = []
 @export var presentation: Dictionary = {}
 @export var settings: Dictionary = {}
@@ -46,6 +54,10 @@ func to_dictionary() -> Dictionary:
 		"instruction_anchor": instruction_anchor,
 		"global_flags": global_flags.duplicate(true),
 		"local_flags": local_flags.duplicate(true),
+		"scenario_parameters": scenario_parameters.duplicate(true),
+		"choice_history": choice_history.duplicate(),
+		"choice_navigation_stack": choice_navigation_stack.duplicate(true),
+		"choice_navigation_position": choice_navigation_position,
 		"read_text_ids": read_text_ids.duplicate(),
 		"presentation": presentation.duplicate(true),
 		"settings": settings.duplicate(true),
@@ -71,6 +83,16 @@ static func from_dictionary(raw: Dictionary) -> SaveData:
 	data.instruction_anchor = str(migrated.get("instruction_anchor", ""))
 	data.global_flags = _dictionary_or_empty(migrated.get("global_flags", {}))
 	data.local_flags = _dictionary_or_empty(migrated.get("local_flags", {}))
+	data.scenario_parameters = _dictionary_or_empty(migrated.get("scenario_parameters", {}))
+	data.choice_history = _int_array(migrated.get("choice_history", []))
+	data.choice_navigation_stack = _dictionary_array(
+		migrated.get("choice_navigation_stack", [])
+	)
+	data.choice_navigation_position = clampi(
+		int(migrated.get("choice_navigation_position", 0)),
+		0,
+		data.choice_navigation_stack.size()
+	)
 	data.read_text_ids = _string_array(migrated.get("read_text_ids", []))
 	data.presentation = _dictionary_or_empty(migrated.get("presentation", {}))
 	data.settings = _dictionary_or_empty(migrated.get("settings", {}))
@@ -98,6 +120,9 @@ static func _migrate(raw: Dictionary) -> Dictionary:
 		result["instruction_anchor"] = result["anchor"]
 	if not result.has("content_version") and result.has("game_version"):
 		result["content_version"] = result["game_version"]
+	if source_schema < 4:
+		result["choice_navigation_stack"] = []
+		result["choice_navigation_position"] = 0
 
 	result["schema_version"] = CURRENT_SCHEMA_VERSION
 	return result
@@ -112,4 +137,21 @@ static func _string_array(value: Variant) -> Array[String]:
 	if value is Array:
 		for item in value:
 			result.append(str(item))
+	return result
+
+
+static func _int_array(value: Variant) -> Array[int]:
+	var result: Array[int] = []
+	if value is Array:
+		for item in value:
+			result.append(int(item))
+	return result
+
+
+static func _dictionary_array(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if value is Array:
+		for item in value:
+			if item is Dictionary:
+				result.append(item.duplicate(true))
 	return result

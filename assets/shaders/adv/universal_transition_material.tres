@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/adv/universal_transition.gdshader" id="1_shader"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_shader")
+shader_parameter/progress = -0.05
+shader_parameter/softness = 0.04
+shader_parameter/use_rule = false

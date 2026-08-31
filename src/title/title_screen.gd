@@ -11,8 +11,7 @@ signal menu_mode_changed(is_bonus_mode: bool)
 
 const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 const SAFE_AREA_PADDING_PIXELS := 24.0
-const SCENARIO_NOTICE_SCENE: PackedScene = preload("res://src/title/components/scenario_unavailable_notice.tscn")
-const EXIT_CONFIRMATION_SCENE: PackedScene = preload("res://src/title/title_exit_confirmation.tscn")
+const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmation_overlay.tscn")
 
 const CHARACTER_NODE_FLAGS := {
 	&"CharacterMotoka": 25,
@@ -24,6 +23,7 @@ const CHARACTER_NODE_FLAGS := {
 
 @export_range(0.0, 3.0, 0.05) var reveal_seconds := 1.0
 @export_range(0.0, 3.0, 0.05) var menu_fade_seconds := 0.5
+@export_range(0.0, 5.0, 0.05) var game_exit_seconds := 3.0
 @export_range(0.0, 1.0, 0.01) var subscreen_exit_seconds := 0.18
 @export_range(0.0, 1.0, 0.01) var subscreen_return_seconds := 0.32
 @export_range(0.0, 400.0, 1.0) var subscreen_exit_offset_y := 180.0
@@ -61,11 +61,11 @@ var _save_service: SaveService
 var _main_buttons: Array[TitleMenuButton] = []
 var _bonus_buttons: Array[TitleMenuButton] = []
 var _active_controls: Array[Control] = []
-var _exit_confirmation: TitleExitConfirmation
+var _exit_confirmation: ConfirmationOverlay
 var _reveal_tween: Tween
+var _game_exit_tween: Tween
 var _bonus_mode := false
 var _exit_confirmation_visible := false
-var _scenario_notice: ScenarioUnavailableNotice
 var _subscreen_tween: Tween
 var _subscreen_departed := false
 var _bottom_chrome_rest_position := Vector2.ZERO
@@ -95,6 +95,9 @@ func _exit_tree() -> void:
 	if _reveal_tween != null and _reveal_tween.is_valid():
 		_reveal_tween.kill()
 	_reveal_tween = null
+	if _game_exit_tween != null and _game_exit_tween.is_valid():
+		_game_exit_tween.kill()
+	_game_exit_tween = null
 	if _subscreen_tween != null and _subscreen_tween.is_valid():
 		_subscreen_tween.kill()
 	_subscreen_tween = null
@@ -106,11 +109,6 @@ func _notification(what: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _scenario_notice != null and _scenario_notice.visible:
-		if StartupInput.is_cancel_event(event):
-			_scenario_notice.hide_notice()
-			get_viewport().set_input_as_handled()
-		return
 	if StartupInput.is_cancel_event(event):
 		if _exit_confirmation_visible:
 			_hide_exit_confirmation()
@@ -159,8 +157,27 @@ func is_exit_confirmation_visible() -> bool:
 	return _exit_confirmation_visible
 
 
-func is_scenario_notice_visible() -> bool:
-	return is_instance_valid(_scenario_notice) and _scenario_notice.visible
+## Mirrors the source Title scene's deferred New Game hand-off: the complete
+## title remains alive and fades away over the route's blue base before
+## StartupFlow is allowed to construct ADV.
+func play_game_exit() -> void:
+	if _game_exit_tween != null and _game_exit_tween.is_valid():
+		await _game_exit_tween.finished
+		return
+	_set_menu_interaction_enabled(false)
+	_finish_reveal_animation()
+	_kill_subscreen_tween()
+	get_viewport().gui_release_focus()
+	if game_exit_seconds <= 0.0:
+		modulate.a = 0.0
+		return
+	var tween := create_tween()
+	_game_exit_tween = tween
+	tween.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(self, "modulate:a", 0.0, game_exit_seconds)
+	await tween.finished
+	if _game_exit_tween == tween:
+		_game_exit_tween = null
 
 
 ## Semantic transition used by the route coordinator before presenting any
@@ -293,15 +310,12 @@ func _on_option_activated(option_id: StringName) -> void:
 		&"continue_game":
 			var data := _save_service.load_autosave()
 			if data != null:
-				var request := ScenarioLaunchRequest.from_save(data, SaveService.AUTOSAVE_PATH)
+				var request := ScenarioLaunchRequest.from_save(data, _save_service.autosave_path())
 				scenario_requested.emit(request)
-				_show_scenario_notice(request)
 			else:
 				feature_requested.emit(&"load_game")
 		&"new_game":
-			# Gameplay is intentionally left as an integration seam for the next
-			# migration phase.
-			pass
+			scenario_requested.emit(ScenarioLaunchRequest.new_game())
 		&"load_game", &"settings", &"album", &"music", &"memories", &"voice":
 			feature_requested.emit(option_id)
 		&"exit_game":
@@ -327,22 +341,11 @@ func _leave_bonus() -> void:
 func _ensure_exit_confirmation() -> void:
 	if is_instance_valid(_exit_confirmation):
 		return
-	_exit_confirmation = EXIT_CONFIRMATION_SCENE.instantiate() as TitleExitConfirmation
+	_exit_confirmation = CONFIRMATION_OVERLAY_SCENE.instantiate() as ConfirmationOverlay
+	_exit_confirmation.name = "ExitConfirmationOverlay"
 	_exit_confirmation.confirmed.connect(_confirm_exit)
 	_exit_confirmation.canceled.connect(_hide_exit_confirmation)
 	add_child(_exit_confirmation)
-
-
-func _ensure_scenario_notice() -> void:
-	if is_instance_valid(_scenario_notice):
-		return
-	_scenario_notice = SCENARIO_NOTICE_SCENE.instantiate() as ScenarioUnavailableNotice
-	add_child(_scenario_notice)
-
-
-func _show_scenario_notice(request: ScenarioLaunchRequest) -> void:
-	_ensure_scenario_notice()
-	_scenario_notice.show_request(request)
 
 
 func _show_exit_confirmation() -> void:
@@ -389,11 +392,20 @@ func _resolve_initial_focus() -> void:
 
 func _start_reveal_animation() -> void:
 	_set_menu_alpha(0.0)
+	_white_cover.visible = true
 	_set_cover_alpha(1.0)
-	_reveal_tween = create_tween().set_parallel(true)
-	_reveal_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_reveal_tween.tween_property(_white_cover, "color:a", 0.0, reveal_seconds)
-	_reveal_tween.tween_property(_menu_layer, "modulate:a", 1.0, menu_fade_seconds)
+	var tween := create_tween().set_parallel(true)
+	_reveal_tween = tween
+	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_white_cover, "color:a", 0.0, reveal_seconds)
+	tween.tween_property(_menu_layer, "modulate:a", 1.0, menu_fade_seconds)
+	tween.finished.connect(
+		func() -> void:
+			if _reveal_tween != tween:
+				return
+			_reveal_tween = null
+			_white_cover.visible = false
+	)
 
 
 func _finish_blur_warmup_after_first_draw() -> void:
@@ -409,6 +421,7 @@ func _finish_reveal_animation() -> void:
 		_reveal_tween.kill()
 	_reveal_tween = null
 	_set_cover_alpha(0.0)
+	_white_cover.visible = false
 	_set_menu_alpha(1.0)
 
 

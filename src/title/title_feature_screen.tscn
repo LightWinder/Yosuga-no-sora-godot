@@ -72,19 +72,11 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
-[node name="Primary" type="Button" parent="Content"]
-layout_mode = 0
-offset_left = 1400.0
-offset_top = 912.0
-offset_right = 1780.0
-offset_bottom = 982.0
-visible = false
-text = "继续自动存档"
-
 [node name="Back" type="Button" parent="Content"]
 layout_mode = 0
 offset_left = 1460.0
 offset_top = 980.0
 offset_right = 1840.0
 offset_bottom = 1044.0
+theme_type_variation = &"SaveLoadActionButton"
 text = "返回标题"

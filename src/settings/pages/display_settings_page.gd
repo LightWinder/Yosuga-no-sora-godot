@@ -2,6 +2,8 @@ class_name DisplaySettingsPage
 extends SettingsPageBase
 
 
+signal preview_settings_changed(settings: Dictionary)
+
 ## Display-settings controller. The scene owns the complete visual hierarchy;
 ## this script only groups choices, translates UI values and updates preview
 ## state.
@@ -21,6 +23,7 @@ var _window_mode_choices := SettingsChoiceGroup.new()
 var _resolution_choices := SettingsChoiceGroup.new()
 var _font_choices := SettingsChoiceGroup.new()
 var _toggle_choices: Dictionary[StringName, SettingsChoiceGroup] = {}
+var _preview_settings: Dictionary = {}
 
 @onready var _window_mode_buttons: Array[SettingsChoiceButton] = [
 	%FullscreenChoice,
@@ -52,9 +55,22 @@ var _toggle_choices: Dictionary[StringName, SettingsChoiceGroup] = {}
 	%ScreenEffectOffChoice,
 ]
 @onready var _opacity_slider: SettingsKnobSlider = %window_depth
-@onready var _preview_textbox: TextureRect = %PreviewTextbox
-@onready var _preview_avatar: TextureRect = %PreviewAvatar
-@onready var _preview_text: Label = %PreviewText
+@onready var _preview_artwork: TextureRect = %PreviewArtwork
+@onready var _preview_viewport: SubViewport = %PreviewViewport
+
+
+## The composition root supplies presentation content; Settings never imports
+## a gameplay page. A TextureRect displays the viewport without forwarding input.
+func install_preview(content: Control, apply_settings: Callable) -> void:
+	assert(_preview_viewport.get_child_count() == 0)
+	_preview_viewport.add_child(content)
+	_preview_artwork.texture = _preview_viewport.get_texture()
+	preview_settings_changed.connect(apply_settings)
+	apply_settings.call(_preview_settings)
+
+
+func preview_content() -> Control:
+	return _preview_viewport.get_child(0) as Control if _preview_viewport.get_child_count() > 0 else null
 
 
 func _ready() -> void:
@@ -146,7 +162,8 @@ func _on_font_selected(value: Variant) -> void:
 
 func _on_opacity_changed(value: float) -> void:
 	emit_patch({WINDOW_DEPTH_KEY: int(value)})
-	_preview_textbox.modulate.a = value / 100.0
+	_preview_settings[WINDOW_DEPTH_KEY] = int(value)
+	preview_settings_changed.emit(_preview_settings.duplicate(true))
 
 
 func _on_screen_toggle_selected(value: Variant, key: StringName) -> void:
@@ -154,11 +171,8 @@ func _on_screen_toggle_selected(value: Variant, key: StringName) -> void:
 
 
 func _refresh_preview(settings: Dictionary) -> void:
-	_preview_textbox.modulate.a = float(settings.get(WINDOW_DEPTH_KEY, 50)) / 100.0
-	_preview_avatar.visible = bool(settings.get(PORTRAIT_VISIBLE_KEY, true))
-	var read_color_enabled := bool(settings.get(READ_COLOR_KEY, true))
-	var text_color := Color(0.55, 0.72, 0.92, 1.0) if read_color_enabled else Color.WHITE
-	_preview_text.add_theme_color_override("font_color", text_color)
+	_preview_settings = settings.duplicate(true)
+	preview_settings_changed.emit(_preview_settings.duplicate(true))
 
 
 func _set_desktop_window_controls_visible(visible_value: bool) -> void:

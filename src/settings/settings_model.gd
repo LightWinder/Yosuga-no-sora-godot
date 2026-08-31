@@ -57,6 +57,7 @@ static func defaults() -> Dictionary:
 		"voice_stop_on_click": false,
 		"lock_skip": false,
 		"lock_auto": false,
+		"system_menu_lock": true,
 		"route_guide": true,
 		"message_speed": 5,
 		"auto_speed": 5000,
@@ -92,7 +93,7 @@ static func normalize(raw: Dictionary) -> Dictionary:
 	result["auto_speed"] = clampi(int(result.get("auto_speed", 5000)), 0, 10000)
 	for key in [
 		"mute_master", "mute_voice", "mute_bgm", "mute_env_se", "mute_se", "mute_movie", "mute_system_voice",
-		"portrait_visible", "read_color", "screen_effect", "read_skip", "voice_stop_on_click", "lock_skip", "lock_auto", "route_guide",
+		"portrait_visible", "read_color", "screen_effect", "read_skip", "voice_stop_on_click", "lock_skip", "lock_auto", "system_menu_lock", "route_guide",
 	]:
 		result[key] = bool(result.get(key, false))
 	for key in ["master_volume", "voice_volume", "bgm_volume", "env_se_volume", "se_volume", "movie_volume", "system_voice_volume"]:

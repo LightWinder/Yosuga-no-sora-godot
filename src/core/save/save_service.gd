@@ -55,6 +55,18 @@ func load_slot(slot_id: int) -> SaveData:
 	return _load_data(_slot_path(slot_id))
 
 
+## Resolves the neutral save-path contract used by voice favorites and other
+## route adapters without exposing SaveService internals to feature pages.
+func load_path(path: String) -> SaveData:
+	if path == _autosave_path():
+		return load_autosave()
+	for slot_id in MAX_SLOT_COUNT:
+		if path == _slot_path(slot_id):
+			return load_slot(slot_id)
+	_fail("Save path is outside the configured storage: %s" % path)
+	return null
+
+
 func save_slot(slot_id: int, data: SaveData) -> bool:
 	if not _is_valid_slot(slot_id):
 		return _fail("Invalid save slot: %d" % slot_id)
@@ -174,6 +186,16 @@ func clear_slot(slot_id: int) -> bool:
 		return _fail("Unable to remove save slot: %s" % error_string(error))
 	save_changed.emit(slot_id, false)
 	return true
+
+
+## Public read-only paths keep UI/controller code independent from the
+## service's production/test storage configuration.
+func slot_path(slot_id: int) -> String:
+	return _slot_path(slot_id) if _is_valid_slot(slot_id) else ""
+
+
+func autosave_path() -> String:
+	return _autosave_path()
 
 
 func is_global_flag_set(flag_id: int) -> bool:

@@ -5,8 +5,7 @@ extends RefCounted
 ## Applies window-related settings to DisplayServer.  Keeps platform calls out
 ## of the settings pages; only mode/width are applied here, and only when the
 ## values actually change so slider previews never churn the OS window.
-## window_depth (message box opacity) is preview-only until the ADV layer
-## consumes it.
+## ADV consumes message-frame opacity itself, including read-only previews.
 var _applied_mode := ""
 var _applied_size := Vector2i.ZERO
 

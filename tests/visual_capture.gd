@@ -9,6 +9,8 @@ const SCENES: Dictionary = {
 }
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
+const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
+const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
 const FEATURE_ROUTES: Dictionary = {
 	&"album": &"album",
 	&"music": &"music",
@@ -20,6 +22,18 @@ const FEATURE_ROUTES: Dictionary = {
 
 class CaptureSaveService extends SaveService:
 	var capture_profile := ProfileData.create_empty("visual-capture")
+	var capture_autosave: SaveData
+	var capture_slots: Dictionary = {}
+
+	func _init() -> void:
+		capture_autosave = _sample_save("雨后的教室", "hitret:auto", 0, true)
+		for slot_id in [0, 1, 3, 4, 7, 10, 14, 18]:
+			capture_slots[slot_id] = _sample_save(
+				["列车上的重逢", "穹的房间", "夏日祭前夜", "湖畔散步", "放学后的约定", "旧校舍", "盛夏午后", "通往未来"][capture_slots.size()],
+				"hitret:%03d" % (slot_id * 17 + 12),
+				(slot_id + 1) * 3700,
+				slot_id % 3 != 1
+			)
 
 	func _ready() -> void:
 		_ready_for_io = true
@@ -27,8 +41,34 @@ class CaptureSaveService extends SaveService:
 	func load_profile() -> ProfileData:
 		return capture_profile
 
+	func load_autosave() -> SaveData:
+		return capture_autosave
+
+	func load_slot(slot_id: int) -> SaveData:
+		return capture_slots.get(slot_id) as SaveData
+
+	func save_autosave(data: SaveData) -> bool:
+		capture_autosave = data
+		save_changed.emit(-1, true)
+		return true
+
+	func save_profile(profile: ProfileData) -> bool:
+		capture_profile = profile
+		save_changed.emit(-2, false)
+		return true
+
 	func is_global_flag_set(flag_id: int) -> bool:
 		return capture_profile.is_global_flag_set(flag_id)
+
+	func _sample_save(label: String, anchor: String, age: int, with_thumbnail: bool) -> SaveData:
+		var data := SaveData.create_empty("visual-capture")
+		data.scenario_id = "00_z%03d" % (age % 1000)
+		data.instruction_anchor = anchor
+		data.autosave_meta = {"valid": true, "label": label}
+		data.saved_at_unix = Time.get_unix_time_from_system() - age
+		if with_thumbnail:
+			data.presentation = {"thumbnail_path": "res://assets/ui/title/FRM_0511_title_background.png"}
+		return data
 
 
 class CaptureSettingsRepository extends SettingsRepository:
@@ -56,18 +96,30 @@ func _initialize() -> void:
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() < 3 or arguments.size() > 5:
-		push_error("Usage: -- <brand|warning|title|title_press|album|music|memories|voice|settings|load> <output.png> <delay_seconds> [settings_tab:0|1|2] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
+		push_error("Usage: -- <brand|warning|title|title_press|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [adv_anchor:hitret:N|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
 	var screen_name := StringName(arguments[0])
-	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name != &"settings":
+	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name not in [&"settings", &"save", &"adv", &"adv_choice"]:
 		push_error("Unknown startup screen: %s" % screen_name)
 		quit(2)
 		return
 
 	var screen: Control
-	if screen_name == &"settings":
+	if screen_name in [&"adv", &"adv_choice"]:
+		var service := CaptureSaveService.new()
+		service.name = "CaptureSaveService"
+		root.add_child(service)
+		var request := ScenarioLaunchRequest.new_game()
+		if arguments.size() >= 4 and arguments[3].begins_with("hitret:"):
+			var seed := SaveData.create_empty("visual-capture")
+			seed.scenario_id = "00_z000"
+			seed.instruction_anchor = arguments[3]
+			request = ScenarioLaunchRequest.from_save(seed)
+		screen = ADV_SCENE.instantiate() as AdvScreen
+		(screen as AdvScreen).configure(request, service)
+	elif screen_name == &"settings":
 		var service := CaptureSaveService.new()
 		var settings_repository := CaptureSettingsRepository.new()
 		service.name = "CaptureSaveService"
@@ -81,6 +133,13 @@ func _capture() -> void:
 		root.add_child(title_backdrop)
 		screen = SETTINGS_SCENE.instantiate() as SettingsScreen
 		(screen as SettingsScreen).configure(settings_repository)
+	elif screen_name == &"save":
+		var service := CaptureSaveService.new()
+		service.name = "CaptureSaveService"
+		root.add_child(service)
+		var payload := service._sample_save("当前剧情状态", "hitret:current", 0, true)
+		screen = SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
+		(screen as SaveLoadPage).configure(SaveLoadPage.Mode.SAVE, service, payload)
 	elif FEATURE_ROUTES.has(screen_name):
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
@@ -92,6 +151,24 @@ func _capture() -> void:
 		var scene := SCENES[screen_name] as PackedScene
 		screen = scene.instantiate() as Control
 	root.add_child(screen)
+	if screen_name == &"settings":
+		var page := (screen as SettingsScreen).settings_page()
+		var preview := ADV_SCENE.instantiate() as AdvScreen
+		preview.name = "AdvPreview"
+		preview.configure_preview(page.get_current_settings())
+		page.display_page().install_preview(preview, preview.apply_preview_settings)
+	if screen_name == &"adv_choice":
+		(screen as AdvScreen)._on_choices_ready([
+			{"text": "不过，我觉得这就是有意思的地方", "hint": "一叶", "disabled": false},
+			{"text": "捉弄过头的话，是不是不大好啊", "hint": "初佳", "disabled": false},
+		])
+	# Keep captures deterministic and prevent the host pointer from leaving a
+	# random card in hover/tooltip state.
+	Input.warp_mouse(Vector2(12.0, 12.0))
+	await process_frame
+	if screen_name == &"save":
+		var save_page := screen as SaveLoadPage
+		save_page.slot_cards()[1].pressed.emit()
 	await create_timer(float(arguments[2])).timeout
 	if screen_name == &"settings" and arguments.size() == 4:
 		var settings_page := (screen as SettingsScreen).settings_page()
@@ -131,6 +208,21 @@ func _capture() -> void:
 		var entries := feature.get_node("Content/EntryList") as Control
 		var back := feature.get_node("Content/Back") as Control
 		print("Layout probe: content=", content.get_global_rect(), " entries=", entries.get_global_rect(), " back=", back.get_global_rect())
+		if screen_name == &"load" and arguments.size() >= 4:
+			if arguments[3] != "delete_confirm":
+				push_error("Unknown load overlay: %s" % arguments[3])
+				quit(2)
+				return
+			var save_load_page := feature.load_page()
+			(save_load_page.get_node("VisualCanvas/Footer/Delete") as Button).pressed.emit()
+			await create_timer(0.25).timeout
+	if screen_name == &"save" and arguments.size() >= 4:
+		if arguments[3] != "overwrite_confirm":
+			push_error("Unknown save overlay: %s" % arguments[3])
+			quit(2)
+			return
+		((screen as SaveLoadPage).get_node("VisualCanvas/Footer/Primary") as Button).pressed.emit()
+		await create_timer(0.25).timeout
 	if screen_name == &"title_press":
 		var title := screen as TitleScreen
 		title.get_menu_buttons()[0].play_press_feedback()
@@ -144,6 +236,9 @@ func _capture() -> void:
 		return
 
 	var error := image.save_png(arguments[1])
+	for child in root.get_children():
+		child.queue_free()
+	await process_frame
 	if error == OK:
 		print("Visual capture saved to: ", arguments[1])
 		quit(0)

@@ -1,0 +1,916 @@
+[gd_scene format=3 uid="uid://uw4q23rwt8wv"]
+
+[ext_resource type="Script" uid="uid://dp8wci3ljh5yn" path="res://src/adv/adv_screen.gd" id="1_screen"]
+[ext_resource type="Script" uid="uid://bl5klu2u7gh0o" path="res://src/scenario/krkr_scenario_runtime.gd" id="2_runtime"]
+[ext_resource type="PackedScene" path="res://src/ui/confirmation_overlay.tscn" id="3_confirmation"]
+[ext_resource type="Script" uid="uid://d0nta1s4ms0wl" path="res://src/adv/adv_stage_director.gd" id="4_stage"]
+[ext_resource type="Material" path="res://assets/shaders/adv/universal_transition_material.tres" id="5_transition"]
+[ext_resource type="Texture2D" uid="uid://b0h6fnv4p870s" path="res://assets/content/adv/ui/DHK-17.png" id="7_auto"]
+[ext_resource type="Texture2D" uid="uid://dvul3mdunduwb" path="res://assets/content/adv/ui/DHK-18.png" id="8_skip"]
+[ext_resource type="Texture2D" uid="uid://cm8wdmypgjqe1" path="res://assets/content/adv/ui/DHK-20.png" id="9_save"]
+[ext_resource type="Texture2D" uid="uid://buiye50atyu1m" path="res://assets/content/adv/ui/DHK-21.png" id="10_load"]
+[ext_resource type="Texture2D" uid="uid://dylmk53tf8b0j" path="res://assets/content/adv/ui/DHK-22.png" id="11_qsave"]
+[ext_resource type="Texture2D" uid="uid://dt73hyp4t6j6e" path="res://assets/content/adv/ui/DHK-23.png" id="12_qload"]
+[ext_resource type="Texture2D" uid="uid://c0xd6cnkmorxf" path="res://assets/content/adv/ui/DHK-24.png" id="13_history"]
+[ext_resource type="Texture2D" uid="uid://uma3rurcn2ta" path="res://assets/content/adv/ui/DHK-25.png" id="14_settings"]
+[ext_resource type="Texture2D" uid="uid://b54b1ro7r6c4c" path="res://assets/content/adv/ui/DHK-60.png" id="15_title"]
+[ext_resource type="Texture2D" uid="uid://b88gnrecgqg1y" path="res://assets/ui/title/FRM_0513_title_logo.png" id="16_eyecatch_logo"]
+[ext_resource type="Texture2D" uid="uid://c5n46v0caxfrt" path="res://assets/content/adv/ui/DHK-01.png" id="17_auto_indicator"]
+[ext_resource type="Texture2D" uid="uid://dsymotspwfeyc" path="res://assets/content/adv/ui/DHK-16.png" id="18_choice_prev"]
+[ext_resource type="Texture2D" uid="uid://d1go05h8lrss3" path="res://assets/content/adv/ui/DHK-19.png" id="19_choice_next"]
+[ext_resource type="Texture2D" uid="uid://dtpvlkxau1dyw" path="res://assets/content/adv/ui/DHK-26.png" id="20_menu_lock"]
+[ext_resource type="Texture2D" uid="uid://curqeybdr6f5l" path="res://assets/content/adv/ui/DHK-58.png" id="21_menu_recall"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-65.png" id="22_message_hide"]
+
+[sub_resource type="AtlasTexture" id="Atlas_auto_indicator"]
+atlas = ExtResource("17_auto_indicator")
+region = Rect2(0, 0, 40, 40)
+
+[sub_resource type="AtlasTexture" id="Atlas_choice_prev_normal"]
+atlas = ExtResource("18_choice_prev")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_choice_prev_hover"]
+atlas = ExtResource("18_choice_prev")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_auto_normal"]
+atlas = ExtResource("7_auto")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_auto_hover"]
+atlas = ExtResource("7_auto")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_skip_normal"]
+atlas = ExtResource("8_skip")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_skip_hover"]
+atlas = ExtResource("8_skip")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_choice_next_normal"]
+atlas = ExtResource("19_choice_next")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_choice_next_hover"]
+atlas = ExtResource("19_choice_next")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_save_normal"]
+atlas = ExtResource("9_save")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_save_hover"]
+atlas = ExtResource("9_save")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_load_normal"]
+atlas = ExtResource("10_load")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_load_hover"]
+atlas = ExtResource("10_load")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_qsave_normal"]
+atlas = ExtResource("11_qsave")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_qsave_hover"]
+atlas = ExtResource("11_qsave")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_qload_normal"]
+atlas = ExtResource("12_qload")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_qload_hover"]
+atlas = ExtResource("12_qload")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_history_normal"]
+atlas = ExtResource("13_history")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_history_hover"]
+atlas = ExtResource("13_history")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_settings_normal"]
+atlas = ExtResource("14_settings")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_settings_hover"]
+atlas = ExtResource("14_settings")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_menu_lock_normal"]
+atlas = ExtResource("20_menu_lock")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_menu_lock_hover"]
+atlas = ExtResource("20_menu_lock")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_title_normal"]
+atlas = ExtResource("15_title")
+region = Rect2(0, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_title_hover"]
+atlas = ExtResource("15_title")
+region = Rect2(55, 0, 55, 56)
+
+[sub_resource type="AtlasTexture" id="Atlas_menu_recall_normal"]
+atlas = ExtResource("21_menu_recall")
+region = Rect2(0, 0, 8, 107)
+
+[sub_resource type="AtlasTexture" id="Atlas_menu_recall_hover"]
+atlas = ExtResource("21_menu_recall")
+region = Rect2(8, 0, 9, 107)
+
+[sub_resource type="AtlasTexture" id="Atlas_message_hide_normal"]
+atlas = ExtResource("22_message_hide")
+region = Rect2(0, 0, 22, 23)
+
+[sub_resource type="AtlasTexture" id="Atlas_message_hide_hover"]
+atlas = ExtResource("22_message_hide")
+region = Rect2(22, 0, 22, 23)
+
+[node name="AdvScreen" type="Control" unique_id=1750354916]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_screen")
+
+[node name="VisualCanvas" type="Control" parent="." unique_id=847569323]
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="Stage" type="Control" parent="VisualCanvas" unique_id=602563204]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SkyFallback" type="ColorRect" parent="VisualCanvas/Stage" unique_id=141948237]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.41, 0.74, 0.88, 1)
+
+[node name="CameraCanvas" type="Control" parent="VisualCanvas/Stage" unique_id=376091437]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="VisualCanvas/Stage/CameraCanvas" unique_id=1080400811]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 2
+
+[node name="BackgroundScrollLayer" type="Control" parent="VisualCanvas/Stage/CameraCanvas" unique_id=224467092]
+unique_name_in_owner = true
+visible = false
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BackgroundScrollTiles" type="Control" parent="VisualCanvas/Stage/CameraCanvas/BackgroundScrollLayer" unique_id=527595039]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CharacterLayer" type="Control" parent="VisualCanvas/Stage" unique_id=988840766]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TransitionSnapshot" type="Control" parent="VisualCanvas/Stage" unique_id=886697810]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SnapshotGroup" type="CanvasGroup" parent="VisualCanvas/Stage/TransitionSnapshot"]
+material = ExtResource("5_transition")
+
+[node name="SnapshotCamera" type="Control" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup" unique_id=1487969994]
+unique_name_in_owner = true
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="SnapshotFallback" type="ColorRect" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera" unique_id=1921504748]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.41, 0.74, 0.88, 1)
+
+[node name="SnapshotBackground" type="TextureRect" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera" unique_id=1930853658]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 2
+
+[node name="SnapshotBackgroundScroll" type="Control" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera" unique_id=1663706455]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SnapshotBackgroundScrollTiles" type="Control" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera/SnapshotBackgroundScroll" unique_id=1653174214]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SnapshotCharacters" type="Control" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup" unique_id=960055911]
+unique_name_in_owner = true
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="ScreenTint" type="ColorRect" parent="VisualCanvas/Stage" unique_id=1010583596]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="RouteExitCover" type="ColorRect" parent="VisualCanvas"]
+unique_name_in_owner = true
+visible = false
+z_index = 1050
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="EyeCatchOverlay" type="PanelContainer" parent="VisualCanvas" unique_id=1982947912]
+unique_name_in_owner = true
+visible = false
+z_index = 1400
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_type_variation = &"AdvEyeCatchPanel"
+
+[node name="EyeCatchContent" type="Control" parent="VisualCanvas/EyeCatchOverlay" unique_id=582155316]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="EyeCatchDateBlack" type="ColorRect" parent="VisualCanvas/EyeCatchOverlay/EyeCatchContent" unique_id=1487272145]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="EyeCatchTopBand" type="ColorRect" parent="VisualCanvas/EyeCatchOverlay/EyeCatchContent" unique_id=259115603]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 120.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.96)
+
+[node name="EyeCatchBottomBand" type="ColorRect" parent="VisualCanvas/EyeCatchOverlay/EyeCatchContent" unique_id=1794316600]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_top = 960.0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.96)
+
+[node name="EyeCatchLogo" type="TextureRect" parent="VisualCanvas/EyeCatchOverlay/EyeCatchContent" unique_id=2059295741]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 1224.0
+offset_top = 920.0
+offset_right = 1904.0
+offset_bottom = 1056.0
+mouse_filter = 2
+texture = ExtResource("16_eyecatch_logo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MessagePanel" type="PanelContainer" parent="VisualCanvas" unique_id=350966195]
+unique_name_in_owner = true
+z_index = 1100
+layout_mode = 0
+offset_top = 760.0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+theme_type_variation = &"AdvMessagePanel"
+
+[node name="MessageColumn" type="Control" parent="VisualCanvas/MessagePanel" unique_id=1778776938]
+layout_mode = 2
+mouse_filter = 1
+
+[node name="SpeakerLabel" type="Label" parent="VisualCanvas/MessagePanel/MessageColumn" unique_id=990915247]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 380.0
+offset_right = 920.0
+offset_bottom = 68.0
+theme_type_variation = &"AdvSpeakerLabel"
+text = "心の声"
+vertical_alignment = 1
+
+[node name="SpeakerNameImage" type="TextureRect" parent="VisualCanvas/MessagePanel/MessageColumn" unique_id=288906422]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 380.0
+offset_right = 577.0
+offset_bottom = 61.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MessageLabel" type="RichTextLabel" parent="VisualCanvas/MessagePanel/MessageColumn" unique_id=1305213446]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 450.0
+offset_top = 80.0
+offset_right = 1620.0
+offset_bottom = 318.0
+mouse_filter = 2
+theme_type_variation = &"AdvMessageLabel"
+text = "载入剧本中……"
+scroll_active = false
+autowrap_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="VisualCanvas/MessagePanel/MessageColumn" unique_id=1808921640]
+unique_name_in_owner = true
+visible = false
+z_index = 2
+layout_mode = 0
+offset_top = -40.0
+offset_right = 500.0
+offset_bottom = 320.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MessageHideButton" type="TextureButton" parent="VisualCanvas/MessagePanel/MessageColumn"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1863.0
+offset_top = 20.0
+offset_right = 1911.0
+offset_bottom = 67.0
+tooltip_text = "隐藏界面"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_message_hide_normal")
+texture_pressed = SubResource("Atlas_message_hide_hover")
+texture_hover = SubResource("Atlas_message_hide_hover")
+texture_focused = SubResource("Atlas_message_hide_hover")
+ignore_texture_size = true
+stretch_mode = 3
+
+[node name="SystemMenu" type="Control" parent="VisualCanvas" unique_id=823633183]
+unique_name_in_owner = true
+z_index = 1200
+anchors_preset = 0
+offset_left = 1602.0
+offset_top = 870.0
+offset_right = 1920.0
+offset_bottom = 1050.0
+mouse_filter = 1
+
+[node name="AutoModeIndicator" type="TextureRect" parent="VisualCanvas/SystemMenu" unique_id=2084200892]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_top = 128.0
+offset_right = 40.0
+offset_bottom = 168.0
+mouse_filter = 2
+texture = SubResource("Atlas_auto_indicator")
+expand_mode = 1
+
+[node name="PreviousChoiceButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=217272599]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 60.0
+offset_right = 115.0
+offset_bottom = 56.0
+tooltip_text = "上一选项"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+disabled = true
+texture_normal = SubResource("Atlas_choice_prev_normal")
+texture_pressed = SubResource("Atlas_choice_prev_hover")
+texture_hover = SubResource("Atlas_choice_prev_hover")
+texture_focused = SubResource("Atlas_choice_prev_hover")
+
+[node name="AutoButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=161807926]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 120.0
+offset_right = 175.0
+offset_bottom = 56.0
+tooltip_text = "自动模式"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = SubResource("Atlas_auto_normal")
+texture_pressed = SubResource("Atlas_auto_hover")
+texture_hover = SubResource("Atlas_auto_hover")
+texture_focused = SubResource("Atlas_auto_hover")
+
+[node name="SkipButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=100841617]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 180.0
+offset_right = 235.0
+offset_bottom = 56.0
+tooltip_text = "快进模式"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = SubResource("Atlas_skip_normal")
+texture_pressed = SubResource("Atlas_skip_hover")
+texture_hover = SubResource("Atlas_skip_hover")
+texture_focused = SubResource("Atlas_skip_hover")
+
+[node name="NextChoiceButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1837790529]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 240.0
+offset_right = 295.0
+offset_bottom = 56.0
+tooltip_text = "下一选项"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_choice_next_normal")
+texture_pressed = SubResource("Atlas_choice_next_hover")
+texture_hover = SubResource("Atlas_choice_next_hover")
+texture_focused = SubResource("Atlas_choice_next_hover")
+
+[node name="SaveButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1905024051]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 60.0
+offset_top = 60.0
+offset_right = 115.0
+offset_bottom = 116.0
+tooltip_text = "保存存档"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_save_normal")
+texture_pressed = SubResource("Atlas_save_hover")
+texture_hover = SubResource("Atlas_save_hover")
+texture_focused = SubResource("Atlas_save_hover")
+
+[node name="LoadButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1916607976]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 120.0
+offset_top = 60.0
+offset_right = 175.0
+offset_bottom = 116.0
+tooltip_text = "读取存档"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_load_normal")
+texture_pressed = SubResource("Atlas_load_hover")
+texture_hover = SubResource("Atlas_load_hover")
+texture_focused = SubResource("Atlas_load_hover")
+
+[node name="QuickSaveButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1498383669]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 180.0
+offset_top = 60.0
+offset_right = 235.0
+offset_bottom = 116.0
+tooltip_text = "快速保存"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_qsave_normal")
+texture_pressed = SubResource("Atlas_qsave_hover")
+texture_hover = SubResource("Atlas_qsave_hover")
+texture_focused = SubResource("Atlas_qsave_hover")
+
+[node name="QuickLoadButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=2095910310]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 240.0
+offset_top = 60.0
+offset_right = 295.0
+offset_bottom = 116.0
+tooltip_text = "快速读取"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_qload_normal")
+texture_pressed = SubResource("Atlas_qload_hover")
+texture_hover = SubResource("Atlas_qload_hover")
+texture_focused = SubResource("Atlas_qload_hover")
+
+[node name="HistoryButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1397456925]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 60.0
+offset_top = 120.0
+offset_right = 115.0
+offset_bottom = 176.0
+tooltip_text = "文本记录"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_history_normal")
+texture_pressed = SubResource("Atlas_history_hover")
+texture_hover = SubResource("Atlas_history_hover")
+texture_focused = SubResource("Atlas_history_hover")
+
+[node name="SettingsButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=2032325349]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 120.0
+offset_top = 120.0
+offset_right = 175.0
+offset_bottom = 176.0
+tooltip_text = "系统设置"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_settings_normal")
+texture_pressed = SubResource("Atlas_settings_hover")
+texture_hover = SubResource("Atlas_settings_hover")
+texture_focused = SubResource("Atlas_settings_hover")
+
+[node name="MenuLockButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=899966180]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 180.0
+offset_top = 120.0
+offset_right = 235.0
+offset_bottom = 176.0
+tooltip_text = "锁定系统菜单"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = SubResource("Atlas_menu_lock_normal")
+texture_pressed = SubResource("Atlas_menu_lock_hover")
+texture_hover = SubResource("Atlas_menu_lock_hover")
+texture_focused = SubResource("Atlas_menu_lock_hover")
+
+[node name="TitleButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=843643989]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 240.0
+offset_top = 120.0
+offset_right = 295.0
+offset_bottom = 176.0
+tooltip_text = "返回主页"
+focus_mode = 1
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_title_normal")
+texture_pressed = SubResource("Atlas_title_hover")
+texture_hover = SubResource("Atlas_title_hover")
+texture_focused = SubResource("Atlas_title_hover")
+
+[node name="SystemMenuRecallButton" type="TextureButton" parent="VisualCanvas" unique_id=500643518]
+unique_name_in_owner = true
+visible = false
+z_index = 1201
+layout_mode = 0
+offset_left = 1902.0
+offset_top = 906.0
+offset_right = 1918.0
+offset_bottom = 1013.0
+tooltip_text = "显示系统菜单"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("Atlas_menu_recall_normal")
+texture_pressed = SubResource("Atlas_menu_recall_hover")
+texture_hover = SubResource("Atlas_menu_recall_hover")
+ignore_texture_size = true
+stretch_mode = 3
+
+[node name="Status" type="Label" parent="VisualCanvas" unique_id=99240062]
+unique_name_in_owner = true
+visible = false
+z_index = 1110
+layout_mode = 0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = 590.0
+offset_bottom = 66.0
+theme_type_variation = &"AdvStatusLabel"
+text = "SCENARIO"
+
+[node name="ChoiceOverlay" type="Control" parent="VisualCanvas" unique_id=151839128]
+unique_name_in_owner = true
+visible = false
+z_index = 1300
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ChoiceCenter" type="CenterContainer" parent="VisualCanvas/ChoiceOverlay" unique_id=1884037650]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ChoiceList" type="VBoxContainer" parent="VisualCanvas/ChoiceOverlay/ChoiceCenter" unique_id=1754976725]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="HistoryOverlay" type="Control" parent="VisualCanvas" unique_id=721125285]
+unique_name_in_owner = true
+visible = false
+z_index = 1500
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Shade" type="ColorRect" parent="VisualCanvas/HistoryOverlay" unique_id=1826906682]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.04, 0.07, 0.76)
+
+[node name="Panel" type="PanelContainer" parent="VisualCanvas/HistoryOverlay" unique_id=1598394829]
+layout_mode = 0
+offset_left = 210.0
+offset_top = 90.0
+offset_right = 1710.0
+offset_bottom = 990.0
+theme_type_variation = &"AdvMessagePanel"
+
+[node name="Column" type="VBoxContainer" parent="VisualCanvas/HistoryOverlay/Panel" unique_id=792757465]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=798951526]
+layout_mode = 2
+theme_type_variation = &"AdvSpeakerLabel"
+text = "文本履历"
+
+[node name="HistoryText" type="RichTextLabel" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=352400037]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"AdvMessageLabel"
+scroll_following = true
+autowrap_mode = 2
+
+[node name="HistoryClose" type="Button" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=1712948790]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 62)
+layout_mode = 2
+size_flags_horizontal = 8
+theme_type_variation = &"SharedPrimaryActionButton"
+text = "返回剧情"
+
+[node name="FeatureOverlay" type="Control" parent="VisualCanvas" unique_id=1843454353]
+unique_name_in_owner = true
+visible = false
+z_index = 1500
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="FeatureHost" type="Control" parent="VisualCanvas/FeatureOverlay" unique_id=660626187]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MovieLayer" type="Control" parent="VisualCanvas" unique_id=1555099002]
+unique_name_in_owner = true
+visible = false
+z_index = 1700
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="MovieBackground" type="ColorRect" parent="VisualCanvas/MovieLayer" unique_id=1649019489]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="MoviePlayer" type="VideoStreamPlayer" parent="VisualCanvas/MovieLayer" unique_id=1583315189]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand = true
+bus = &"Movie"
+
+[node name="MovieSkip" type="Button" parent="VisualCanvas/MovieLayer" unique_id=2013114282]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1680.0
+offset_top = 984.0
+offset_right = 1888.0
+offset_bottom = 1044.0
+theme_type_variation = &"AdvMenuButton"
+text = "跳过影片"
+
+[node name="TitleConfirmation" parent="VisualCanvas" unique_id=807188974 instance=ExtResource("3_confirmation")]
+unique_name_in_owner = true
+z_index = 1600
+layout_mode = 1
+
+[node name="RouteExitBlocker" type="Control" parent="VisualCanvas"]
+unique_name_in_owner = true
+visible = false
+z_index = 2000
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="ScenarioRuntime" type="Node" parent="." unique_id=327591887]
+unique_name_in_owner = true
+script = ExtResource("2_runtime")
+
+[node name="AutoIndicatorTimer" type="Timer" parent="." unique_id=1552936189]
+unique_name_in_owner = true
+wait_time = 0.07
+
+[node name="SystemMenuAutoHideTimer" type="Timer" parent="." unique_id=1242785794]
+unique_name_in_owner = true
+one_shot = true
+
+[node name="StageDirector" type="Node" parent="." unique_id=88668032]
+unique_name_in_owner = true
+script = ExtResource("4_stage")
+camera_canvas_path = NodePath("../VisualCanvas/Stage/CameraCanvas")
+fallback_path = NodePath("../VisualCanvas/Stage/SkyFallback")
+background_path = NodePath("../VisualCanvas/Stage/CameraCanvas/Background")
+background_scroll_layer_path = NodePath("../VisualCanvas/Stage/CameraCanvas/BackgroundScrollLayer")
+background_scroll_tiles_path = NodePath("../VisualCanvas/Stage/CameraCanvas/BackgroundScrollLayer/BackgroundScrollTiles")
+character_layer_path = NodePath("../VisualCanvas/Stage/CharacterLayer")
+transition_snapshot_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot")
+snapshot_group_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup")
+snapshot_camera_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera")
+snapshot_fallback_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera/SnapshotFallback")
+snapshot_background_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera/SnapshotBackground")
+snapshot_background_scroll_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera/SnapshotBackgroundScroll")
+snapshot_background_scroll_tiles_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera/SnapshotBackgroundScroll/SnapshotBackgroundScrollTiles")
+snapshot_characters_path = NodePath("../VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCharacters")
+
+[node name="Audio" type="Node" parent="." unique_id=1199802182]
+
+[node name="BgmPlayer" type="AudioStreamPlayer" parent="Audio" unique_id=2097113825]
+unique_name_in_owner = true
+bus = &"BGM"
+
+[node name="BgmPlayer2" type="AudioStreamPlayer" parent="Audio" unique_id=1140323706]
+unique_name_in_owner = true
+bus = &"BGM"
+
+[node name="VoicePlayer" type="AudioStreamPlayer" parent="Audio" unique_id=1442105632]
+unique_name_in_owner = true
+bus = &"Voice"
+
+[node name="VoicePlayer2" type="AudioStreamPlayer" parent="Audio" unique_id=208622463]
+unique_name_in_owner = true
+bus = &"Voice"
+
+[node name="VoicePlayer3" type="AudioStreamPlayer" parent="Audio" unique_id=732474357]
+unique_name_in_owner = true
+bus = &"Voice"
+
+[node name="VoicePlayer4" type="AudioStreamPlayer" parent="Audio" unique_id=2090796196]
+unique_name_in_owner = true
+bus = &"Voice"
+
+[node name="VoicePlayer5" type="AudioStreamPlayer" parent="Audio" unique_id=1359968834]
+unique_name_in_owner = true
+bus = &"Voice"
+
+[node name="SePlayer" type="AudioStreamPlayer" parent="Audio" unique_id=421657044]
+unique_name_in_owner = true
+bus = &"SE"
+
+[node name="EnvPlayer" type="AudioStreamPlayer" parent="Audio" unique_id=1142342420]
+unique_name_in_owner = true
+bus = &"EnvSE"

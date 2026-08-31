@@ -10,6 +10,7 @@ enum Stage {
 	BRAND_MOVIE,
 	CONTENT_WARNING,
 	TITLE,
+	ADV,
 }
 
 const BRAND_MOVIE_SCENE: PackedScene = preload("res://src/intro/brand_movie_screen.tscn")
@@ -17,11 +18,16 @@ const CONTENT_WARNING_SCENE: PackedScene = preload("res://src/intro/content_warn
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const TITLE_FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
+const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
 
 @onready var _screen_host: Control = $ScreenHost
-@onready var _overlay_host: Control = $OverlayHost
+@onready var _overlay_host: Control = $OverlayLayer/OverlayHost
+@onready var _load_transition_cover: TextureRect = $OverlayLayer/LoadTransitionCover
 @onready var _audio: StartupAudio = $StartupAudio
 @onready var _save_service: SaveService = $SaveService
+
+@export_range(0.0, 2.0, 0.05) var load_cover_enter_seconds := 0.3
+@export_range(0.0, 2.0, 0.05) var load_cover_leave_seconds := 0.5
 
 var current_stage := Stage.BRAND_MOVIE
 var last_selected_option: StringName = &""
@@ -32,6 +38,8 @@ var _settings_overlay: SettingsScreen
 var _prepared_settings_screen: SettingsScreen
 var _settings_return_focus: Control
 var _settings_prepared_once := false
+var _route_transitioning := false
+var _load_transition_tween: Tween
 var _screen_settings := DisplaySettingsService.new()
 var _settings_repository := SettingsRepository.new()
 
@@ -49,6 +57,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_kill_load_transition_tween()
 	if is_instance_valid(_audio):
 		_audio.stop_all()
 	if is_instance_valid(_prepared_settings_screen):
@@ -95,6 +104,8 @@ func _replace_screen(scene: PackedScene) -> Control:
 		(_current_screen as TitleFeatureScreen).configure(last_selected_option, _save_service)
 	elif _current_screen is SettingsScreen:
 		(_current_screen as SettingsScreen).configure(_settings_repository)
+	elif _current_screen is AdvScreen:
+		(_current_screen as AdvScreen).configure(last_scenario_request, _save_service, _settings_repository)
 	_screen_host.add_child(_current_screen)
 	return _current_screen
 
@@ -105,6 +116,11 @@ func open_settings() -> SettingsScreen:
 	if is_instance_valid(_settings_overlay):
 		return _settings_overlay
 
+	# Capture before the overlay hides the source dialogue/menu chrome.
+	var preview_presentation: Dictionary = {}
+	if _current_screen is AdvScreen:
+		preview_presentation = (_current_screen as AdvScreen).capture_preview_presentation()
+	_set_adv_route_overlay_active(true)
 	_settings_return_focus = get_viewport().gui_get_focus_owner()
 	get_viewport().gui_release_focus()
 	_set_current_screen_input_enabled(false)
@@ -117,9 +133,10 @@ func open_settings() -> SettingsScreen:
 		_settings_overlay = SETTINGS_SCENE.instantiate() as SettingsScreen
 		_settings_overlay.configure(_settings_repository)
 	_settings_overlay.back_requested.connect(func() -> void: _close_settings_overlay(), CONNECT_ONE_SHOT)
-	_settings_overlay.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
+	_settings_overlay.read_flags_reset_requested.connect(_clear_read_flags)
 	if _settings_overlay.get_parent() != _overlay_host:
 		_overlay_host.add_child(_settings_overlay)
+	_configure_settings_preview(_settings_overlay, preview_presentation)
 	_overlay_host.move_child(_settings_overlay, _overlay_host.get_child_count() - 1)
 	_settings_overlay.activate()
 	if _current_screen is TitleScreen:
@@ -135,6 +152,22 @@ func _prepare_settings_screen() -> void:
 	_prepared_settings_screen.configure(_settings_repository)
 	_prepared_settings_screen.prepare_hidden()
 	_overlay_host.add_child(_prepared_settings_screen)
+	_configure_settings_preview(_prepared_settings_screen)
+
+
+func _configure_settings_preview(screen: SettingsScreen, presentation: Dictionary = {}) -> void:
+	var page := screen.settings_page().display_page()
+	var settings := screen.settings_page().get_current_settings()
+	var preview := page.preview_content() as AdvScreen
+	if preview == null:
+		preview = ADV_SCENE.instantiate() as AdvScreen
+		preview.name = "AdvPreview"
+		preview.configure_preview(settings, presentation)
+		page.install_preview(preview, preview.apply_preview_settings)
+	elif not presentation.is_empty():
+		preview.refresh_preview(settings, presentation)
+	else:
+		preview.apply_preview_settings(settings)
 
 
 func _on_title_option_selected(option_id: StringName) -> void:
@@ -195,6 +228,7 @@ func _close_settings_overlay_animated() -> void:
 		await source_title.play_subscreen_return()
 		if _current_screen != source_title:
 			return
+	_set_adv_route_overlay_active(false)
 	_set_current_screen_input_enabled(true)
 
 	var return_focus := _settings_return_focus
@@ -210,6 +244,7 @@ func _discard_settings_overlay() -> void:
 		_overlay_host.remove_child(overlay)
 	overlay.queue_free()
 	_settings_return_focus = null
+	_set_adv_route_overlay_active(false)
 	_set_current_screen_input_enabled(true)
 
 
@@ -220,15 +255,149 @@ func _set_current_screen_input_enabled(enabled: bool) -> void:
 	_current_screen.set_process_unhandled_input(enabled)
 
 
+func _set_adv_route_overlay_active(active: bool) -> void:
+	var adv := _current_screen as AdvScreen
+	if adv != null:
+		adv.set_route_overlay_active(active)
+
+
+func _clear_read_flags() -> void:
+	var profile := _save_service.load_profile()
+	if profile == null:
+		profile = ProfileData.create_empty(str(ProjectSettings.get_setting("application/config/version", "")))
+	profile.read_text_ids.clear()
+	_save_service.save_profile(profile)
+	if _current_screen is AdvScreen:
+		(_current_screen as AdvScreen).clear_read_state()
+	read_flags_reset_requested.emit()
+
+
 func _on_content_requested(request: TitleContentRequest) -> void:
 	last_content_request = request
 
 
 func _on_scenario_requested(request: ScenarioLaunchRequest) -> void:
+	if _route_transitioning:
+		return
+	if request != null and request.save_data == null and not request.save_path.is_empty():
+		var loaded := _save_service.load_path(request.save_path)
+		if loaded != null:
+			request.save_data = loaded
+			request.scenario_id = loaded.scenario_id
+			request.instruction_anchor = loaded.instruction_anchor
 	last_scenario_request = request
 	scenario_requested.emit(request)
-	# Gameplay is deliberately not started until the scenario runner is
-	# migrated.  The typed signal/data seam keeps the Title independent of it.
+	if request != null and request.is_new_game() and _current_screen is TitleScreen:
+		_transition_title_to_adv()
+	elif (
+		request != null
+		and request.kind == ScenarioLaunchRequest.RequestKind.CONTINUE
+		and current_stage == Stage.TITLE
+	):
+		_transition_saved_title_to_adv()
+	else:
+		_show_adv()
+
+
+func _transition_title_to_adv() -> void:
+	var source_title := _current_screen as TitleScreen
+	if source_title == null:
+		_show_adv()
+		return
+	_route_transitioning = true
+	get_viewport().gui_release_focus()
+	_set_current_screen_input_enabled(false)
+	_audio.fade_out_title_bgm(5000)
+	await source_title.play_game_exit()
+	if _current_screen != source_title:
+		_route_transitioning = false
+		return
+	_show_adv(false)
+	_route_transitioning = false
+
+
+## The source Continue/Load path does not reuse New Game's long Title fade.
+## ADVScreen.load instead raises FRM_0501 for 300 ms, restores the complete
+## saved presentation behind it, then reveals the ready ADV scene over 500 ms.
+func _transition_saved_title_to_adv() -> void:
+	var source_screen := _current_screen
+	if not is_instance_valid(source_screen):
+		_show_adv()
+		return
+	_route_transitioning = true
+	get_viewport().gui_release_focus()
+	_set_current_screen_input_enabled(false)
+	_audio.stop_all()
+	_load_transition_cover.visible = true
+	_load_transition_cover.modulate.a = 0.0
+	await _tween_load_transition_cover(1.0, load_cover_enter_seconds)
+	if _current_screen != source_screen:
+		_finish_load_transition()
+		return
+
+	_show_adv(false)
+	_set_current_screen_input_enabled(false)
+	# Keep the source cover opaque until the restored ADV tree has produced one
+	# complete frame; this prevents Title or a partially restored stage leaking.
+	await get_tree().process_frame
+	await _tween_load_transition_cover(0.0, load_cover_leave_seconds)
+	_finish_load_transition()
+
+
+func _tween_load_transition_cover(target_alpha: float, duration: float) -> void:
+	_kill_load_transition_tween()
+	if duration <= 0.0:
+		_load_transition_cover.modulate.a = target_alpha
+		return
+	var tween := create_tween()
+	_load_transition_tween = tween
+	tween.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_load_transition_cover, "modulate:a", target_alpha, duration)
+	await tween.finished
+	if _load_transition_tween == tween:
+		_load_transition_tween = null
+
+
+func _finish_load_transition() -> void:
+	_kill_load_transition_tween()
+	_load_transition_cover.modulate.a = 0.0
+	_load_transition_cover.visible = false
+	_route_transitioning = false
+	_set_current_screen_input_enabled(true)
+
+
+func _kill_load_transition_tween() -> void:
+	if _load_transition_tween != null and _load_transition_tween.is_valid():
+		_load_transition_tween.kill()
+	_load_transition_tween = null
+
+
+func _show_adv(stop_startup_audio := true) -> void:
+	current_stage = Stage.ADV
+	if stop_startup_audio:
+		_audio.stop_all()
+	var screen := _replace_screen(ADV_SCENE) as AdvScreen
+	screen.title_requested.connect(_return_to_title_from_adv)
+	screen.settings_requested.connect(open_settings)
+	screen.scenario_finished.connect(_return_to_title_from_adv)
+
+
+func _return_to_title_from_adv() -> void:
+	if _route_transitioning:
+		return
+	var source_adv := _current_screen as AdvScreen
+	if source_adv == null:
+		_show_title()
+		return
+	_route_transitioning = true
+	get_viewport().gui_release_focus()
+	_set_current_screen_input_enabled(false)
+	await source_adv.play_title_exit()
+	if _current_screen != source_adv:
+		_route_transitioning = false
+		return
+	_route_transitioning = false
+	_show_title()
 
 
 func _on_exit_requested() -> void:

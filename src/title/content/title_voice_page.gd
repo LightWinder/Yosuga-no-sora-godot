@@ -173,7 +173,7 @@ func _jump(favorite: VoiceFavorite) -> void:
 		_status.text = "该收藏没有可跳转的存档。"
 		return
 	scenario_requested.emit(request)
-	_status.text = "语音存档跳转等待正文运行层。"
+	_status.text = "正在返回该语音对应的剧情位置。"
 	status_changed.emit(_status.text)
 
 

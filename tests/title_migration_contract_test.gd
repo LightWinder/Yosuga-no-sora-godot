@@ -4,6 +4,8 @@ extends SceneTree
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
+const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
+const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 
 var _failures: Array[String] = []
 
@@ -86,6 +88,7 @@ func _test_input_actions() -> void:
 	_expect(InputMap.has_action(InputActions.ADVANCE), "vn_advance must be registered.")
 	_expect(InputMap.has_action(InputActions.CANCEL), "vn_cancel must be registered.")
 	_expect(InputMap.has_action(InputActions.CONFIRM), "vn_confirm must be registered.")
+	_expect(bool(ProjectSettings.get_setting("input_devices/pointing/emulate_mouse_from_touch", true)), "Touch-to-mouse emulation must use Godot's enabled default or an explicit true value.")
 
 	var key := InputEventKey.new()
 	key.pressed = true
@@ -131,6 +134,12 @@ func _test_save_data_contract() -> void:
 	data.instruction_anchor = "hitret:42"
 	data.set_global_flag(1)
 	data.set_local_flag("choice_3")
+	data.choice_history = [2, 1]
+	data.choice_navigation_stack = [{
+		"runtime": {"scenario_id": "00_z000", "instruction_index": 42},
+		"presentation": {"background": "B27A"},
+	}]
+	data.choice_navigation_position = 1
 	data.read_text_ids = ["00_z000:42"]
 	data.autosave_meta = {"valid": true, "label": "列车"}
 	var decoded := SaveData.from_dictionary(data.to_dictionary())
@@ -139,6 +148,12 @@ func _test_save_data_contract() -> void:
 		_expect(decoded.schema_version == SaveData.CURRENT_SCHEMA_VERSION, "Round-trip schema must be current.")
 		_expect(decoded.is_global_flag_set(1), "Global route flag must survive round-trip.")
 		_expect(decoded.instruction_anchor == "hitret:42", "Instruction anchor must survive round-trip.")
+		_expect(decoded.choice_history == [2, 1], "Source selection history must survive round-trip.")
+		_expect(
+			decoded.choice_navigation_stack.size() == 1
+			and decoded.choice_navigation_position == 1,
+			"Previous-choice navigation stack and cursor must survive save round-trip."
+		)
 
 	var legacy := SaveData.from_dictionary({
 		"version": 0,
@@ -151,6 +166,11 @@ func _test_save_data_contract() -> void:
 	if legacy != null:
 		_expect(legacy.schema_version == SaveData.CURRENT_SCHEMA_VERSION, "Migrated schema must be current.")
 		_expect(legacy.is_global_flag_set(1), "Legacy flags must migrate.")
+		_expect(
+			legacy.choice_navigation_stack.is_empty()
+			and legacy.choice_navigation_position == 0,
+			"Legacy saves must migrate with an empty previous-choice stack."
+		)
 	_expect(SaveData.from_dictionary({"schema_version": 999}) == null, "Future schema must be rejected.")
 
 
@@ -244,9 +264,11 @@ func _test_theme_font() -> void:
 	var section_title_font := load(section_title_font_path) as FontVariation
 	_expect(choice_font != null and section_title_font != null, "Settings FontVariation resources must load independently.")
 	_expect(theme.get_type_variation_base(&"SettingsChoiceButton") == &"Button", "Choice styles must be exposed as a Button Theme variation.")
-	_expect(theme.get_type_variation_base(&"SettingsFooterButton") == &"Button", "Footer styles must be exposed as a Button Theme variation.")
+	_expect(theme.get_type_variation_base(&"SettingsFooterButton") == &"SharedActionButton", "Settings footer styles must derive from the neutral action-button Theme variation.")
 	_expect(theme.get_type_variation_base(&"SettingsKnobSlider") == &"HSlider", "Slider styles must extend Godot's native HSlider Theme type.")
 	_expect(theme.get_type_variation_base(&"SettingsSectionTitle") == &"Control", "Section-title drawing tokens must be exposed as a Control Theme variation.")
+	_expect(theme.get_type_variation_base(&"ConfirmationOverlayPanel") == &"SharedGlassPanel", "Shared confirmation chrome must use a neutral Theme variation.")
+	_expect(theme.get_type_variation_base(&"SaveLoadSlotButton") == &"Button", "Save/Load slot visuals must be exposed as a Button Theme variation.")
 	var glyphs: Array[String] = ["环", "境", "设", "定", "删", "除", "存", "档"]
 	for glyph in glyphs:
 		var codepoint := glyph.unicode_at(0)
@@ -267,12 +289,14 @@ func _test_title_state() -> void:
 	service.memory_flags[1] = true
 	service.memory_profile.set_global_flag(1)
 	var title := TITLE_SCENE.instantiate() as TitleScreen
+	_expect(is_equal_approx(title.game_exit_seconds, 3.0), "New Game must retain the source Title's three-second route departure.")
 	_expect(title.subscreen_exit_seconds < title.subscreen_return_seconds, "Title child-screen departure must be faster than its return animation.")
 	title.subscreen_exit_seconds = 0.01
 	title.subscreen_return_seconds = 0.01
 	title.configure(service)
 	root.add_child(title)
 	await process_frame
+	_expect((title.get_node("WhiteCover") as ColorRect).visible, "Title route entry must reveal the scene through its source white cover.")
 	var title_background := title.get_node("Background") as TextureRect
 	_expect(title_background.get_parent() == title, "Title background must be independent from the safe-area content canvas.")
 	_expect(is_equal_approx(title_background.anchor_right, 1.0) and is_equal_approx(title_background.anchor_bottom, 1.0), "Title background must fill the viewport anchors.")
@@ -313,15 +337,10 @@ func _test_title_state() -> void:
 			break
 	await process_frame
 	_expect(scenario_requests.size() == 1, "Continue must emit one unified ScenarioLaunchRequest.")
-	_expect(title.is_scenario_notice_visible(), "Continue must enter an explicit unavailable-runner notice.")
-	var title_notice := title.get_node_or_null("ScenarioUnavailableNotice") as ScenarioUnavailableNotice
-	_expect(title_notice != null and title_notice.scene_file_path.ends_with("scenario_unavailable_notice.tscn"), "Scenario notice must be a reusable scene instance.")
+	_expect(title.get_node_or_null("ScenarioUnavailableNotice") == null, "Continue must route directly to ADV without an obsolete unavailable notice.")
 	_expect(scenario_requests[0].scenario_id == "00_z000", "Continue request must preserve save scenario.")
-	var notice_escape := InputEventKey.new()
-	notice_escape.pressed = true
-	notice_escape.keycode = KEY_ESCAPE
-	title._input(notice_escape)
-	_expect(not title.is_scenario_notice_visible(), "Scenario notice must be dismissible without leaving the title.")
+	_expect(scenario_requests[0].save_path == service.autosave_path(), "Continue must use the configured SaveService autosave path.")
+	_expect(scenario_requests[0].save_data == autosave, "Continue request must carry the decoded SaveData for route-independent restore.")
 	for button in title.get_menu_buttons():
 		if button.option_id == &"bonus":
 			button.pressed.emit()
@@ -342,19 +361,24 @@ func _test_title_state() -> void:
 	escape.keycode = KEY_ESCAPE
 	title._input(escape)
 	_expect(not title.is_bonus_mode(), "Escape must return from Bonus.")
+	var exit_button: TitleMenuButton
 	for button in title.get_menu_buttons():
 		if button.option_id == &"exit_game":
-			button.pressed.emit()
+			exit_button = button
 			break
+	exit_button.grab_focus()
+	exit_button.pressed.emit()
 	await process_frame
 	_expect(title.is_exit_confirmation_visible(), "Exit must open its confirmation scene.")
-	var exit_dialog := title.get_node_or_null("ExitConfirmationOverlay") as TitleExitConfirmation
-	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("title_exit_confirmation.tscn"), "Exit confirmation must be a reusable scene instance.")
+	var exit_dialog := title.get_node_or_null("ExitConfirmationOverlay") as ConfirmationOverlay
+	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("confirmation_overlay.tscn"), "Exit confirmation must use the shared scene-owned overlay.")
 	var exit_escape := InputEventKey.new()
 	exit_escape.pressed = true
 	exit_escape.keycode = KEY_ESCAPE
 	title._input(exit_escape)
 	_expect(not title.is_exit_confirmation_visible(), "Escape must dismiss the exit confirmation scene.")
+	await process_frame
+	_expect(root.gui_get_focus_owner() == exit_button, "Closing the shared confirmation overlay must restore Title focus.")
 	for button in title.get_menu_buttons():
 		if button.option_id == &"load_game":
 			button.pressed.emit()
@@ -386,44 +410,96 @@ func _test_title_state() -> void:
 	root.add_child(feature)
 	await process_frame
 	_expect(feature.feature_id == &"load_game", "Feature screen must preserve its route id.")
-	_expect(feature.get_node_or_null("DeleteSaveConfirmation") == null, "Load confirmation must remain lazy until deletion is requested.")
-	_expect(feature.get_node_or_null("ScenarioUnavailableNotice") == null, "Load scenario notice must remain lazy until continue is requested.")
+	_expect(feature.get_node_or_null("ScenarioUnavailableNotice") == null, "Load route must not construct the retired unavailable-runner notice.")
 	_expect(feature.get_node_or_null("VoiceCollectionService") == null, "Load route must not own the voice catalog service.")
 	var load_list := feature.get_node("Content/EntryList") as VBoxContainer
-	_expect(load_list.get_child_count() == 21, "Load must list autosave plus all 20 manual slots.")
-	var load_select := (load_list.get_child(0) as HBoxContainer).get_child(0) as Button
+	_expect(load_list.get_child_count() == 1, "Load route must own one reusable save/load page scene.")
+	var load_page := feature.load_page()
+	_expect(load_page != null and load_page.scene_file_path.ends_with("save_load_page.tscn"), "Load content must be a dedicated static TSCN page.")
+	_expect(load_page.slot_cards().size() == 12, "Load page must keep one static 4×3 slot-card page in the scene tree.")
+	_expect(load_page.size.is_equal_approx(load_list.size), "Embedded save/load content must expand to the complete feature-page viewport.")
+	var load_select := load_page.slot_cards()[0]
 	load_select.pressed.emit()
 	await process_frame
-	_expect(feature.get_node("Content/Primary").visible, "Load selection must reveal continue action.")
-	var manual_delete := (load_list.get_child(1) as HBoxContainer).get_child(1) as Button
-	manual_delete.pressed.emit()
+	var page_primary := load_page.get_node("VisualCanvas/Footer/Primary") as Button
+	_expect(not page_primary.disabled, "Selecting a valid save must enable the page-owned continue action.")
+	var manual_select := load_page.slot_cards()[1]
+	manual_select.pressed.emit()
+	var page_delete := load_page.get_node("VisualCanvas/Footer/Delete") as Button
+	page_delete.pressed.emit()
 	await process_frame
 	_expect(feature.is_delete_confirmation_visible(), "Deleting a manual slot must ask for confirmation.")
+	_expect(load_page.get_node("VisualCanvas/ConfirmationOverlay").scene_file_path.ends_with("confirmation_overlay.tscn"), "Save deletion must reuse the shared scene-owned confirmation component.")
 	_expect(service.has_slot(0), "Cancel is not allowed to delete a manual slot.")
 	feature.cancel_delete_confirmation()
 	_expect(service.has_slot(0), "Canceled manual-slot deletion must preserve the file.")
-	manual_delete.pressed.emit()
+	page_delete.pressed.emit()
 	await process_frame
 	feature.confirm_delete_confirmation()
 	await process_frame
 	_expect(not service.has_slot(0), "Confirmed manual-slot deletion must refresh and remove the file.")
 	_expect_no_generated_node_names(feature, "Load scene after list refresh")
-	var autosave_delete := (load_list.get_child(0) as HBoxContainer).get_child(1) as Button
-	autosave_delete.pressed.emit()
+	load_select.pressed.emit()
+	page_delete.pressed.emit()
 	await process_frame
 	_expect(feature.is_delete_confirmation_visible(), "Deleting autosave must ask for confirmation.")
 	feature.cancel_delete_confirmation()
 	_expect(service.has_autosave(), "Canceled autosave deletion must preserve the autosave.")
-	autosave_delete.pressed.emit()
+	page_delete.pressed.emit()
 	await process_frame
 	feature.confirm_delete_confirmation()
 	await process_frame
 	_expect(not service.has_autosave(), "Confirmed autosave deletion must remove the autosave.")
+	var next_save_page := load_page.get_node("VisualCanvas/Main/PageNavigation/NextPage") as Button
+	next_save_page.pressed.emit()
+	await process_frame
+	_expect(load_page.slot_cards()[0].slot_id == 11, "Second save page must start at manual slot 12.")
+	_expect(load_page.slot_cards()[8].slot_id == 19, "Second save page must expose manual slot 20.")
+	_expect(load_page.slot_cards()[9].disabled, "Unused cells on the final save page must stay disabled.")
 	load_select = null
-	var feature_back := feature.get_node("Content/Back") as Button
+	var feature_back := load_page.get_node("VisualCanvas/Footer/Back") as Button
 	feature_back.pressed.emit()
 	_expect(back_events.size() == 1, "Feature Back button must emit its typed route signal.")
 	feature.free()
+	await process_frame
+
+	var save_payload := SaveData.create_empty("0.1.0")
+	save_payload.scenario_id = "00_z002"
+	save_payload.instruction_anchor = "hitret:save-mode"
+	save_payload.autosave_meta = {"label": "存档模式契约"}
+	var save_page := SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
+	save_page.configure(SaveLoadPage.Mode.SAVE, service, save_payload)
+	root.add_child(save_page)
+	await process_frame
+	_expect(save_page.slot_cards()[0].disabled, "Save mode must reserve the autosave entry for the runtime autosave flow.")
+	_expect(root.gui_get_focus_owner() == save_page.slot_cards()[1], "Save mode must focus the first enabled manual slot instead of disabled autosave.")
+	_expect((save_page.get_node("VisualCanvas/Footer/Back") as Button).text == "返回游戏", "An in-game save/load page must expose the correct return destination.")
+	var save_target := save_page.slot_cards()[1]
+	save_target.pressed.emit()
+	var save_primary := save_page.get_node("VisualCanvas/Footer/Primary") as Button
+	_expect(not save_primary.disabled, "Selecting an empty manual slot must enable the save action.")
+	save_primary.pressed.emit()
+	await process_frame
+	_expect(service.has_slot(0), "The reusable page's save mode must write the selected manual slot.")
+	save_target.grab_focus()
+	save_primary.pressed.emit()
+	await process_frame
+	_expect(save_page.is_delete_confirmation_visible(), "Overwriting an occupied slot must ask for confirmation.")
+	save_page.cancel_delete_confirmation()
+	await process_frame
+	_expect(root.gui_get_focus_owner() == save_target, "Closing a save confirmation must restore keyboard/controller focus to its invoking slot.")
+	var load_mode_button := save_page.get_node("VisualCanvas/ModeTabs/LoadMode") as Button
+	_expect(not load_mode_button.disabled, "An in-game save page must allow switching to read mode.")
+	load_mode_button.pressed.emit()
+	await process_frame
+	_expect(save_page.mode == SaveLoadPage.Mode.LOAD, "The reusable save page must switch to read mode without rebuilding its scene tree.")
+	var save_mode_button := save_page.get_node("VisualCanvas/ModeTabs/SaveMode") as Button
+	_expect(not save_mode_button.disabled, "Read mode must allow returning to save mode while a live SaveData payload exists.")
+	save_mode_button.pressed.emit()
+	await process_frame
+	_expect(save_page.mode == SaveLoadPage.Mode.SAVE, "The reusable page must return to save mode with the same payload.")
+	_expect(service.clear_slot(0), "Save-mode contract cleanup must remove its manual slot.")
+	save_page.free()
 	await process_frame
 
 	var settings := SETTINGS_SCENE.instantiate() as SettingsScreen
@@ -433,6 +509,10 @@ func _test_title_state() -> void:
 	root.add_child(settings)
 	await process_frame
 	var settings_page := settings.settings_page()
+	var preview := ADV_SCENE.instantiate() as AdvScreen
+	preview.name = "AdvPreview"
+	preview.configure_preview(settings_page.get_current_settings())
+	settings_page.display_page().install_preview(preview, preview.apply_preview_settings)
 	_expect(settings_page != null, "Settings must expose a dedicated HD window model.")
 	_expect(settings.get_node_or_null("Content") == null, "Settings route must not retain hidden generic feature chrome.")
 	_expect(settings.scene_file_path.ends_with("settings_screen.tscn"), "Settings must be owned by a dedicated route scene.")
@@ -520,15 +600,78 @@ func _test_title_state() -> void:
 	_expect(is_equal_approx(preview_content.modulate.a, 1.0), "Preview content must retain full opacity.")
 	_expect(preview_padding.get_theme_constant(&"margin_left") == 16 and preview_padding.get_theme_constant(&"margin_top") == 16, "The inline preview frame must retain its 16 px padding.")
 	_expect(not preview_content.clip_contents, "Preview content must leave clipping to the rounded outer mask.")
-	_expect(preview_artwork.texture.resource_path.ends_with("event_1920/EA01E.png"), "Preview artwork must use the complete source event image instead of cropping the baked settings page.")
+	_expect(preview_artwork.texture is ViewportTexture, "The preview must render the real ADV scene, not a second hand-assembled dialogue frame.")
+	_expect(preview.scene_file_path.ends_with("adv_screen.tscn"), "Settings preview must reuse the exact gameplay scene.")
+	var preview_viewport := preview.get_viewport() as SubViewport
+	_expect(preview_viewport != null and preview_viewport.gui_disable_input, "The preview viewport must reject GUI input.")
+	_expect(preview.process_mode == Node.PROCESS_MODE_DISABLED and not preview.is_processing_unhandled_input(), "The preview must never process gameplay or input.")
+	_expect(preview.get_node_or_null("SaveService") == null, "Rendering a preview must not construct a persistence service.")
+	_expect(preview.runtime().build_navigation_checkpoint().is_empty(), "Rendering a preview must not start the scenario runtime.")
+	for player in preview.find_children("*", "AudioStreamPlayer", true, false):
+		_expect(not player.playing and player.stream == null, "Preview must not load or play any audio.")
+	for control in preview.find_children("*", "Control", true, false):
+		_expect(control.mouse_filter == Control.MOUSE_FILTER_IGNORE and control.focus_mode == Control.FOCUS_NONE, "All preview controls must reject pointer and keyboard focus: %s" % control.name)
 	_expect(preview_artwork.material is ShaderMaterial, "Preview artwork must use a resolution-independent rounded mask.")
 	var preview_texture_size := preview_artwork.texture.get_size()
 	var preview_source_aspect := preview_texture_size.x / preview_texture_size.y
 	_expect(absf(preview_source_aspect - 16.0 / 9.0) < 0.01, "Preview artwork must retain the full source 16:9 composition.")
-	var preview_textbox := display_page.find_child("PreviewTextbox", true, false) as TextureRect
-	var preview_avatar := display_page.find_child("PreviewAvatar", true, false) as TextureRect
-	_expect(preview_textbox != null and preview_textbox.texture != null, "Screen preview must retain the source textbox artwork.")
-	_expect(preview_avatar != null and preview_avatar.texture != null and preview_avatar.size.x > 0.0, "Screen preview avatar artwork must have a visible rect.")
+	var preview_textbox := preview.get_node("%MessagePanel") as PanelContainer
+	var preview_avatar := preview.get_node("%Portrait") as TextureRect
+	var preview_message := preview.get_node("%MessageLabel") as RichTextLabel
+	_expect(preview_textbox.theme_type_variation == &"AdvMessagePanel", "Preview must use the real ADV message Theme.")
+	_expect(preview_avatar.texture != null and preview_avatar.visible, "Preview must use the real ADV dialogue portrait.")
+	var preview_message_before := preview.current_message()
+	var preview_focus_before := root.gui_get_focus_owner()
+	var preview_click := InputEventMouseButton.new()
+	preview_click.button_index = MOUSE_BUTTON_LEFT
+	preview_click.pressed = true
+	preview_click.position = Vector2(1760.0, 950.0)
+	preview_viewport.push_input(preview_click)
+	var preview_key := InputEventAction.new()
+	preview_key.action = &"vn_advance"
+	preview_key.pressed = true
+	preview_viewport.push_input(preview_key)
+	preview._unhandled_input(preview_key)
+	(preview.get_node("%QuickSaveButton") as BaseButton).pressed.emit()
+	(preview.get_node("%SettingsButton") as BaseButton).pressed.emit()
+	(preview.get_node("%MessageHideButton") as BaseButton).pressed.emit()
+	await process_frame
+	_expect(preview.current_message() == preview_message_before and preview_textbox.visible, "Preview clicks and advance input must not advance or hide dialogue.")
+	_expect(root.gui_get_focus_owner() == preview_focus_before, "Preview input must not steal focus from Settings.")
+	_expect(not (preview.get_node("%FeatureOverlay") as Control).visible, "Preview menu clicks must not open any gameplay overlay.")
+	var preview_style := preview_textbox.get_theme_stylebox("panel") as StyleBoxTexture
+	var shared_style := load("res://assets/themes/adv/message_panel.tres") as StyleBoxTexture
+	window_depth_slider.value = 25.0
+	_expect(is_equal_approx(preview_style.modulate_color.a, 0.25), "Opacity slider must update the real ADV frame immediately.")
+	_expect(is_equal_approx(preview_message.modulate.a, 1.0) and is_equal_approx(preview_avatar.modulate.a, 1.0), "Frame opacity must not fade the text or portrait.")
+	_expect(is_equal_approx(shared_style.modulate_color.a, 1.0), "Preview changes must not mutate the shared Theme StyleBox.")
+	display_page.set_screen_toggle(&"read_color", false)
+	_expect(preview_message.get_theme_color("default_color").is_equal_approx(Color(0.98, 0.995, 1.0, 1.0)), "Read-color setting must refresh the real ADV text immediately.")
+	display_page.set_screen_toggle(&"read_color", true)
+	window_depth_slider.value = 50.0
+	var preview_saved_state := {
+		"background": "EA01E", "speaker": "穹", "message": "只读快照测试",
+		"bgm": {"file": "BGM05", "position": 2.0},
+		"environment_audio": {"file": "se270", "position": 1.0},
+		"camera_world_position": [0.0, 30.0, -128.0],
+		"camera_move": {"start_world_position": [0.0, 0.0, -128.0], "target_world_position": [0.0, 90.0, -128.0], "duration_milliseconds": 1000},
+		"preview_choices": [{"text": "不可操作的选项", "hint": "穹"}],
+		"preview_route_hints": true,
+	}
+	preview.refresh_preview(settings_page.get_current_settings(), preview_saved_state)
+	var preview_choice_list := preview.get_node("%ChoiceList") as VBoxContainer
+	_expect(preview_choice_list.get_child_count() == 1, "Preview must retain visible choices using the real choice component.")
+	var preview_choice := preview_choice_list.get_child(0) as AdvChoiceButton
+	_expect(preview_choice.mouse_filter == Control.MOUSE_FILTER_IGNORE and preview_choice.focus_mode == Control.FOCUS_NONE, "Dynamically restored preview choices must also reject input.")
+	preview_choice.pressed.emit()
+	await create_timer(0.1).timeout
+	_expect(preview.current_message() == "只读快照测试" and (preview.get_node("%ChoiceOverlay") as Control).visible, "Even a directly emitted preview choice signal must not select a branch.")
+	for player in preview.find_children("*", "AudioStreamPlayer", true, false):
+		_expect(not player.playing and player.stream == null, "Saved BGM/environment state must be ignored, not played or muted by preview.")
+	var frozen_camera := preview.get_node("%StageDirector") as AdvStageDirector
+	_expect(frozen_camera.presentation_state().get("camera_world_position") == [0.0, 30.0, -128.0], "Preview must preserve the captured camera position without restarting its move.")
+	_expect(preview.runtime().build_navigation_checkpoint().is_empty(), "Preview choices must not create gameplay history or progress.")
+	preview.refresh_preview(settings_page.get_current_settings(), {})
 	var system_page := settings_page.system_page()
 	_expect(system_page.scene_file_path.ends_with("system_settings_page.tscn"), "System settings layout must be owned by its page scene.")
 	_expect(system_page.find_child("MainColumns", true, false) is HBoxContainer, "System settings must use the same container-managed card layout as screen settings.")

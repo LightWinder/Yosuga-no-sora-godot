@@ -6,7 +6,7 @@ signal content_requested(request: TitleContentRequest)
 signal scenario_requested(request: ScenarioLaunchRequest)
 signal status_changed(message: String)
 
-const ADV_PENDING_MESSAGE := "ADV剧情运行层待迁移：已生成 typed ScenarioLaunchRequest，未伪造播放结果。"
+const ADV_PENDING_MESSAGE := "正在进入剧情回想。"
 
 var _manifest: TitleContentManifest
 var _profile: ProfileData

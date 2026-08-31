@@ -1,0 +1,16 @@
+var window = new Window();
+var image = new Layer(window, null);
+var assetNames = [
+	"SP01", "SP02", "SP03", "SP04", "SP05", "SP06", "SP07",
+	"SP08", "SP09", "SP10", "SP11", "SP12", "SP51", "SP52"
+];
+
+for (var index = 0; index < assetNames.count; index++) {
+	var assetName = assetNames[index];
+	image.loadImages(assetName + ".tlg");
+	image.saveLayerImage(assetName + ".bmp");
+}
+
+invalidate image;
+invalidate window;
+System.exit();

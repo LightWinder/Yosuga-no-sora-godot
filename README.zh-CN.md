@@ -16,17 +16,23 @@ Title 的 Bonus 已按源 HD 信息架构重建，而不是一个文字占位列
 
 - Album：源 `CgModeList` 前六组，79 张卡片、214 个差分；六个角色页签、每页 4×2 网格、翻页、锁定状态、真实 `event_1920` PNG、全屏查看器和左右差分切换。
 - Music：源清单 21 首，三列网格；真实 OGG 播放、停止、切歌，BGM03–BGM21 使用 `.sli` 循环点。
-- Memories：24 条（18 条剧情回想、开场视频和 5 条 Staff Roll）；视频使用项目内 OGV，可播放/停止，剧情回想发出真实的 `ScenarioLaunchRequest`，并明确提示“ADV剧情运行层待迁移”，不会假装正文已运行。
+- Memories：24 条（18 条剧情回想、开场视频和 5 条 Staff Roll）；视频使用项目内 OGV，可播放/停止，剧情回想通过统一 ADV 路由进入各剧本的 recollect 标签。
 - Voice：四列、每页 12 个收藏卡；默认为空，由未来 ADV 通过 `VoiceCollectionService.add_favorite()` 添加，收藏独立持久化、去重、播放、删除，并可发出存档跳转 seam。
 
-Continue/Load 也发出统一的 `ScenarioLaunchRequest`。当前正文 ADV runner 尚未迁移，因此会进入明确的不可用提示视图；New Game 仍只保留信号 seam，未启动正文。
+New Game、Continue、Load、剧情回想和语音存档跳转统一使用 ScenarioLaunchRequest。StartupFlow 会把请求路由到场景化 ADV 页面，并恢复存档锚点及演出快照。
 
-视频阶段按键盘、主鼠标键、手柄确认键或触摸可进入警告页。警告页第一次输入会完成淡入并将剩余等待缩短为 4 秒，第二次输入会直接开始白场过渡。Title 菜单使用语义化 `vn_advance`/`vn_cancel`/`vn_confirm`，保留 Godot 原生触摸转鼠标让所有 `Control` 走同一 GUI 路径，并由 `StartupInput` 过滤 `DEVICE_ID_EMULATION` 合成鼠标，避免一次触摸推进两次；滚轮和次鼠标键不会误触发。菜单按钮保留双帧高亮、按下/回弹反馈、手柄焦点和扩大后的触摸命中区。
+路由切换保留源工程时序，不再同一帧删除旧页面并直接露出新页面。New Game 会让 Title 在源 `FRM_0501` 蓝色底图上完成 3 秒退场，BGM07 独立淡出 5 秒；继续游戏及 Title 侧读档按源 `BeginLoad`/`EndLoad` 交接：同一张蓝色底图用 0.3 秒覆盖当前页面，在完全遮挡期间一次性恢复 ADV 存档演出，再用 0.5 秒揭示已就绪的游戏画面，标题 BGM 在这条读档路径上立即停止；ADV 返回时立即结束选项、用 0.3 秒收起对话 chrome、用 1 秒淡出 ADV 音频，并在 2 秒黑场完成后才创建 Title，由 Title 自己执行白场揭示。
+
+ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，运行时只解析 UTF-8。`tools/import_krkr_scenarios.sh` 是可重复执行的 UTF-16LE→UTF-8 导入边界，运行时代码不保留第二套编码分支。解析器保留标签、带引号参数、裸 flag、label、正文和源行号；状态机支持对话/Hitret 锚点、剧本切换、选项、局部/全局 flag、条件分支、等待、回想入口及影片外部暂停。背景、人物、文本框、系统菜单、选项层、履历层、影片层和音频播放器均固定声明在 `adv_screen.tscn`，脚本只创建数量由剧情决定的人物与选项节点。
+
+`tools/import_krkr_adv_assets.sh` 会导入 306 个已转换剧本实际引用的完整媒体子集：背景、立绘和对话头像、语音、音效、转场规则及固定 ADV 界面，同时不会无差别复制源工程中未引用的目录。资源解析大小写不敏感，并复用既有事件 CG、BGM、影片、存读档、设置、Theme、输入与持久化组件；验证会在任何剧本引用素材缺失时失败。
+
+视频阶段按键盘、主鼠标键、手柄确认键或触摸可进入警告页。警告页第一次输入会完成淡入并将剩余等待缩短为 4 秒，第二次输入会直接开始白场过渡。Title 菜单使用语义化 `vn_advance`/`vn_cancel`/`vn_confirm`。Godot 默认开启触摸转鼠标，编辑器可以省略这个默认项目配置；验证脚本只拒绝显式的 `false`。所有 `Control` 因此仍走同一 GUI 路径，并由 `StartupInput` 过滤 `DEVICE_ID_EMULATION` 合成鼠标，避免一次触摸推进两次；滚轮和次鼠标键不会误触发。菜单按钮保留双帧高亮、按下/回弹反馈、手柄焦点和扩大后的触摸命中区。
 
 环境设定现在完整复刻源 `ConfigWindowHD2` 的 HD 信息架构：
 
 - 全屏 1920×1080 配置窗口以覆盖层形式保留并实时模糊 Title；右上三个页签（Screen/System/Audio）由场景中的原生 `Button`、共享 `ButtonGroup` 和语义化 Theme variation 组成。
-- Screen 页作为高 DPI 重构模板：包含全屏/窗口、1080p/900p/720p、透明度滑块、六个字体选项、简体/日语选项（日语按源工程禁用）和带头像的预览文本框。场景、`textbox.png` 对话框与 `avatar.png` 头像保留原美术素材；面板、标题、文字光带选项、开关与滑杆由 Godot 主题和 CanvasItem 绘制，不再整页渲染 `graphic/bg.png` 中烘焙的 UI chrome；已读文字颜色与头像可见性随设置实时刷新。
+- Screen 页作为高 DPI 重构模板：包含全屏/窗口、1080p/900p/720p、透明度滑块、六个字体选项、简体/日语选项（日语按源工程禁用）以及真实 ADV 场景的只读预览。StartupFlow 在隐藏游戏对话框之前捕获当前演出并注入预览；从 Title 打开时使用固定列车示例。场景中固定声明的 1920×1080 SubViewport 禁用输入，预览不会启动剧情、连接游戏操作、恢复音频或创建存档服务。对话框底图透明度、已读文字颜色与头像显隐共用 ADV 渲染逻辑实时刷新；面板、标题、文字光带选项、开关与滑杆仍由 Theme 和 CanvasItem 绘制。单独打开编辑器场景时，在应用注入渲染器之前仅显示背景图占位。
 - System 页：五组 YES/NO 开关、文字速度/自动播放等待滑块、11 个由 Canvas primitives 绘制的确认窗口勾选框。
 - Audio 页：九个角色语音按钮（sora/nao/akira/kazuha/motoka/ryohei/yahiro/kozue/npc 源坐标）与立绘切换；每角色独立音量使用源梯形滑块（旋钮随值 115%→155% 缩放）；六个固定 100% 全局通道滑块；角色音量拖动结束后播放源 `個別音声` 样本，音量 = Master × Voice × 角色细节（经由 Godot 总线等效实现）。
 - 页脚：初始化设定/初始化已读/快捷键/返回标题四个 Godot 文本按钮；快捷键和确认弹窗共用 `SettingsModal` 的局部背景模糊、遮罩淡入淡出和居中缩放动画，只有弹窗实际覆盖区域会模糊，外侧画面保持清晰；内容仍由面板、文字和表格控件组成，不依赖文字贴图；右击或 Esc 先播放弹窗退出动画，再关闭窗口。
@@ -49,17 +55,22 @@ godot --path .
 GODOT_EXECUTABLE=/path/to/godot ./tools/verify_project.sh
 ```
 
-验证脚本先检查 InputMap、存档契约、四套导出预设和关键资源；若找到 Godot，再完成资源导入、GDScript 解析并执行无头烟雾测试与迁移契约测试。
+验证脚本先检查 InputMap、UTF-8 剧本资源、存档契约、四套导出预设和关键资源；若找到 Godot，再完成资源导入、GDScript 解析、启动/Title 契约测试，并解析全部 306 个 KRKR 剧本。
 
 需要生成视觉回归基线时，可用 GUI 模式运行 `tests/visual_capture.gd`：
 
 ```bash
 godot --path . --script res://tests/visual_capture.gd -- title /tmp/title.png 1.25
+godot --path . --script res://tests/visual_capture.gd -- adv /tmp/yosuga-adv.png 1.2
 # 配置页可选第四个参数：0=Screen，1=System，2=Audio
 godot --path . --script res://tests/visual_capture.gd -- settings /tmp/yosuga-settings-final.png 1.0 0
 godot --path . --script res://tests/visual_capture.gd -- settings /tmp/yosuga-settings-keys.png 1.0 0 key_popup
 godot --path . --script res://tests/visual_capture.gd -- settings /tmp/yosuga-settings-confirm.png 1.0 0 reset_confirm
 # 退出动画中间帧可用 key_popup_closing / reset_confirm_closing
+godot --path . --script res://tests/visual_capture.gd -- load /tmp/yosuga-load.png 1.0
+godot --path . --script res://tests/visual_capture.gd -- load /tmp/yosuga-load-delete.png 1.0 delete_confirm
+godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save.png 1.0
+godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-overwrite.png 1.0 overwrite_confirm
 ```
 
 ## 结构
@@ -69,24 +80,28 @@ godot --path . --script res://tests/visual_capture.gd -- settings /tmp/yosuga-se
 - `src/app/`：负责启动状态流转及路由级合成；设置作为覆盖层保留当前页面，并通过 `BackBufferCopy + SCREEN_TEXTURE` 直接实时模糊其后方画面。Title 的离场/返回动画和设置 UI 都在同一个主 Viewport 中运行。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
 - `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、角色差分、主菜单/鉴赏菜单按钮和底部 chrome，脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
+- `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、打字机对话、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。
+- `src/save_load/`：与 Title 解耦的存读档功能；单个场景固定持有 4×3 槽位网格、预览、分页、操作区和确认层，槽位卡是独立复用场景。Title 以 Load 模式配置，ADV 使用当前 `SaveData` 复用同一页面的 Save/Load 模式。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。
 - `src/settings/`：独立的环境设定路由、设置编辑器、设置模型（schema 3）和显示设置服务；`SettingsPage` 只协调设置快照、预览/保存和重置规则，页签、页脚、状态与弹窗由静态 `SettingsChrome` 子场景持有。`pages/` 的 Display/System/Audio 三个页签均为独立子场景，Audio 页自己持有语音试听器，Display 页的两列 Container、九张卡片和标题由 `.tscn` 固定持有；顶部页签使用原生 `Button`、共享 `ButtonGroup` 与 `SettingsTabButton` Theme variation，`SettingsSectionTitle` 可直接在编辑器预览；`ui/` 只保留交互/自绘组件，字号、字重、颜色、描边和 StyleBox 统一来自项目 Theme 的语义化 variation。
 - `src/title/voice/`：独立的用户语音收藏 Resource/service；不把收藏错误地放入 autosave。
-- `src/scenario/`：Continue、剧情回想、未来语音跳转和 ADV runner 共用的 typed request；Title 专属的不可用提示留在 `src/title/components/`。
+- `src/scenario/`：跨功能启动请求，以及 UTF-8 KRKR 解析器、中间文档/指令模型和与页面解耦的剧情状态机。
 - `src/core/audio/`：启动阶段语音随机选择、BGM 播放与循环点；`default_bus_layout.tres` 声明 Master/BGM/SystemVoice/Voice/EnvSE/SE/Movie 总线。
 - `src/core/input/`：语义化动作和启动阶段统一的“继续/快进”输入判定。
 - `src/core/save/`：`SaveData` 场景存档、`ProfileData` 跨存档全局进度和 `SaveService`；设置持久化由 `src/settings/persistence/SettingsRepository` 独立负责，两者共享 `src/core/persistence/AtomicJsonStore` 的原子写入与可逆备份。
-- `src/ui/`：无业务语义的共享 UI 基类与布局策略；当前统一承载 1920×1080 美术画布缩放和移动端安全区换算。
+- `src/ui/`：无业务语义的共享 UI、基类与布局策略；当前统一承载 1920×1080 美术画布缩放、移动端安全区换算，以及供 Title 和 Save/Load 共用并自动恢复焦点的 `ConfirmationOverlay`。
 - `assets/manifests/title_content_manifest.json`：从源清单整理出的可审计数据契约；契约测试固定组数、卡片/差分/音乐/回忆数量及每个媒体路径。
 - `assets/content/event_1920/`：源事件图资源（包含 manifest 需要的 214 个差分以及源目录中的其他同级资源）。
 - `assets/content/settings/`：源 `ui_1920/settings` HD 环境设定素材（含 graphic 选项贴图、voices 角色立绘与 `slider_knob.png`、`key_popup.png`）；System/Audio 的固定 chrome 已改由场景、Theme 和 Canvas primitives 表达。
 - `assets/content/confirm/`：源 `ui_1920/confirm` 确认窗口贴图（bg/yes/no/ask_always）。
 - `assets/audio/voice_samples/`：源 `data/audio_ogg` 的 11 条“個別音声：ボリューム”样本，用于角色音量试听。
 - `assets/audio/bgm/`：Title/鉴赏所需 BGM OGG；manifest 播放 21 首，另保留启动页的 `BGM07_title.ogg`。
+- `assets/scenario/`：全部 306 个源剧本，统一转换为 UTF-8/LF 并随导出包发布。
+- `assets/content/adv/`、`assets/audio/adv/`：306 个剧本引用的完整 ADV 背景、立绘/头像、语音、音效、转场规则与对话框素材子集。
 - `assets/video/`：Godot 核心可解码的 OGV；`yosugacn` 与 5 条 Staff Roll 由源 MP4 转为 1280×720/30fps Theora，播放 manifest 不引用 MP4。
 - `assets/content/thumb/`：24 条回忆缩略图；`assets/` 其余为启动页、Title UI 与字体资源。
-- `assets/fonts/`、`assets/themes/`：项目级 CJK 默认 Theme、配置页的语义化 Theme variation，以及按钮/标题各自的 `FontVariation` 字重资源；配置页 StyleBox 和渐变统一放在 `assets/themes/settings/`，按 footer、popup、section 等职责拆成可直接在 Inspector 编辑的外部 `.tres`，主 Theme 只负责映射。底层字体是由源项目 `Xiaolai-Regular.ttf` 生成的 standalone Godot `FontFile` derivative，并随 `Xiaolai-Regular-OFL-1.1.txt` 附带 SIL OFL 1.1 attribution/license，冷启动不依赖 `.godot` 导入缓存。
+- `assets/fonts/`、`assets/themes/`：项目级 CJK 默认 Theme、各功能语义化 variation，以及按钮/标题各自的 `FontVariation` 字重资源；Settings 与 Save/Load 专属资源按职责留在各自目录，中立的玻璃面板和操作按钮样式放在 `assets/themes/ui/` 供共享组件复用，主 Theme 只负责映射。底层字体是由源项目 `Xiaolai-Regular.ttf` 生成的 standalone Godot `FontFile` derivative，并随 `Xiaolai-Regular-OFL-1.1.txt` 附带 SIL OFL 1.1 attribution/license，冷启动不依赖 `.godot` 导入缓存。
 - `tests/`：无需第三方测试框架的无头烟雾测试和输入/存档/Title/导出契约测试。
 
 大型 PNG、音频、视频和字体已为后续提交配置 Git LFS；现有 Git 历史不会被自动重写。克隆或提交资源前需安装并启用 Git LFS。
@@ -97,6 +112,6 @@ godot --path . --script res://tests/visual_capture.gd -- settings /tmp/yosuga-se
 
 `export_presets.cfg` 已包含 Windows Desktop、macOS、Android、iOS 四个预设，Apple/Android bundle id 统一为 `com.lightwinder.yosuganosora.hdremake`。Android/iOS 预设带有 `mobile` feature，Title 会隐藏“结束游戏”；桌面平台保留退出确认。预设不写入任何签名证书、密码或 provisioning profile，正式发布时请在本机/CI 的 Godot 导出设置中注入签名资料。iOS 导出仍需 macOS + Xcode，Android 需要 Godot 对应的 SDK/JDK 工具链。
 
-存档永远写 `user://`，不写入只读的 `res://`；`SaveData` 保留 schema/content 版本、场景锚点、局部 flag、已读文本和演出快照，`ProfileData` 单独保存跨存档全局 flag 与鉴赏解锁。每次覆盖先保留 `.bak`，可通过 `SaveService.restore_*_backup()` 恢复上一份有效文件。
+存档永远写 `user://`，不写入只读的 `res://`；`SaveData` 保留 schema/content 版本、场景锚点、局部 flag、已读文本、演出快照及与原版一致的上一选项返回栈，`ProfileData` 单独保存跨存档全局 flag 与鉴赏解锁。每次覆盖先保留 `.bak`，可通过 `SaveService.restore_*_backup()` 恢复上一份有效文件。
 
 `BGM07_title.ogg` 按原 `BGM07.ogg.sli` 的跳转点裁切，并从 161922 / 44100 秒处循环；`sphere.ogv` 是源 `sphere.mp4` 的 Ogg Theora 版本，以使用 Godot 核心原生视频解码器。游戏素材沿用源项目权利状态，本项目不对其重新授权。

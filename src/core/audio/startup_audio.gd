@@ -33,6 +33,7 @@ const TITLE_CALLS: Array[AudioStream] = [
 var _random := RandomNumberGenerator.new()
 var _system_voice_muted := false
 var _settings_applier := AudioSettingsApplier.new()
+var _bgm_fade_tween: Tween
 
 
 func _ready() -> void:
@@ -48,8 +49,11 @@ func play_random_title_call() -> void:
 
 
 func play_title_bgm() -> void:
-	if _bgm_player.playing:
+	if _bgm_player.playing and (_bgm_fade_tween == null or not _bgm_fade_tween.is_valid()):
 		return
+	_kill_bgm_fade()
+	_bgm_player.stop()
+	_bgm_player.volume_db = 0.0
 
 	var stream := TITLE_BGM.duplicate() as AudioStreamOggVorbis
 	stream.loop = true
@@ -58,10 +62,36 @@ func play_title_bgm() -> void:
 	_bgm_player.play()
 
 
+## The source Title lets BGM07 outlive its three-second visual departure and
+## completes this fade after five seconds while ADV is already active.
+func fade_out_title_bgm(fade_milliseconds: int = 5000) -> void:
+	if not _bgm_player.playing:
+		return
+	_kill_bgm_fade()
+	if fade_milliseconds <= 0:
+		_stop_title_bgm_now()
+		return
+	var tween := create_tween()
+	_bgm_fade_tween = tween
+	tween.tween_property(
+		_bgm_player,
+		"volume_db",
+		-80.0,
+		float(fade_milliseconds) / 1000.0
+	)
+	tween.finished.connect(
+		func() -> void:
+			if _bgm_fade_tween != tween:
+				return
+			_bgm_fade_tween = null
+			_stop_title_bgm_now()
+	)
+
+
 func stop_all() -> void:
-	_bgm_player.stop()
+	_kill_bgm_fade()
+	_stop_title_bgm_now()
 	_voice_player.stop()
-	_bgm_player.stream = null
 	_voice_player.stream = null
 
 
@@ -80,3 +110,15 @@ func _play_random_voice(streams: Array[AudioStream]) -> void:
 	_voice_player.stop()
 	_voice_player.stream = streams[_random.randi_range(0, streams.size() - 1)]
 	_voice_player.play()
+
+
+func _kill_bgm_fade() -> void:
+	if _bgm_fade_tween != null and _bgm_fade_tween.is_valid():
+		_bgm_fade_tween.kill()
+	_bgm_fade_tween = null
+
+
+func _stop_title_bgm_now() -> void:
+	_bgm_player.stop()
+	_bgm_player.stream = null
+	_bgm_player.volume_db = 0.0

@@ -5,8 +5,6 @@
 [ext_resource type="Script" uid="uid://ctsqr1osembgp" path="res://src/settings/ui/settings_choice_button.gd" id="4_choice"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="5_slider"]
 [ext_resource type="Texture2D" uid="uid://t601octbyigq" path="res://assets/content/event_1920/EA01E.png" id="6_preview"]
-[ext_resource type="Texture2D" uid="uid://6baa84mt1lso" path="res://assets/content/settings/graphic/textbox.png" id="7_textbox"]
-[ext_resource type="Texture2D" uid="uid://c8p7nkvnps10f" path="res://assets/content/settings/graphic/avatar.png" id="8_avatar"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
 content_margin_left = 16.0
@@ -47,7 +45,7 @@ code = "shader_type canvas_item;
 uniform float corner_radius = 0.055;
 
 void fragment() {
-	vec4 color = texture(TEXTURE, UV);
+	vec4 color = COLOR;
 	vec2 texture_size = 1.0 / TEXTURE_PIXEL_SIZE;
 	vec2 half_size = texture_size * 0.5;
 	float radius = corner_radius * min(texture_size.x, texture_size.y);
@@ -380,16 +378,26 @@ layout_mode = 2
 mouse_filter = 2
 
 [node name="PreviewArtwork" type="TextureRect" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent" unique_id=311425103]
+unique_name_in_owner = true
+texture_filter = 2
 material = SubResource("ShaderMaterial_preview_mask")
 layout_mode = 1
-offset_left = -224.5
-offset_top = -54.0
-offset_right = 684.5
-offset_bottom = 467.0
-mouse_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
 texture = ExtResource("6_preview")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="PreviewViewport" type="SubViewport" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent/PreviewArtwork"]
+unique_name_in_owner = true
+disable_3d = true
+gui_disable_input = true
+size = Vector2i(1920, 1080)
+render_target_update_mode = 2
 
 [node name="PreviewTitle" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent" unique_id=1038105152 instance=ExtResource("3_title")]
 layout_mode = 0
@@ -398,42 +406,6 @@ offset_top = -4.0
 offset_right = 229.0
 offset_bottom = 66.0
 caption = "预览"
-
-[node name="PreviewTextbox" type="TextureRect" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent" unique_id=1098194620]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = -1.0
-offset_top = 226.0
-offset_right = 564.0
-offset_bottom = 318.0
-mouse_filter = 2
-texture = ExtResource("7_textbox")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="PreviewAvatar" type="TextureRect" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent" unique_id=1020640931]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = -1.0
-offset_top = 220.0
-offset_right = 137.0
-offset_bottom = 317.0
-mouse_filter = 2
-texture = ExtResource("8_avatar")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="PreviewText" type="Label" parent="MainColumns/RightColumn/UpperRow/PreviewCard/Padding/BusinessContent" unique_id=740342210]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 134.0
-offset_top = 243.0
-offset_right = 539.0
-offset_bottom = 301.0
-theme_type_variation = &"SettingsPreviewText"
-text = "这是已读文本显示效果。"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="LowerRow" type="HBoxContainer" parent="MainColumns/RightColumn" unique_id=1744477206]
 custom_minimum_size = Vector2(876, 220)

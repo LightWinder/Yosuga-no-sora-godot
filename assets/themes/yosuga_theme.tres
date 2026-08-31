@@ -5,10 +5,10 @@
 [ext_resource type="FontVariation" path="res://assets/themes/fonts/settings_section_title_font.tres" id="3_title_font"]
 [ext_resource type="Texture2D" uid="uid://13kv0n0wgrea" path="res://assets/themes/settings/choice/state_glow.tres" id="4_choice_glow"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/common/empty_style.tres" id="5_empty_style"]
-[ext_resource type="StyleBox" uid="uid://hf7bk8g4js42" path="res://assets/themes/settings/footer/focus.tres" id="7_footer_focus"]
-[ext_resource type="StyleBox" uid="uid://bi0r4doh1cjik" path="res://assets/themes/settings/footer/hover.tres" id="8_footer_hover"]
-[ext_resource type="StyleBox" path="res://assets/themes/settings/footer/pressed.tres" id="10_footer_pressed"]
-[ext_resource type="StyleBox" uid="uid://cx0v4mkqtf8fy" path="res://assets/themes/settings/footer/primary_normal.tres" id="11_footer_primary_normal"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/focus.tres" id="7_footer_focus"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/hover.tres" id="8_footer_hover"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/pressed.tres" id="10_footer_pressed"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/primary_normal.tres" id="11_footer_primary_normal"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/action_row.tres" id="12_popup_action"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/key_row.tres" id="13_popup_key"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/panel.tres" id="14_popup_panel"]
@@ -19,10 +19,124 @@
 [ext_resource type="Texture2D" uid="uid://dho4oucg1n1o8" path="res://assets/themes/settings/slider/grabber_disabled.tres" id="20_slider_grabber_disabled"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/section/portrait_frame.tres" id="21_portrait_frame"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/choice/check_choice_empty.tres" id="22_check_choice_empty"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/glass_panel.tres" id="23_glass_panel"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_frame.tres" id="24_save_preview_frame"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_normal.tres" id="25_save_slot_normal"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_hover.tres" id="26_save_slot_hover"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_pressed.tres" id="27_save_slot_pressed"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_disabled.tres" id="28_save_slot_disabled"]
+[ext_resource type="StyleBox" path="res://assets/themes/adv/message_panel.tres" id="29_adv_message"]
+[ext_resource type="StyleBox" path="res://assets/themes/adv/choice_normal.tres" id="30_adv_choice_normal"]
+[ext_resource type="StyleBox" path="res://assets/themes/adv/choice_hover.tres" id="31_adv_choice_hover"]
+[ext_resource type="StyleBox" path="res://assets/themes/adv/choice_pressed.tres" id="32_adv_choice_pressed"]
+[ext_resource type="StyleBox" path="res://assets/themes/adv/eyecatch_panel.tres" id="33_adv_eyecatch"]
 
 [resource]
 default_font = ExtResource("1_xiaolai")
 default_font_size = 24
+AdvChoiceButton/base_type = &"Button"
+AdvChoiceButton/colors/font_color = Color(0.08, 0.36, 0.5, 1)
+AdvChoiceButton/colors/font_focus_color = Color(0.04, 0.28, 0.42, 1)
+AdvChoiceButton/colors/font_hover_color = Color(0.04, 0.28, 0.42, 1)
+AdvChoiceButton/colors/font_outline_color = Color(1, 1, 1, 0.86)
+AdvChoiceButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+AdvChoiceButton/constants/outline_size = 3
+AdvChoiceButton/font_sizes/font_size = 34
+AdvChoiceButton/fonts/font = ExtResource("2_choice_font")
+AdvChoiceButton/styles/disabled = ExtResource("30_adv_choice_normal")
+AdvChoiceButton/styles/focus = ExtResource("31_adv_choice_hover")
+AdvChoiceButton/styles/hover = ExtResource("31_adv_choice_hover")
+AdvChoiceButton/styles/normal = ExtResource("30_adv_choice_normal")
+AdvChoiceButton/styles/pressed = ExtResource("32_adv_choice_pressed")
+AdvChoiceLabel/base_type = &"Label"
+AdvChoiceLabel/colors/font_color = Color(0.98, 0.995, 1, 1)
+AdvChoiceLabel/colors/font_outline_color = Color(0.06, 0.32, 0.45, 1)
+AdvChoiceLabel/constants/outline_size = 5
+AdvChoiceLabel/font_sizes/font_size = 48
+AdvChoiceLabel/fonts/font = ExtResource("2_choice_font")
+AdvEyeCatchPanel/base_type = &"PanelContainer"
+AdvEyeCatchPanel/styles/panel = ExtResource("33_adv_eyecatch")
+AdvMenuButton/base_type = &"SharedActionButton"
+AdvMenuButton/colors/font_outline_color = Color(0.04, 0.25, 0.38, 0.95)
+AdvMenuButton/constants/outline_size = 4
+AdvMenuButton/font_sizes/font_size = 27
+AdvMessageLabel/base_type = &"RichTextLabel"
+AdvMessageLabel/colors/default_color = Color(0.98, 0.995, 1, 1)
+AdvMessageLabel/colors/font_outline_color = Color(0.015, 0.08, 0.12, 0.94)
+AdvMessageLabel/constants/line_separation = 8
+AdvMessageLabel/constants/outline_size = 4
+AdvMessageLabel/font_sizes/normal_font_size = 50
+AdvMessagePanel/base_type = &"PanelContainer"
+AdvMessagePanel/styles/panel = ExtResource("29_adv_message")
+AdvSpeakerLabel/base_type = &"Label"
+AdvSpeakerLabel/colors/font_color = Color(0.84, 0.96, 1, 1)
+AdvSpeakerLabel/colors/font_outline_color = Color(0.02, 0.19, 0.29, 1)
+AdvSpeakerLabel/constants/outline_size = 5
+AdvSpeakerLabel/font_sizes/font_size = 40
+AdvSpeakerLabel/fonts/font = ExtResource("2_choice_font")
+AdvStatusLabel/base_type = &"SharedStatusLabel"
+AdvStatusLabel/font_sizes/font_size = 20
+ConfirmationOverlayActionButton/base_type = &"SharedActionButton"
+ConfirmationOverlayActionButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+ConfirmationOverlayActionButton/colors/font_outline_color = Color(0.05, 0.4, 0.62, 0.92)
+ConfirmationOverlayActionButton/constants/outline_size = 4
+ConfirmationOverlayActionButton/font_sizes/font_size = 28
+ConfirmationOverlayMessage/base_type = &"SharedInfoHeading"
+ConfirmationOverlayPanel/base_type = &"SharedGlassPanel"
+ConfirmationOverlayPrimaryButton/base_type = &"SharedPrimaryActionButton"
+ConfirmationOverlayPrimaryButton/font_sizes/font_size = 32
+SaveLoadActionButton/base_type = &"SharedActionButton"
+SaveLoadActionButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+SaveLoadActionButton/colors/font_outline_color = Color(0.05, 0.4, 0.62, 0.92)
+SaveLoadActionButton/constants/outline_size = 4
+SaveLoadActionButton/font_sizes/font_size = 28
+SaveLoadInfoHeading/base_type = &"SharedInfoHeading"
+SaveLoadInfoLabel/base_type = &"Label"
+SaveLoadInfoLabel/colors/font_color = Color(0.12, 0.34, 0.44, 0.94)
+SaveLoadInfoLabel/font_sizes/font_size = 22
+SaveLoadModeButton/base_type = &"SharedActionButton"
+SaveLoadModeButton/colors/font_color = Color(0.82, 0.93, 0.97, 0.72)
+SaveLoadModeButton/colors/font_disabled_color = Color(0.95, 0.99, 1, 1)
+SaveLoadModeButton/colors/font_outline_color = Color(0.06, 0.37, 0.55, 0.9)
+SaveLoadModeButton/constants/outline_size = 4
+SaveLoadModeButton/font_sizes/font_size = 48
+SaveLoadPagePanel/base_type = &"SharedGlassPanel"
+SaveLoadPreviewFrame/base_type = &"PanelContainer"
+SaveLoadPreviewFrame/styles/panel = ExtResource("24_save_preview_frame")
+SaveLoadPrimaryButton/base_type = &"SharedPrimaryActionButton"
+SaveLoadPrimaryButton/font_sizes/font_size = 32
+SaveLoadSlotButton/base_type = &"Button"
+SaveLoadSlotButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+SaveLoadSlotButton/colors/font_disabled_color = Color(0.8, 0.9, 0.94, 0.34)
+SaveLoadSlotButton/colors/font_focus_color = Color(1, 1, 1, 1)
+SaveLoadSlotButton/colors/font_hover_color = Color(1, 1, 1, 1)
+SaveLoadSlotButton/colors/font_pressed_color = Color(0.07, 0.32, 0.43, 1)
+SaveLoadSlotButton/styles/disabled = ExtResource("28_save_slot_disabled")
+SaveLoadSlotButton/styles/focus = ExtResource("26_save_slot_hover")
+SaveLoadSlotButton/styles/hover = ExtResource("26_save_slot_hover")
+SaveLoadSlotButton/styles/normal = ExtResource("25_save_slot_normal")
+SaveLoadSlotButton/styles/pressed = ExtResource("27_save_slot_pressed")
+SaveLoadSlotComment/base_type = &"Label"
+SaveLoadSlotComment/colors/font_color = Color(0.97, 0.995, 1, 1)
+SaveLoadSlotComment/colors/font_outline_color = Color(0.05, 0.26, 0.34, 0.86)
+SaveLoadSlotComment/constants/outline_size = 2
+SaveLoadSlotComment/font_sizes/font_size = 19
+SaveLoadSlotCommentSelected/base_type = &"SaveLoadSlotComment"
+SaveLoadSlotCommentSelected/colors/font_color = Color(0.07, 0.3, 0.4, 1)
+SaveLoadSlotDate/base_type = &"Label"
+SaveLoadSlotDate/colors/font_color = Color(0.86, 0.95, 0.98, 0.86)
+SaveLoadSlotDate/font_sizes/font_size = 15
+SaveLoadSlotDateSelected/base_type = &"SaveLoadSlotDate"
+SaveLoadSlotDateSelected/colors/font_color = Color(0.12, 0.4, 0.5, 0.9)
+SaveLoadSlotNumber/base_type = &"Label"
+SaveLoadSlotNumber/colors/font_color = Color(0.98, 1, 1, 1)
+SaveLoadSlotNumber/colors/font_outline_color = Color(0.05, 0.3, 0.4, 0.86)
+SaveLoadSlotNumber/constants/outline_size = 3
+SaveLoadSlotNumber/font_sizes/font_size = 23
+SaveLoadSlotNumberSelected/base_type = &"SaveLoadSlotNumber"
+SaveLoadSlotNumberSelected/colors/font_color = Color(0.07, 0.3, 0.4, 1)
+SaveLoadStatus/base_type = &"SharedStatusLabel"
+SaveLoadStatus/font_sizes/font_size = 22
 SettingsCheckChoiceButton/base_type = &"SettingsChoiceButtonConfirmation"
 SettingsCheckChoiceButton/colors/check_fill_active_color = Color(0.72, 0.9, 0.96, 0.28)
 SettingsCheckChoiceButton/colors/check_fill_color = Color(0.72, 0.9, 0.96, 0.12)
@@ -75,7 +189,7 @@ SettingsConfirmMessage/colors/font_color = Color(1, 1, 1, 1)
 SettingsConfirmMessage/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
 SettingsConfirmMessage/constants/outline_size = 6
 SettingsConfirmMessage/font_sizes/font_size = 50
-SettingsFooterButton/base_type = &"Button"
+SettingsFooterButton/base_type = &"SharedActionButton"
 SettingsFooterButton/colors/font_color = Color(0.96, 0.99, 1, 1)
 SettingsFooterButton/colors/font_disabled_color = Color(0.78, 0.88, 0.93, 0.58)
 SettingsFooterButton/colors/font_focus_color = Color(1, 1, 1, 1)
@@ -96,15 +210,8 @@ SettingsFooterButton/styles/focus = ExtResource("5_empty_style")
 SettingsFooterButton/styles/hover = ExtResource("5_empty_style")
 SettingsFooterButton/styles/normal = ExtResource("5_empty_style")
 SettingsFooterButton/styles/pressed = ExtResource("5_empty_style")
-SettingsFooterPrimaryButton/base_type = &"SettingsFooterButton"
-SettingsFooterPrimaryButton/colors/font_outline_color = Color(0.05, 0.42, 0.72, 1)
-SettingsFooterPrimaryButton/constants/outline_size = 6
+SettingsFooterPrimaryButton/base_type = &"SharedPrimaryActionButton"
 SettingsFooterPrimaryButton/font_sizes/font_size = 46
-SettingsFooterPrimaryButton/styles/disabled = ExtResource("5_empty_style")
-SettingsFooterPrimaryButton/styles/focus = ExtResource("7_footer_focus")
-SettingsFooterPrimaryButton/styles/hover = ExtResource("8_footer_hover")
-SettingsFooterPrimaryButton/styles/normal = ExtResource("11_footer_primary_normal")
-SettingsFooterPrimaryButton/styles/pressed = ExtResource("10_footer_pressed")
 SettingsImageButton/base_type = &"Button"
 SettingsImageButton/styles/disabled = ExtResource("5_empty_style")
 SettingsImageButton/styles/focus = ExtResource("5_empty_style")
@@ -185,7 +292,7 @@ SettingsSectionTitleOuter/colors/font_outline_color = Color(0.98, 1, 1, 1)
 SettingsSectionTitleOuter/constants/outline_size = 20
 SettingsSectionTitleOuter/font_sizes/font_size = 44
 SettingsSectionTitleOuter/fonts/font = ExtResource("3_title_font")
-SettingsStatusLabel/base_type = &"Label"
+SettingsStatusLabel/base_type = &"SharedStatusLabel"
 SettingsStatusLabel/colors/font_color = Color(1, 1, 1, 1)
 SettingsStatusLabel/colors/font_outline_color = Color(0.05, 0.08, 0.12, 0.9)
 SettingsStatusLabel/constants/outline_size = 4
@@ -229,3 +336,44 @@ SettingsVoiceChoiceButton/styles/focus = ExtResource("5_empty_style")
 SettingsVoiceChoiceButton/styles/hover = ExtResource("5_empty_style")
 SettingsVoiceChoiceButton/styles/normal = ExtResource("5_empty_style")
 SettingsVoiceChoiceButton/styles/pressed = ExtResource("5_empty_style")
+SharedActionButton/base_type = &"Button"
+SharedActionButton/colors/font_color = Color(0.96, 0.99, 1, 1)
+SharedActionButton/colors/font_disabled_color = Color(0.78, 0.88, 0.93, 0.58)
+SharedActionButton/colors/font_focus_color = Color(1, 1, 1, 1)
+SharedActionButton/colors/font_hover_color = Color(1, 1, 1, 1)
+SharedActionButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+SharedActionButton/colors/font_outline_color = Color(0, 0, 0, 0)
+SharedActionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+SharedActionButton/colors/font_shadow_color = Color(0.02, 0.12, 0.18, 0.35)
+SharedActionButton/colors/hover_outline_color = Color(0.05, 0.42, 0.72, 1)
+SharedActionButton/constants/hover_outline_size = 4
+SharedActionButton/constants/outline_size = 4
+SharedActionButton/constants/shadow_offset_x = 1
+SharedActionButton/constants/shadow_offset_y = 2
+SharedActionButton/font_sizes/font_size = 32
+SharedActionButton/fonts/font = ExtResource("2_choice_font")
+SharedActionButton/styles/disabled = ExtResource("5_empty_style")
+SharedActionButton/styles/focus = ExtResource("5_empty_style")
+SharedActionButton/styles/hover = ExtResource("5_empty_style")
+SharedActionButton/styles/normal = ExtResource("5_empty_style")
+SharedActionButton/styles/pressed = ExtResource("5_empty_style")
+SharedGlassPanel/base_type = &"PanelContainer"
+SharedGlassPanel/styles/panel = ExtResource("23_glass_panel")
+SharedInfoHeading/base_type = &"Label"
+SharedInfoHeading/colors/font_color = Color(0.96, 0.99, 1, 1)
+SharedInfoHeading/colors/font_outline_color = Color(0.12, 0.48, 0.65, 0.9)
+SharedInfoHeading/constants/outline_size = 4
+SharedInfoHeading/font_sizes/font_size = 27
+SharedPrimaryActionButton/base_type = &"SharedActionButton"
+SharedPrimaryActionButton/colors/font_outline_color = Color(0.05, 0.42, 0.72, 1)
+SharedPrimaryActionButton/constants/outline_size = 6
+SharedPrimaryActionButton/styles/disabled = ExtResource("5_empty_style")
+SharedPrimaryActionButton/styles/focus = ExtResource("7_footer_focus")
+SharedPrimaryActionButton/styles/hover = ExtResource("8_footer_hover")
+SharedPrimaryActionButton/styles/normal = ExtResource("11_footer_primary_normal")
+SharedPrimaryActionButton/styles/pressed = ExtResource("10_footer_pressed")
+SharedStatusLabel/base_type = &"Label"
+SharedStatusLabel/colors/font_color = Color(1, 1, 1, 1)
+SharedStatusLabel/colors/font_outline_color = Color(0.05, 0.08, 0.12, 0.9)
+SharedStatusLabel/constants/outline_size = 4
+SharedStatusLabel/font_sizes/font_size = 24

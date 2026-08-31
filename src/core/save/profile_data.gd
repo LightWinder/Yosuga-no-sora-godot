@@ -5,12 +5,13 @@ extends Resource
 ## Profile state is deliberately separate from a scenario save.  A cleared
 ## route, unlocked gallery entry, or other cross-save progress must survive
 ## replacing/clearing an autosave.
-const CURRENT_SCHEMA_VERSION: int = 1
+const CURRENT_SCHEMA_VERSION: int = 2
 
 @export var schema_version: int = CURRENT_SCHEMA_VERSION
 @export var content_version: String = ""
 @export var global_flags: Dictionary = {}
 @export var unlocked_catalog: Dictionary = {}
+@export var read_text_ids: Array[String] = []
 @export var saved_at_unix: int = 0
 
 
@@ -46,6 +47,7 @@ func to_dictionary() -> Dictionary:
 		"content_version": content_version,
 		"global_flags": global_flags.duplicate(true),
 		"unlocked_catalog": unlocked_catalog.duplicate(true),
+		"read_text_ids": read_text_ids.duplicate(),
 		"saved_at_unix": saved_at_unix,
 	}
 
@@ -62,6 +64,7 @@ static func from_dictionary(raw: Dictionary) -> ProfileData:
 	profile.content_version = str(migrated.get("content_version", ""))
 	profile.global_flags = _dictionary_or_empty(migrated.get("global_flags", {}))
 	profile.unlocked_catalog = _dictionary_or_empty(migrated.get("unlocked_catalog", {}))
+	profile.read_text_ids = _string_array(migrated.get("read_text_ids", []))
 	profile.saved_at_unix = int(migrated.get("saved_at_unix", 0))
 	return profile
 
@@ -88,4 +91,12 @@ static func _string_dictionary(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		for key in value:
 			result[str(key)] = bool(value[key])
+	return result
+
+
+static func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item in value:
+			result.append(str(item))
 	return result
