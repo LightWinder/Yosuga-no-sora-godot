@@ -387,7 +387,11 @@ require_pattern 'settings_background_blur_material\.tres' "$project_root/src/set
 require_pattern 'name="PreviewViewport" type="SubViewport"' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings must own a fixed ADV preview viewport."
 require_pattern 'gui_disable_input = true' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings preview must reject GUI input."
 require_pattern 'func configure_preview' "$project_root/src/adv/adv_screen.gd" "ADV must expose a read-only presentation mode without starting gameplay."
-require_pattern 'capture_preview_presentation' "$project_root/src/app/startup_flow.gd" "The app must supply current ADV presentation to Settings."
+require_pattern 'preview.configure_preview\(settings\)' "$project_root/src/app/startup_flow.gd" "The app must configure the fixed Settings preview with settings only."
+if rg -q 'capture_preview_presentation|_preview_presentation|preview_choices|preview_route_hints|func refresh_preview' "$project_root/src/app" "$project_root/src/adv"; then
+	echo "Settings preview must not capture, accept or restore current gameplay state." >&2
+	exit 1
+fi
 if rg -q 'res://src/adv|PreviewTextbox|PreviewAvatar' "$project_root/src/settings"; then
 	echo "Settings must receive the real ADV renderer from the app, not import gameplay or maintain a second fake dialogue frame." >&2
 	exit 1

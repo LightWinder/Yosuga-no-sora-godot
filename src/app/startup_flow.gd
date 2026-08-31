@@ -116,10 +116,6 @@ func open_settings() -> SettingsScreen:
 	if is_instance_valid(_settings_overlay):
 		return _settings_overlay
 
-	# Capture before the overlay hides the source dialogue/menu chrome.
-	var preview_presentation: Dictionary = {}
-	if _current_screen is AdvScreen:
-		preview_presentation = (_current_screen as AdvScreen).capture_preview_presentation()
 	_set_adv_route_overlay_active(true)
 	_settings_return_focus = get_viewport().gui_get_focus_owner()
 	get_viewport().gui_release_focus()
@@ -136,7 +132,7 @@ func open_settings() -> SettingsScreen:
 	_settings_overlay.read_flags_reset_requested.connect(_clear_read_flags)
 	if _settings_overlay.get_parent() != _overlay_host:
 		_overlay_host.add_child(_settings_overlay)
-	_configure_settings_preview(_settings_overlay, preview_presentation)
+	_configure_settings_preview(_settings_overlay)
 	_overlay_host.move_child(_settings_overlay, _overlay_host.get_child_count() - 1)
 	_settings_overlay.activate()
 	if _current_screen is TitleScreen:
@@ -155,17 +151,15 @@ func _prepare_settings_screen() -> void:
 	_configure_settings_preview(_prepared_settings_screen)
 
 
-func _configure_settings_preview(screen: SettingsScreen, presentation: Dictionary = {}) -> void:
+func _configure_settings_preview(screen: SettingsScreen) -> void:
 	var page := screen.settings_page().display_page()
 	var settings := screen.settings_page().get_current_settings()
 	var preview := page.preview_content() as AdvScreen
 	if preview == null:
 		preview = ADV_SCENE.instantiate() as AdvScreen
 		preview.name = "AdvPreview"
-		preview.configure_preview(settings, presentation)
+		preview.configure_preview(settings)
 		page.install_preview(preview, preview.apply_preview_settings)
-	elif not presentation.is_empty():
-		preview.refresh_preview(settings, presentation)
 	else:
 		preview.apply_preview_settings(settings)
 

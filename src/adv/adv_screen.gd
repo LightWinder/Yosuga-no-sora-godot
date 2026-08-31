@@ -148,50 +148,27 @@ var _choice_jump_stage_instructions: Array[KrkrScenarioInstruction] = []
 var _route_exit_tween: Tween
 var _route_exiting := false
 var _preview_only := false
-var _preview_presentation: Dictionary = {}
 var _message_panel_style: StyleBoxTexture
 
 
-## The app may mount the same scene in Settings' input-disabled viewport.
+## Settings always shows the same fixed sample, independent of the active route.
 ## Configure before entering the tree: this path never starts a scenario,
 ## connects gameplay actions, creates services, or restores audio.
-func configure_preview(settings: Dictionary, presentation: Dictionary = {}) -> void:
+func configure_preview(settings: Dictionary) -> void:
 	assert(not is_inside_tree())
 	_preview_only = true
 	_runtime_settings = SettingsModel.normalize(settings)
-	_preview_presentation = presentation.duplicate(true)
 	process_mode = Node.PROCESS_MODE_DISABLED
 
 
-func capture_preview_presentation() -> Dictionary:
-	var presentation := _capture_presentation()
-	if _choice_overlay.visible:
-		presentation["preview_choices"] = _runtime.build_navigation_checkpoint().get("pending_choices", [])
-		presentation["preview_route_hints"] = _choice_route_hints_enabled()
-	return presentation
-
-
-func refresh_preview(settings: Dictionary, presentation: Dictionary) -> void:
-	assert(_preview_only)
-	_preview_presentation = presentation.duplicate(true)
-	if _preview_presentation.is_empty():
-		_preview_presentation = {
-			"background": "EA01E", "speaker": "穹",
-			"message": "……别把我当小孩子，明明我和你一般大的。",
-			"message_already_read": true,
-		}
-	_stage_director.clear()
-	_apply_runtime_settings(settings)
-	_restore_presentation(_preview_presentation, false)
-	_clear_choice_buttons()
-	var choices: Array[Dictionary] = []
-	choices.assign(_preview_presentation.get("preview_choices", []))
-	_choice_overlay.visible = not choices.is_empty()
-	_choice_overlay.modulate.a = 1.0
-	_populate_choice_buttons(choices, bool(_preview_presentation.get("preview_route_hints", false)))
+func _initialize_preview() -> void:
+	_stage_director.restore_presentation({"background": "EA01E"})
+	_current_speaker = "穹"
+	_current_message = "……别把我当小孩子，明明我和你一般大的。"
+	_current_message_already_read = true
+	_apply_runtime_settings(_runtime_settings)
+	_present_current_dialogue(true)
 	_disable_preview_input(self)
-	_system_menu_auto_hide_timer.stop()
-	_auto_indicator_timer.stop()
 
 
 func apply_preview_settings(settings: Dictionary) -> void:
@@ -229,7 +206,7 @@ func _ready() -> void:
 	_message_panel.add_theme_stylebox_override("panel", _message_panel_style)
 	if _preview_only:
 		_load_speaker_name_textures()
-		refresh_preview(_runtime_settings, _preview_presentation)
+		_initialize_preview()
 		return
 	InputActions.ensure_actions()
 	_progress_catalog = AdvProgressCatalog.load_default()
@@ -681,8 +658,7 @@ func _populate_choice_buttons(choices: Array[Dictionary], show_route_hints: bool
 			show_route_hints
 		)
 		button.set_choice_disabled(bool(choice.get("disabled", false)))
-		if not _preview_only:
-			button.pressed.connect(_select_choice.bind(index))
+		button.pressed.connect(_select_choice.bind(index))
 
 
 func _restore_choice_jump_dialogue() -> void:
@@ -1969,8 +1945,8 @@ func _restore_choice_navigation(data: SaveData) -> void:
 	)
 
 
-func _restore_presentation(presentation: Dictionary, restore_playback: bool = true) -> void:
-	_stage_director.restore_presentation(presentation, restore_playback)
+func _restore_presentation(presentation: Dictionary) -> void:
+	_stage_director.restore_presentation(presentation)
 	_current_speaker = str(presentation.get("speaker", ""))
 	_current_message = str(presentation.get("message", ""))
 	_current_message_already_read = bool(presentation.get("message_already_read", false))
@@ -1996,8 +1972,6 @@ func _restore_presentation(presentation: Dictionary, restore_playback: bool = tr
 		_show_system_menu(true)
 	else:
 		_suspend_system_menu()
-	if not restore_playback:
-		return
 	_stop_bgm(0)
 	var bgm: Variant = presentation.get("bgm", {})
 	if bgm is Dictionary:

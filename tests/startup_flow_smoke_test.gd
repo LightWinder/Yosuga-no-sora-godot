@@ -109,6 +109,12 @@ func _run() -> void:
 	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 1, "Settings must overlay the live Title route instead of replacing it.")
 	_expect(not title_underlay.is_processing_input() and not title_underlay.is_processing_unhandled_input(), "The scene behind settings must stop receiving route input while it remains visible.")
 	_expect(title_underlay.is_subscreen_departed(), "Opening settings must run the reusable Title child-screen departure animation.")
+	var title_preview := settings_screen.settings_page().display_page().preview_content() as AdvScreen
+	var sample_message := title_preview.current_message()
+	var sample_stage := (title_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state()
+	var sample_portrait := (title_preview.get_node("%Portrait") as TextureRect).texture
+	var sample_speaker := (title_preview.get_node("%SpeakerNameImage") as TextureRect).texture
+	_expect(sample_stage.get("background") == "EA01E", "Title Settings must show the fixed train sample.")
 	settings_screen.settings_page().read_flags_reset_requested.emit()
 	_expect(read_reset_events.size() == 1, "StartupFlow must expose the settings read-reset integration seam.")
 	settings_screen.back_requested.emit()
@@ -143,7 +149,8 @@ func _run() -> void:
 	_expect(adv.current_message().begins_with("蔚蓝的天空"), "ADV route must restore real UTF-8 source dialogue.")
 	_expect(path_only_request.save_data != null and path_only_request.instruction_anchor == "hitret:1", "StartupFlow must resolve path-only voice/save jump requests through SaveService.")
 	var adv_message_panel := adv.get_node("VisualCanvas/MessagePanel") as Control
-	var preview_source := adv.capture_preview_presentation()
+	var source_message := adv.current_message()
+	_expect(source_message != sample_message, "The gameplay fixture must differ from the fixed Settings sample.")
 	var adv_settings := startup_flow.open_settings()
 	await create_timer(0.4, true, false, true).timeout
 	_expect(
@@ -151,16 +158,25 @@ func _run() -> void:
 		"Opening route-level Settings above ADV must hide dialogue chrome from the live blurred backdrop."
 	)
 	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvScreen
-	_expect(adv_preview != null and adv_preview.current_message() == adv.current_message(), "In-game Settings must preview the current dialogue instead of the Title sample.")
-	_expect((adv_preview.get_node("%MessagePanel") as Control).visible, "Preview must capture the dialogue before the real overlay hides it.")
+	_expect(adv_preview != null and adv_preview.current_message() == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
+	_expect((adv_preview.get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
 	var preview_stage := adv_preview.get_node("%StageDirector") as AdvStageDirector
-	_expect(preview_stage.presentation_state().get("background") == preview_source.get("background"), "In-game Settings must restore the current ADV background.")
+	_expect(preview_stage.presentation_state() == sample_stage, "Preview background, characters and camera must match the Title sample, independent of gameplay.")
+	_expect((adv_preview.get_node("%Portrait") as TextureRect).texture == sample_portrait, "In-game Settings must retain the fixed sample portrait.")
+	_expect((adv_preview.get_node("%SpeakerNameImage") as TextureRect).texture == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
+	_expect(not (adv_preview.get_node("%ChoiceOverlay") as Control).visible and adv_preview.get_node("%ChoiceList").get_child_count() == 0, "The fixed preview must not contain gameplay choices.")
 	adv_settings.back_requested.emit()
 	await create_timer(0.7, true, false, true).timeout
 	_expect(
 		adv_message_panel.visible and overlay_host.get_child_count() == 0,
 		"Returning from ADV Settings must restore dialogue chrome synchronously after the overlay closes."
 	)
+	_expect(adv.current_message() == source_message, "Closing Settings must preserve the real dialogue instead of applying the preview sample to gameplay.")
+	var reopened_settings := startup_flow.open_settings()
+	var reopened_preview := reopened_settings.settings_page().display_page().preview_content() as AdvScreen
+	_expect(reopened_preview.current_message() == sample_message, "Reopening in-game Settings must still initialize the same fixed sample.")
+	_expect((reopened_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state() == sample_stage, "Reopened Settings must retain the fixed sample stage.")
+	startup_flow._close_settings_overlay(false)
 	adv.title_exit_seconds = 0.01
 	adv.title_exit_audio_seconds = 0.01
 	adv.title_exit_chrome_seconds = 0.01

@@ -649,29 +649,15 @@ func _test_title_state() -> void:
 	_expect(preview_message.get_theme_color("default_color").is_equal_approx(Color(0.98, 0.995, 1.0, 1.0)), "Read-color setting must refresh the real ADV text immediately.")
 	display_page.set_screen_toggle(&"read_color", true)
 	window_depth_slider.value = 50.0
-	var preview_saved_state := {
-		"background": "EA01E", "speaker": "穹", "message": "只读快照测试",
-		"bgm": {"file": "BGM05", "position": 2.0},
-		"environment_audio": {"file": "se270", "position": 1.0},
-		"camera_world_position": [0.0, 30.0, -128.0],
-		"camera_move": {"start_world_position": [0.0, 0.0, -128.0], "target_world_position": [0.0, 90.0, -128.0], "duration_milliseconds": 1000},
-		"preview_choices": [{"text": "不可操作的选项", "hint": "穹"}],
-		"preview_route_hints": true,
-	}
-	preview.refresh_preview(settings_page.get_current_settings(), preview_saved_state)
-	var preview_choice_list := preview.get_node("%ChoiceList") as VBoxContainer
-	_expect(preview_choice_list.get_child_count() == 1, "Preview must retain visible choices using the real choice component.")
-	var preview_choice := preview_choice_list.get_child(0) as AdvChoiceButton
-	_expect(preview_choice.mouse_filter == Control.MOUSE_FILTER_IGNORE and preview_choice.focus_mode == Control.FOCUS_NONE, "Dynamically restored preview choices must also reject input.")
-	preview_choice.pressed.emit()
+	var preview_stage := preview.get_node("%StageDirector") as AdvStageDirector
+	var sample_stage := preview_stage.presentation_state()
+	_expect(sample_stage.get("background") == "EA01E", "Settings preview must always show the fixed train background.")
+	_expect(preview.current_message() == "……别把我当小孩子，明明我和你一般大的。", "Settings preview must always show the fixed sample dialogue.")
+	_expect((preview.get_node("%SpeakerLabel") as Label).text == "穹", "Settings preview must always use the fixed sample speaker.")
+	_expect(preview.get_node("%ChoiceList").get_child_count() == 0 and not (preview.get_node("%ChoiceOverlay") as Control).visible, "The fixed preview must never construct gameplay choices.")
+	_expect((sample_stage.get("camera_move", {}) as Dictionary).is_empty(), "The fixed preview must not start a camera animation.")
 	await create_timer(0.1).timeout
-	_expect(preview.current_message() == "只读快照测试" and (preview.get_node("%ChoiceOverlay") as Control).visible, "Even a directly emitted preview choice signal must not select a branch.")
-	for player in preview.find_children("*", "AudioStreamPlayer", true, false):
-		_expect(not player.playing and player.stream == null, "Saved BGM/environment state must be ignored, not played or muted by preview.")
-	var frozen_camera := preview.get_node("%StageDirector") as AdvStageDirector
-	_expect(frozen_camera.presentation_state().get("camera_world_position") == [0.0, 30.0, -128.0], "Preview must preserve the captured camera position without restarting its move.")
-	_expect(preview.runtime().build_navigation_checkpoint().is_empty(), "Preview choices must not create gameplay history or progress.")
-	preview.refresh_preview(settings_page.get_current_settings(), {})
+	_expect(preview.current_message() == preview_message_before and preview_stage.presentation_state() == sample_stage, "Time and settings changes must not advance or replace the fixed preview sample.")
 	var system_page := settings_page.system_page()
 	_expect(system_page.scene_file_path.ends_with("system_settings_page.tscn"), "System settings layout must be owned by its page scene.")
 	_expect(system_page.find_child("MainColumns", true, false) is HBoxContainer, "System settings must use the same container-managed card layout as screen settings.")
