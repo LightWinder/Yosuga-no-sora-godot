@@ -89,6 +89,9 @@ required_files=(
 	"src/adv/adv_screen.tscn"
 	"src/adv/components/adv_choice_button.gd"
 	"src/adv/components/adv_choice_button.tscn"
+	"src/adv/components/adv_dialogue_view.gd"
+	"src/adv/components/adv_dialogue_view.tscn"
+	"tests/adv_dialogue_view_test.gd"
 	"tools/import_krkr_scenarios.sh"
 	"tools/import_krkr_adv_assets.sh"
 	"tools/import_krkr_adv_sample_assets.sh"
@@ -274,7 +277,21 @@ require_pattern 'FRM_0501\.png' "$project_root/src/app/startup_flow.tscn" "Route
 require_pattern '_transition_saved_title_to_adv\(\)' "$project_root/src/app/startup_flow.gd" "Continue must use the source 300/500 ms load-cover hand-off."
 require_pattern 'ScenarioLaunchRequest\.new_game' "$project_root/src/title/title_screen.gd" "Title New Game must emit the typed ADV request."
 require_pattern 'name="Background" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV background must remain scene-owned."
-require_pattern 'name="MessagePanel" type="PanelContainer"' "$project_root/src/adv/adv_screen.tscn" "ADV message panel must remain scene-owned."
+require_pattern 'adv_dialogue_view\.tscn' "$project_root/src/adv/adv_screen.tscn" "ADV must instance the shared dialogue presentation scene."
+require_pattern 'name="DialogueView".*instance=' "$project_root/src/adv/adv_screen.tscn" "DialogueView must remain a normal scene instance."
+require_pattern 'name="MessagePanel" type="PanelContainer"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV message panel must remain owned by its presentation scene."
+if rg -q 'editable path=.*DialogueView|parent="VisualCanvas/DialogueView/' "$project_root/src/adv/adv_screen.tscn"; then
+	echo "ADV must not customize the dialogue component through Editable Children." >&2
+	exit 1
+fi
+if rg -q '%(MessagePanel|MessageLabel|SpeakerLabel|SpeakerNameImage|Portrait|MessageHideButton)|_message_panel[.]|_message_label[.]|visible_characters|MessageColumn/' "$project_root/src/adv/adv_screen.gd"; then
+	echo "ADV must use the dialogue view API rather than reach into presentation nodes." >&2
+	exit 1
+fi
+if rg -q 'Krkr|ScenarioRuntime|ScenarioLaunchRequest|SaveData|SettingsModel|SettingsRepository|AdvStageDirector|AudioStreamPlayer|res://src/(scenario|settings|core|app)' "$project_root/src/adv/components/adv_dialogue_view.gd" "$project_root/src/adv/components/adv_dialogue_view.tscn"; then
+	echo "Dialogue presentation must not depend on gameplay, persistence, settings, or media resolution." >&2
+	exit 1
+fi
 require_pattern 'name="BackgroundScrollLayer" type="Control"' "$project_root/src/adv/adv_screen.tscn" "ADV tiled background-scroll layer must remain scene-owned."
 require_pattern 'func is_action_looping\(target_id: String\) -> bool:' "$project_root/src/adv/adv_stage_director.gd" "ADV stage must expose source infinite-loop action semantics."
 require_pattern '_stage_director\.is_action_looping\(target_id\)' "$project_root/src/adv/adv_screen.gd" "WaitAction must ignore source infinite-loop actions."
@@ -297,8 +314,8 @@ require_pattern 'name="MenuLockButton" type="TextureButton"' "$project_root/src/
 require_pattern 'name="AutoModeIndicator" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV automatic-mode animation must remain scene-owned."
 require_pattern 'name="SystemMenuRecallButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV system-menu recall strip must remain scene-owned."
 require_pattern 'name="QuickSaveButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV source-style quick-save icon must remain scene-owned."
-require_pattern 'name="SpeakerNameImage" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV speaker-name artwork must remain scene-owned."
-require_pattern 'name="Portrait" type="TextureRect" parent="VisualCanvas/MessagePanel/MessageColumn"' "$project_root/src/adv/adv_screen.tscn" "ADV dialogue portrait must remain on the free-layout message content layer."
+require_pattern 'name="SpeakerNameImage" type="TextureRect"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV speaker-name artwork must remain scene-owned."
+require_pattern 'name="Portrait" type="TextureRect" parent="MessagePanel/MessageColumn"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue portrait must remain on the free-layout message content layer."
 require_pattern 'name="ScenarioRuntime" type="Node"' "$project_root/src/adv/adv_screen.tscn" "ADV parser runtime must be declared by the scene."
 require_pattern 'AdvMessagePanel/base_type' "$project_root/assets/themes/yosuga_theme.tres" "ADV message styling must come from the centralized Theme."
 require_pattern 'assets/scenario/\*\.ks' "$project_root/export_presets.cfg" "Export presets must include raw UTF-8 KRKR scenario files."
@@ -430,6 +447,8 @@ check_runtime_log() {
 }
 
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --editor --quit --log-file "$verification_log" --path "$project_root"
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
 check_runtime_log

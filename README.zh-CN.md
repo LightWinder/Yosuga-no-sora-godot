@@ -23,7 +23,7 @@ New Game、Continue、Load、剧情回想和语音存档跳转统一使用 Scena
 
 路由切换保留源工程时序，不再同一帧删除旧页面并直接露出新页面。New Game 会让 Title 用 3 秒淡到黑色窗口底，BGM07 独立淡出 5 秒；ADV 从同一黑底用 0.5 秒切入首张 CG，首句对话框和菜单同时用 0.3 秒淡入，不播放位移动画，首个自动存档也不会保存淡入过程中的半透明值。继续游戏及 Title 侧读档独立使用源 `BeginLoad`/`EndLoad` 交接：`FRM_0501` 蓝色底图用 0.3 秒覆盖当前页面，在完全遮挡期间一次性恢复 ADV 存档演出，再用 0.5 秒揭示已就绪的游戏画面，标题 BGM 在这条读档路径上立即停止；ADV 返回时立即结束选项、用 0.3 秒收起对话 chrome、用 1 秒淡出 ADV 音频，并在 2 秒黑场完成后才创建 Title，由 Title 自己执行白场揭示。
 
-ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，运行时只解析 UTF-8。`tools/import_krkr_scenarios.sh` 是可重复执行的 UTF-16LE→UTF-8 导入边界，运行时代码不保留第二套编码分支。解析器保留标签、带引号参数、裸 flag、label、正文和源行号；状态机支持对话/Hitret 锚点、剧本切换、选项、局部/全局 flag、条件分支、等待、回想入口及影片外部暂停。背景、人物、文本框、系统菜单、选项层、履历层、影片层和音频播放器均固定声明在 `adv_screen.tscn`，脚本只创建数量由剧情决定的人物与选项节点。
+ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，运行时只解析 UTF-8。`tools/import_krkr_scenarios.sh` 是可重复执行的 UTF-16LE→UTF-8 导入边界，运行时代码不保留第二套编码分支。解析器保留标签、带引号参数、裸 flag、label、正文和源行号；状态机支持对话/Hitret 锚点、剧本切换、选项、局部/全局 flag、条件分支、等待、回想入口及影片外部暂停。背景、人物、系统菜单、选项层、履历层、影片层和音频播放器均固定声明在 `adv_screen.tscn`，对话部分通过普通实例引用 `components/adv_dialogue_view.tscn`；脚本只创建数量由剧情决定的人物与选项节点。
 
 `tools/import_krkr_adv_assets.sh` 会导入 306 个已转换剧本实际引用的完整媒体子集：背景、立绘和对话头像、语音、音效、转场规则及固定 ADV 界面，同时不会无差别复制源工程中未引用的目录。资源解析大小写不敏感，并复用既有事件 CG、BGM、影片、存读档、设置、Theme、输入与持久化组件；验证会在任何剧本引用素材缺失时失败。
 
@@ -82,7 +82,7 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 - `src/app/`：负责启动状态流转及路由级合成；设置作为覆盖层保留当前页面，并通过 `BackBufferCopy + SCREEN_TEXTURE` 直接实时模糊其后方画面。Title 的离场/返回动画和设置 UI 都在同一个主 Viewport 中运行。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
 - `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、角色差分、主菜单/鉴赏菜单按钮和底部 chrome，脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
-- `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、打字机对话、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。
+- `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。`components/adv_dialogue_view` 持有原样的对话布局、外观、打字与框体动画，仅接收已解析的贴图和数值，不依赖剧情或设置模块。
 - `src/save_load/`：与 Title 解耦的存读档功能；单个场景固定持有 4×3 槽位网格、预览、分页、操作区和确认层，槽位卡是独立复用场景。Title 以 Load 模式配置，ADV 使用当前 `SaveData` 复用同一页面的 Save/Load 模式。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。

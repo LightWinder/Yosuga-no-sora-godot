@@ -121,8 +121,8 @@ func _run() -> void:
 	_test_preview_settings_flow(settings_screen)
 	var sample_message := title_preview.current_message()
 	var sample_stage := (title_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state()
-	var sample_portrait := (title_preview.get_node("%Portrait") as TextureRect).texture
-	var sample_speaker := (title_preview.get_node("%SpeakerNameImage") as TextureRect).texture
+	var sample_portrait := (title_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture
+	var sample_speaker := (title_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture
 	_expect(sample_stage.get("background") == "EA01E", "Title Settings must show the fixed train sample.")
 	settings_screen.settings_page().read_flags_reset_requested.emit()
 	_expect(read_reset_events.size() == 1, "StartupFlow must expose the settings read-reset integration seam.")
@@ -154,10 +154,10 @@ func _run() -> void:
 	var adv := screen_host.get_child(0) as AdvScreen
 	_expect(adv != null and adv.scene_file_path.ends_with("adv_screen.tscn"), "StartupFlow must instantiate the scene-owned ADV screen.")
 	_expect(adv.get_node_or_null("VisualCanvas/Stage/CameraCanvas/Background") is TextureRect, "ADV background layer must be declared in the scene-owned camera canvas.")
-	_expect(adv.get_node_or_null("VisualCanvas/MessagePanel") is PanelContainer, "ADV message frame must be declared in the scene.")
+	_expect(adv.get_node_or_null("VisualCanvas/DialogueView/MessagePanel") is PanelContainer, "ADV message frame must be declared in the scene.")
 	_expect(adv.current_message().begins_with("蔚蓝的天空"), "ADV route must restore real UTF-8 source dialogue.")
 	_expect(path_only_request.save_data != null and path_only_request.instruction_anchor == "hitret:1", "StartupFlow must resolve path-only voice/save jump requests through SaveService.")
-	var adv_message_panel := adv.get_node("VisualCanvas/MessagePanel") as Control
+	var adv_message_panel := adv.get_node("VisualCanvas/DialogueView/MessagePanel") as Control
 	var source_message := adv.current_message()
 	_expect(source_message != sample_message, "The gameplay fixture must differ from the fixed Settings sample.")
 	var adv_settings := startup_flow.open_settings()
@@ -170,11 +170,11 @@ func _run() -> void:
 	_expect_preview_connection(adv_settings)
 	_test_preview_settings_flow(adv_settings)
 	_expect(adv_preview != null and adv_preview.current_message() == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
-	_expect((adv_preview.get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
+	_expect((adv_preview.get_node("%DialogueView").get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
 	var preview_stage := adv_preview.get_node("%StageDirector") as AdvStageDirector
 	_expect(preview_stage.presentation_state() == sample_stage, "Preview background, characters and camera must match the Title sample, independent of gameplay.")
-	_expect((adv_preview.get_node("%Portrait") as TextureRect).texture == sample_portrait, "In-game Settings must retain the fixed sample portrait.")
-	_expect((adv_preview.get_node("%SpeakerNameImage") as TextureRect).texture == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
+	_expect((adv_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture == sample_portrait, "In-game Settings must retain the fixed sample portrait.")
+	_expect((adv_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
 	_expect(not (adv_preview.get_node("%ChoiceOverlay") as Control).visible and adv_preview.get_node("%ChoiceList").get_child_count() == 0, "The fixed preview must not contain gameplay choices.")
 	adv_settings.back_requested.emit()
 	await create_timer(0.7, true, false, true).timeout
@@ -220,7 +220,7 @@ func _run() -> void:
 	var new_adv := screen_host.get_child(0) as AdvScreen
 	var new_stage := new_adv.get_node("%StageDirector") as AdvStageDirector
 	var initial_snapshot := new_adv.get_node("%SnapshotFallback") as ColorRect
-	var initial_message_panel := new_adv.get_node("%MessagePanel") as Control
+	var initial_message_panel := new_adv.get_node("%DialogueView").get_node("%MessagePanel") as Control
 	var initial_menu := new_adv.get_node("%SystemMenu") as Control
 	_expect(new_stage.is_transitioning() and initial_snapshot.color.is_equal_approx(Color.BLACK), "The first CG must crossfade from the same black base as Title's exit.")
 	_expect((new_adv.get_node("%SnapshotBackground") as TextureRect).texture == null, "The first CG must not inherit Title or Settings-preview artwork.")
@@ -284,7 +284,7 @@ func _test_preview_settings_flow(screen: SettingsScreen) -> void:
 	page.show_tab(SettingsChrome.Tab.DISPLAY)
 	page.find_setting_slider("window_depth").value = 25.0
 	preview_values = preview.get("_runtime_settings")
-	var message_style := (preview.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
+	var message_style := (preview.get_node("%DialogueView").get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
 	_expect(is_equal_approx(message_style.modulate_color.a, 0.25) and preview_values == page.get_current_settings(), "Display opacity must update immediately without overwriting the latest System settings.")
 	_expect(repository_updates.size() == 3 and repository_updates.back() == preview_values, "Opacity edits must not duplicate repository preview notifications.")
 	var updates_before_restore := repository_updates.size()

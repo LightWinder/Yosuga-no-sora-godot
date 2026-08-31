@@ -647,9 +647,9 @@ func _test_title_state() -> void:
 	var preview_texture_size := preview_artwork.texture.get_size()
 	var preview_source_aspect := preview_texture_size.x / preview_texture_size.y
 	_expect(absf(preview_source_aspect - 16.0 / 9.0) < 0.01, "Preview artwork must retain the full source 16:9 composition.")
-	var preview_textbox := preview.get_node("%MessagePanel") as PanelContainer
-	var preview_avatar := preview.get_node("%Portrait") as TextureRect
-	var preview_message := preview.get_node("%MessageLabel") as RichTextLabel
+	var preview_textbox := preview.get_node("%DialogueView").get_node("%MessagePanel") as PanelContainer
+	var preview_avatar := preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect
+	var preview_message := preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel
 	_expect(preview_textbox.theme_type_variation == &"AdvMessagePanel", "Preview must use the real ADV message Theme.")
 	_expect(preview_avatar.texture != null and preview_avatar.visible, "Preview must use the real ADV dialogue portrait.")
 	var preview_message_before := preview.current_message()
@@ -666,7 +666,7 @@ func _test_title_state() -> void:
 	preview._unhandled_input(preview_key)
 	(preview.get_node("%QuickSaveButton") as BaseButton).pressed.emit()
 	(preview.get_node("%SettingsButton") as BaseButton).pressed.emit()
-	(preview.get_node("%MessageHideButton") as BaseButton).pressed.emit()
+	(preview.get_node("%DialogueView").get_node("%MessageHideButton") as BaseButton).pressed.emit()
 	await process_frame
 	_expect(preview.current_message() == preview_message_before and preview_textbox.visible, "Preview clicks and advance input must not advance or hide dialogue.")
 	_expect(root.gui_get_focus_owner() == preview_focus_before, "Preview input must not steal focus from Settings.")
@@ -685,7 +685,7 @@ func _test_title_state() -> void:
 	var sample_stage := preview_stage.presentation_state()
 	_expect(sample_stage.get("background") == "EA01E", "Settings preview must always show the fixed train background.")
 	_expect(preview.current_message() == "……别把我当小孩子，明明我和你一般大的。", "Settings preview must always show the fixed sample dialogue.")
-	_expect((preview.get_node("%SpeakerLabel") as Label).text == "穹", "Settings preview must always use the fixed sample speaker.")
+	_expect((preview.get_node("%DialogueView").get_node("%SpeakerLabel") as Label).text == "穹", "Settings preview must always use the fixed sample speaker.")
 	_expect(preview.get_node("%ChoiceList").get_child_count() == 0 and not (preview.get_node("%ChoiceOverlay") as Control).visible, "The fixed preview must never construct gameplay choices.")
 	_expect((sample_stage.get("camera_move", {}) as Dictionary).is_empty(), "The fixed preview must not start a camera animation.")
 	await create_timer(0.1).timeout

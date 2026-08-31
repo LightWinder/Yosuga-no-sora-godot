@@ -197,10 +197,12 @@ func _test_scene_and_animation_contract() -> void:
 	root.add_child(screen)
 	await process_frame
 
-	_expect(screen.get_node_or_null("VisualCanvas/MessagePanel") is PanelContainer, "Dialogue frame must remain scene-owned.")
-	_expect(screen.get_node_or_null("VisualCanvas/MessagePanel/MessageColumn/Portrait") is TextureRect, "Dialogue portrait must remain scene-owned.")
+	var dialogue_view := screen.get_node("%DialogueView") as AdvDialogueView
+	_expect(dialogue_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay must use the shared dialogue scene as a normal instance.")
+	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel") is PanelContainer, "Dialogue frame must remain scene-owned.")
+	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait") is TextureRect, "Dialogue portrait must remain scene-owned.")
 	var stage_fallback := screen.get_node("VisualCanvas/Stage/StageFallback") as ColorRect
-	var message_panel := screen.get_node("VisualCanvas/MessagePanel") as Control
+	var message_panel := screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control
 	_expect(
 		stage_fallback.mouse_filter == Control.MOUSE_FILTER_IGNORE
 		and message_panel.mouse_filter == Control.MOUSE_FILTER_PASS,
@@ -215,7 +217,7 @@ func _test_scene_and_animation_contract() -> void:
 	screen._close_history()
 	_expect(message_panel.visible and is_equal_approx(message_panel.modulate.a, 1.0), "Closing an early overlay must restore full dialogue opacity, not a partial fade value.")
 	_expect(
-		screen.get_node_or_null("VisualCanvas/MessagePanel/MessageColumn/AdvanceIndicator") == null,
+		screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/AdvanceIndicator") == null,
 		"The removed blinking advance arrow must not remain in the dialogue scene."
 	)
 	var initial_message := screen.current_message()
@@ -228,7 +230,7 @@ func _test_scene_and_animation_contract() -> void:
 		"A primary click on the non-interactive stage must reach AdvScreen and advance past the current dialogue boundary."
 	)
 	var message_hide_button := screen.get_node(
-		"VisualCanvas/MessagePanel/MessageColumn/MessageHideButton"
+		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/MessageHideButton"
 	) as TextureButton
 	var message_before_manual_hide := screen.current_message()
 	var message_rest_position := message_panel.position
@@ -260,7 +262,7 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.get_node_or_null("SystemMenuAutoHideTimer") is Timer,
 		"System-menu animation timing must use scene-owned Timer nodes."
 	)
-	_expect(screen.get_node_or_null("VisualCanvas/MessagePanel/MessageColumn/SpeakerNameImage") is TextureRect, "Speaker name artwork must remain scene-owned.")
+	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage") is TextureRect, "Speaker name artwork must remain scene-owned.")
 	_expect(screen.get_node_or_null("VisualCanvas/ChoiceOverlay/ChoiceCenter/ChoiceList") is VBoxContainer, "Choice layout must remain scene-owned.")
 	var route_exit_cover := screen.get_node_or_null("VisualCanvas/RouteExitCover") as ColorRect
 	var route_exit_blocker := screen.get_node_or_null("VisualCanvas/RouteExitBlocker") as Control
@@ -437,8 +439,8 @@ func _test_scene_and_animation_contract() -> void:
 		"Presenting a bust-up must register both source dress and difference CgFlag progress."
 	)
 	screen._update_dialogue_chrome("穹")
-	var speaker_name_image := screen.get_node("VisualCanvas/MessagePanel/MessageColumn/SpeakerNameImage") as TextureRect
-	var portrait := screen.get_node("VisualCanvas/MessagePanel/MessageColumn/Portrait") as TextureRect
+	var speaker_name_image := screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage") as TextureRect
+	var portrait := screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait") as TextureRect
 	_expect(
 		speaker_name_image.visible and speaker_name_image.texture != null
 		and portrait.visible and portrait.texture != null,
@@ -740,10 +742,10 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.runtime().is_waiting_for_choice()
 		and navigation_missing_assets.is_empty()
 		and str(screen._stage_director.presentation_state().get("background", "")) == "BLACK"
-		and screen._message_visibility_tween == null
-		and (screen.get_node("VisualCanvas/MessagePanel") as Control).visible
-		and is_equal_approx((screen.get_node("VisualCanvas/MessagePanel") as Control).modulate.a, 1.0)
-		and (screen.get_node("VisualCanvas/MessagePanel/MessageColumn/MessageLabel") as RichTextLabel).text == "选项跳转起点",
+		and screen._menu_visibility_tween == null
+		and (screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control).visible
+		and is_equal_approx((screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control).modulate.a, 1.0)
+		and (screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/MessageLabel") as RichTextLabel).text == "选项跳转起点",
 		"Next-choice navigation must restore the last pre-choice dialogue and stop exactly at StartSelect (visible=%s, rows=%d, pause=%s, jumping=%s)." % [
 			choice_overlay.visible,
 			choice_list.get_child_count(),
@@ -771,7 +773,7 @@ func _test_scene_and_animation_contract() -> void:
 	var previous_choice_button := screen.get_node("VisualCanvas/SystemMenu/PreviousChoiceButton") as TextureButton
 	_expect(
 		screen.current_message() == "选项跳转完成"
-		and is_equal_approx((screen.get_node("VisualCanvas/MessagePanel") as Control).modulate.a, 1.0)
+		and is_equal_approx((screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control).modulate.a, 1.0)
 		and not previous_choice_button.disabled,
 		"Selecting an option must complete source Show, continue progress, and expose the previous-choice command."
 	)
@@ -806,7 +808,7 @@ func _test_scene_and_animation_contract() -> void:
 	var restored_stage := screen._stage_director.presentation_state()
 	_expect(
 		screen.current_message() == rollback_message
-		and (screen.get_node("VisualCanvas/MessagePanel") as Control).visible
+		and (screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control).visible
 		and str(restored_stage.get("background", "")) == str(rollback_stage.get("background", ""))
 		and (restored_stage.get("characters", {}) as Dictionary).keys() == (rollback_stage.get("characters", {}) as Dictionary).keys(),
 		"A next-choice jump with no later selection must restore the original dialogue, background, and characters."
@@ -822,13 +824,13 @@ func _test_scene_and_animation_contract() -> void:
 	screen._jump_to_next_choice()
 	await _wait_until(func() -> bool: return choice_overlay.visible, 0.5)
 	var navigation_message_label := screen.get_node(
-		"VisualCanvas/MessagePanel/MessageColumn/MessageLabel"
+		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/MessageLabel"
 	) as RichTextLabel
 	var navigation_speaker_name_image := screen.get_node(
-		"VisualCanvas/MessagePanel/MessageColumn/SpeakerNameImage"
+		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage"
 	) as TextureRect
 	var navigation_portrait := screen.get_node(
-		"VisualCanvas/MessagePanel/MessageColumn/Portrait"
+		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait"
 	) as TextureRect
 	var first_choice_speaker_texture := navigation_speaker_name_image.texture
 	var first_choice_portrait_texture := navigation_portrait.texture
@@ -885,6 +887,25 @@ func _test_scene_and_animation_contract() -> void:
 		and snapshot.presentation.has("environment_audio"),
 		"Dialogue progress saves must include frame layout and persistent audio presentation."
 	)
+	var restored_frame := snapshot.presentation.duplicate(true)
+	restored_frame["message_frame_type"] = "10"
+	restored_frame["message_frame_position"] = [25.0, 90.0]
+	restored_frame["message_frame_visible"] = false
+	restored_frame["message_frame_alpha"] = 0.4
+	screen._set_message_visible(true)
+	screen._restore_presentation(restored_frame)
+	await create_timer(0.35).timeout
+	var saved_frame := screen._build_save_snapshot().presentation
+	_expect(
+		saved_frame.get("message_frame_type") == "10"
+		and saved_frame.get("message_frame_position") == [25.0, 90.0]
+		and not bool(saved_frame.get("message_frame_visible"))
+		and is_equal_approx(float(saved_frame.get("message_frame_alpha")), 0.4)
+		and message_panel.size == Vector2(1920, 1080)
+		and not system_menu.visible,
+		"Save restoration must preserve frame schema/layout/alpha and cancel the previous fade's completion."
+	)
+	screen._restore_presentation(snapshot.presentation)
 	screen.runtime().global_flags["25"] = true
 	screen._on_playback_finished()
 	var ending_profile := save_service.load_profile()

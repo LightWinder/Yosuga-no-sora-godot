@@ -14,7 +14,7 @@ const SYSTEM_MENU_SHOWN_X := 1602.0
 const SYSTEM_MENU_HIDDEN_X := 1860.0
 const SYSTEM_MENU_SLIDE_SECONDS := 0.2
 const PLAYER_CHROME_TRANSITION_SECONDS := 0.3
-const PLAYER_CHROME_HIDE_OFFSET_Y := 120.0
+const SYSTEM_MENU_HIDE_OFFSET_Y := 120.0
 const MAX_CHOICE_CHECKPOINTS := 64
 const PRESENTATION_TAGS: Array[StringName] = [
 	&"playbgm", &"stopbgm", &"pausebgm", &"restartbgm",
@@ -38,12 +38,7 @@ const PRESENTATION_TAGS: Array[StringName] = [
 @onready var _eye_catch_top_band: ColorRect = %EyeCatchTopBand
 @onready var _eye_catch_bottom_band: ColorRect = %EyeCatchBottomBand
 @onready var _eye_catch_logo: TextureRect = %EyeCatchLogo
-@onready var _message_panel: PanelContainer = %MessagePanel
-@onready var _speaker_label: Label = %SpeakerLabel
-@onready var _speaker_name_image: TextureRect = %SpeakerNameImage
-@onready var _message_label: RichTextLabel = %MessageLabel
-@onready var _portrait: TextureRect = %Portrait
-@onready var _message_hide_button: TextureButton = %MessageHideButton
+@onready var _dialogue_view: AdvDialogueView = %DialogueView
 @onready var _system_menu: Control = %SystemMenu
 @onready var _system_menu_recall_button: TextureButton = %SystemMenuRecallButton
 @onready var _system_menu_auto_hide_timer: Timer = %SystemMenuAutoHideTimer
@@ -90,7 +85,6 @@ var _runtime_settings: Dictionary = {}
 var _current_message := ""
 var _current_speaker := ""
 var _current_anchor := ""
-var _typewriter_tween: Tween
 var _auto_enabled := false
 var _skip_enabled := false
 var _auto_generation := 0
@@ -98,7 +92,7 @@ var _history_entries: Array[String] = []
 var _active_save_load: SaveLoadPage
 var _effect_tween: Tween
 var _effect_finish_action: Callable
-var _message_visibility_tween: Tween
+var _menu_visibility_tween: Tween
 var _eye_catch_tween: Tween
 var _eye_catch_is_date := false
 var _eye_catch_stage_committed := false
@@ -125,13 +119,11 @@ var _speaker_name_textures: Dictionary = {}
 var _system_menu_locked := true
 var _system_menu_pointer_inside := false
 var _system_menu_slide_tween: Tween
-var _player_chrome_tween: Tween
+var _menu_chrome_tween: Tween
 var _player_chrome_manually_hidden := false
 var _player_chrome_overlay_depth := 0
 var _restore_player_chrome_after_overlay := false
-var _message_panel_rest_position := Vector2.ZERO
 var _system_menu_rest_position := Vector2.ZERO
-var _message_panel_rest_modulate := Color.WHITE
 var _system_menu_rest_modulate := Color.WHITE
 var _auto_indicator_frame := 0
 var _choice_checkpoints: Array[Dictionary] = []
@@ -148,7 +140,6 @@ var _choice_jump_stage_instructions: Array[KrkrScenarioInstruction] = []
 var _route_exit_tween: Tween
 var _route_exiting := false
 var _preview_only := false
-var _message_panel_style: StyleBoxTexture
 
 
 ## Settings always shows the same fixed sample, independent of the active route.
@@ -168,6 +159,7 @@ func _initialize_preview() -> void:
 	_current_message_already_read = true
 	_apply_runtime_settings(_runtime_settings)
 	_present_current_dialogue(true)
+	_dialogue_view.set_interactive(false)
 	_disable_preview_input(self)
 
 
@@ -200,10 +192,6 @@ func configure(
 
 func _ready() -> void:
 	super._ready()
-	# Opacity belongs to the frame alone, never the text/portrait children, and
-	# a preview must not mutate the Theme resource used by the running game.
-	_message_panel_style = _message_panel.get_theme_stylebox("panel").duplicate() as StyleBoxTexture
-	_message_panel.add_theme_stylebox_override("panel", _message_panel_style)
 	if _preview_only:
 		_load_speaker_name_textures()
 		_initialize_preview()
@@ -232,13 +220,12 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	_kill_typewriter()
 	_kill_effect_tween()
-	_kill_tween(_message_visibility_tween)
+	_kill_tween(_menu_visibility_tween)
 	_kill_tween(_eye_catch_tween)
 	_kill_tween(_choice_tween)
 	_kill_tween(_system_menu_slide_tween)
-	_kill_tween(_player_chrome_tween)
+	_kill_tween(_menu_chrome_tween)
 	_kill_tween(_route_exit_tween)
 	_system_menu_auto_hide_timer.stop()
 	_auto_indicator_timer.stop()
@@ -287,7 +274,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_history()
 			get_viewport().set_input_as_handled()
 		return
-	if _player_chrome_tween != null and _player_chrome_tween.is_valid():
+	if _menu_chrome_tween != null and _menu_chrome_tween.is_valid():
 		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
 			get_viewport().set_input_as_handled()
 		return
@@ -336,7 +323,7 @@ func play_title_exit() -> void:
 	_clear_choice_buttons()
 	_history_overlay.visible = false
 	_route_exit_blocker.visible = true
-	if _message_panel.visible or _system_menu.visible:
+	if _dialogue_view.is_frame_visible() or _system_menu.visible:
 		_set_player_chrome_visible(false, title_exit_chrome_seconds)
 	_fade_out_route_audio(int(round(title_exit_audio_seconds * 1000.0)))
 	_route_exit_cover.visible = true
@@ -376,8 +363,9 @@ func _connect_controls() -> void:
 	_history_button.pressed.connect(_open_history)
 	_auto_button.toggled.connect(_set_auto_enabled)
 	_skip_button.toggled.connect(_set_skip_enabled)
-	_message_hide_button.pressed.connect(_hide_player_chrome_manually)
-	_message_panel.gui_input.connect(_on_message_panel_gui_input)
+	_dialogue_view.hide_requested.connect(_hide_player_chrome_manually)
+	_dialogue_view.frame_gui_input.connect(_on_message_panel_gui_input)
+	_dialogue_view.reveal_finished.connect(_try_schedule_auto_advance)
 	_settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	_menu_lock_button.toggled.connect(_on_system_menu_lock_toggled)
 	_title_button.pressed.connect(_request_title)
@@ -492,17 +480,16 @@ func _on_dialogue_ready(
 	)
 	_pending_font_size = 0
 	if _jumping_to_next_choice:
-		_message_panel.visible = false
+		_dialogue_view.set_frame_displayed(false)
 		_suspend_system_menu()
 		_schedule_choice_jump_continue()
 		return
 	var restored_navigation := _restoring_navigation_checkpoint
 	_restoring_navigation_checkpoint = false
-	_message_panel.visible = true
+	_dialogue_view.set_frame_displayed(true)
 	_system_menu.visible = true
 	_show_system_menu(true)
 	_present_current_dialogue(false)
-	_start_typewriter()
 	if not restored_navigation:
 		_append_history(speaker, message)
 	_play_voice(voice_id)
@@ -511,7 +498,7 @@ func _on_dialogue_ready(
 	if reveal_initial_dialogue:
 		# Source MessageFrame starts hidden; outputMessage reveals it over 300 ms
 		# alongside the first CG update. Save the settled frame before animating.
-		_message_panel.modulate.a = 0.0
+		_dialogue_view.restore_frame_state(_dialogue_view.frame_position(), 0.0, true)
 		_system_menu.modulate.a = 0.0
 		_set_message_visible(true)
 	_refresh_choice_navigation_buttons()
@@ -519,45 +506,6 @@ func _on_dialogue_ready(
 		_schedule_advance(0.06)
 	else:
 		_try_schedule_auto_advance()
-
-
-func _start_typewriter() -> void:
-	_kill_typewriter()
-	_auto_generation += 1
-	_message_label.visible_characters = 0
-	var character_count := _message_label.get_total_character_count()
-	if character_count <= 0:
-		_finish_typewriter()
-		return
-	_typewriter_tween = create_tween()
-	_typewriter_tween.tween_property(
-		_message_label,
-		"visible_characters",
-		character_count,
-		_typewriter_duration()
-	)
-	_typewriter_tween.finished.connect(_finish_typewriter)
-
-
-func _typewriter_duration() -> float:
-	if _message_speed_milliseconds <= 0:
-		return 0.001
-	return maxf(
-		float(_message_label.get_total_character_count() * _message_speed_milliseconds) / 1000.0,
-		0.01
-	)
-
-
-func _finish_typewriter() -> void:
-	_message_label.visible_characters = -1
-	_typewriter_tween = null
-	_try_schedule_auto_advance()
-
-
-func _kill_typewriter() -> void:
-	if _typewriter_tween != null and _typewriter_tween.is_valid():
-		_typewriter_tween.kill()
-	_typewriter_tween = null
 
 
 func _advance_story(force_progress: bool = false) -> void:
@@ -571,9 +519,8 @@ func _advance_story(force_progress: bool = false) -> void:
 		_stage_director.finish_transition()
 	if _stage_director.is_camera_moving():
 		_stage_director.finish_camera_move()
-	if _message_label.visible_characters >= 0:
-		_kill_typewriter()
-		_finish_typewriter()
+	if _dialogue_view.is_revealing():
+		_dialogue_view.finish_reveal()
 		if not force_progress:
 			return
 	_runtime.advance()
@@ -669,11 +616,10 @@ func _populate_choice_buttons(choices: Array[Dictionary], show_route_hints: bool
 
 
 func _restore_choice_jump_dialogue() -> void:
-	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
-		_message_visibility_tween.kill()
-	_message_visibility_tween = null
-	_message_panel.visible = true
-	_message_panel.modulate.a = 1.0
+	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
+		_menu_visibility_tween.kill()
+	_menu_visibility_tween = null
+	_dialogue_view.restore_frame_state(_dialogue_view.frame_position(), 1.0, true)
 	_system_menu.visible = true
 	_system_menu.modulate.a = 1.0
 	_show_system_menu(true)
@@ -683,18 +629,19 @@ func _restore_choice_jump_dialogue() -> void:
 func _present_current_dialogue(reveal_all: bool) -> void:
 	_update_dialogue_chrome(_current_speaker)
 	_refresh_message_appearance()
-	_message_label.text = _current_message
 	if reveal_all:
-		_message_label.visible_characters = -1
+		_dialogue_view.set_message(_current_message)
+	else:
+		_auto_generation += 1
+		_dialogue_view.reveal_message(_current_message, _message_speed_milliseconds)
 
 
 func _refresh_message_appearance() -> void:
-	_message_panel_style.modulate_color.a = float(_runtime_settings.get("window_depth", 50)) / 100.0
-	_message_label.add_theme_font_size_override(
-		"normal_font_size", _current_message_font_size
+	_dialogue_view.set_frame_opacity(
+		float(_runtime_settings.get("window_depth", 50)) / 100.0
 	)
-	_message_label.add_theme_color_override(
-		"default_color",
+	_dialogue_view.set_message_font_size(_current_message_font_size)
+	_dialogue_view.set_message_color(
 		Color(0.72, 0.91, 1.0, 1.0)
 		if _current_message_already_read and bool(_runtime_settings.get("read_color", true))
 		else Color(0.98, 0.995, 1.0, 1.0)
@@ -714,7 +661,7 @@ func _select_choice(index: int) -> void:
 	_choice_tween = null
 	_choice_overlay.visible = false
 	_choice_overlay.modulate.a = 1.0
-	_message_panel.visible = true
+	_dialogue_view.set_frame_displayed(true)
 	_system_menu.visible = true
 	_show_system_menu(true)
 	_clear_choice_buttons()
@@ -759,7 +706,7 @@ func _restore_choice_checkpoint(target_index: int) -> void:
 		return
 	_cancel_choice_jump()
 	_stop_voice()
-	_kill_typewriter()
+	_dialogue_view.cancel_reveal()
 	_clear_choice_buttons()
 	_choice_overlay.visible = false
 	_stage_director.clear()
@@ -795,7 +742,7 @@ func _jump_to_next_choice() -> void:
 	_skip_button.set_pressed_no_signal(false)
 	_stop_voice()
 	_stop_audio_immediate(_se_player)
-	_kill_typewriter()
+	_dialogue_view.cancel_reveal()
 	_capture_choice_jump_audio_targets()
 	_choice_jump_stage_instructions.clear()
 	_refresh_choice_navigation_buttons()
@@ -1090,9 +1037,9 @@ func _on_instruction_executed(instruction: KrkrScenarioInstruction) -> void:
 		&"messageframe":
 			_apply_message_frame(instruction.string_argument("type"))
 		&"movewindow":
-			_message_panel.position = Vector2(
+			_dialogue_view.set_frame_position(Vector2(
 				instruction.float_argument("x"), instruction.float_argument("y")
-			)
+			))
 		&"font":
 			_pending_font_size = instruction.int_argument("face", instruction.int_argument("size", 0))
 		&"waitupdate":
@@ -1475,7 +1422,7 @@ func _on_voice_finished() -> void:
 func _try_schedule_auto_advance() -> void:
 	if not _auto_enabled or not _runtime.is_waiting_for_dialogue():
 		return
-	if _message_label.visible_characters >= 0:
+	if _dialogue_view.is_revealing():
 		return
 	if _is_voice_playing() or _stage_director.is_transitioning() or _stage_director.is_camera_moving():
 		return
@@ -1483,10 +1430,9 @@ func _try_schedule_auto_advance() -> void:
 
 
 func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstruction = null) -> void:
-	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
-		_message_visibility_tween.kill()
-	_message_visibility_tween = null
-	_message_panel.visible = true
+	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
+		_menu_visibility_tween.kill()
+	_menu_visibility_tween = null
 	_system_menu.visible = true
 	if show_message:
 		_show_system_menu(true)
@@ -1498,22 +1444,21 @@ func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstructi
 	# intermediate frames. Commit the final visibility immediately so no tween can
 	# outlive the jump and mutate the scene after StartSelect has been reached.
 	if _jumping_to_next_choice:
-		_message_panel.modulate.a = target_alpha
+		_dialogue_view.set_frame_visible(show_message, 0.0)
 		_system_menu.modulate.a = target_alpha
-		_message_panel.visible = show_message
 		_system_menu.visible = show_message
 		if show_message:
 			_show_system_menu(true)
 		else:
 			_suspend_system_menu()
 		return
-	_message_visibility_tween = create_tween().set_parallel()
-	_message_visibility_tween.tween_property(_message_panel, "modulate:a", target_alpha, 0.3)
-	_message_visibility_tween.tween_property(_system_menu, "modulate:a", target_alpha, 0.3)
-	_message_visibility_tween.finished.connect(
+	_dialogue_view.set_frame_visible(show_message)
+	_menu_visibility_tween = create_tween()
+	_menu_visibility_tween.tween_property(_system_menu, "modulate:a", target_alpha, 0.3)
+	_menu_visibility_tween.finished.connect(
 		func() -> void:
-			_message_visibility_tween = null
-			_message_panel.visible = show_message
+			_menu_visibility_tween = null
+			_dialogue_view.finish_frame_transition()
 			_system_menu.visible = show_message
 			if show_message:
 				_show_system_menu(true)
@@ -1526,20 +1471,15 @@ func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstructi
 
 
 func _finish_message_visibility() -> void:
-	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
-		_message_visibility_tween.custom_step(1.0)
-	_message_visibility_tween = null
+	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
+		_menu_visibility_tween.custom_step(1.0)
+	_menu_visibility_tween = null
 	_runtime.resume_external(&"message")
 
 
 func _apply_message_frame(frame_type: String) -> void:
 	_message_frame_type = "0" if frame_type.is_empty() else frame_type
-	if frame_type == "10" or frame_type == "ノベル":
-		_message_panel.position = Vector2.ZERO
-		_message_panel.size = Vector2(1920.0, 1080.0)
-	else:
-		_message_panel.position = Vector2(0.0, 760.0)
-		_message_panel.size = Vector2(1920.0, 320.0)
+	_dialogue_view.apply_frame_type(_message_frame_type)
 
 
 func _start_eye_catch(instruction: KrkrScenarioInstruction) -> void:
@@ -1553,7 +1493,7 @@ func _start_eye_catch(instruction: KrkrScenarioInstruction) -> void:
 		return
 	_eye_catch_is_date = instruction.string_argument("type").to_upper() == "DATE"
 	_eye_catch_stage_committed = false
-	_message_panel.visible = false
+	_dialogue_view.set_frame_displayed(false)
 	_suspend_system_menu()
 	_reset_eye_catch_visuals()
 	_eye_catch_overlay.visible = true
@@ -1751,9 +1691,9 @@ func _close_save_load() -> void:
 
 
 func _hide_player_chrome_manually() -> void:
-	if _player_chrome_overlay_depth > 0 or not _message_panel.visible:
+	if _player_chrome_overlay_depth > 0 or not _dialogue_view.is_frame_visible():
 		return
-	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
+	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
 		_finish_message_visibility()
 	_stop_player_chrome_automation()
 	_player_chrome_manually_hidden = true
@@ -1770,13 +1710,13 @@ func _show_player_chrome_manually() -> void:
 func _enter_player_chrome_overlay() -> void:
 	# Do not preserve a partial opening fade as the dialogue's return opacity,
 	# or let its completion callback reveal chrome behind an active overlay.
-	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
+	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
 		_finish_message_visibility()
 	_stop_player_chrome_automation()
 	if _player_chrome_overlay_depth == 0:
 		_restore_player_chrome_after_overlay = (
-			_message_panel.visible
-			and _message_panel.modulate.a > 0.0
+			_dialogue_view.is_frame_visible()
+			and _dialogue_view.frame_alpha() > 0.0
 			and not _player_chrome_manually_hidden
 		)
 		if _restore_player_chrome_after_overlay:
@@ -1804,29 +1744,23 @@ func _stop_player_chrome_automation() -> void:
 
 
 func _set_player_chrome_visible(show_chrome: bool, duration: float) -> void:
-	_kill_tween(_player_chrome_tween)
-	_player_chrome_tween = null
+	_kill_tween(_menu_chrome_tween)
+	_menu_chrome_tween = null
 	_system_menu_auto_hide_timer.stop()
 	_system_menu_recall_button.visible = false
 	_kill_tween(_system_menu_slide_tween)
 	_system_menu_slide_tween = null
 
+	_dialogue_view.set_chrome_visible(show_chrome, duration)
 	if show_chrome:
-		_message_panel.visible = true
 		_system_menu.visible = true
-		_message_panel.position = _message_panel_rest_position
 		_system_menu.position = _system_menu_rest_position
-		_message_panel.modulate = _message_panel_rest_modulate
 		_system_menu.modulate = _system_menu_rest_modulate
 		if duration > 0.0:
-			_message_panel.position.y += PLAYER_CHROME_HIDE_OFFSET_Y
-			_system_menu.position.y += PLAYER_CHROME_HIDE_OFFSET_Y
-			_message_panel.modulate.a = 0.0
+			_system_menu.position.y += SYSTEM_MENU_HIDE_OFFSET_Y
 			_system_menu.modulate.a = 0.0
 	else:
-		_message_panel_rest_position = _message_panel.position
 		_system_menu_rest_position = Vector2(SYSTEM_MENU_SHOWN_X, _system_menu.position.y)
-		_message_panel_rest_modulate = _message_panel.modulate
 		_system_menu_rest_modulate = _system_menu.modulate
 
 	if duration <= 0.0:
@@ -1834,39 +1768,31 @@ func _set_player_chrome_visible(show_chrome: bool, duration: float) -> void:
 		return
 
 	var tween := create_tween().set_parallel()
-	_player_chrome_tween = tween
+	_menu_chrome_tween = tween
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(
 		Tween.EASE_OUT if show_chrome else Tween.EASE_IN
 	)
-	var message_target := _message_panel_rest_position
 	var menu_target := _system_menu_rest_position
-	var message_alpha := _message_panel_rest_modulate.a
 	var menu_alpha := _system_menu_rest_modulate.a
 	if not show_chrome:
-		message_target.y += PLAYER_CHROME_HIDE_OFFSET_Y
 		menu_target.x = _system_menu.position.x
-		menu_target.y += PLAYER_CHROME_HIDE_OFFSET_Y
-		message_alpha = 0.0
+		menu_target.y += SYSTEM_MENU_HIDE_OFFSET_Y
 		menu_alpha = 0.0
-	tween.tween_property(_message_panel, "position", message_target, duration)
 	tween.tween_property(_system_menu, "position", menu_target, duration)
-	tween.tween_property(_message_panel, "modulate:a", message_alpha, duration)
 	tween.tween_property(_system_menu, "modulate:a", menu_alpha, duration)
 	tween.finished.connect(
 		func() -> void:
-			if _player_chrome_tween != tween:
+			if _menu_chrome_tween != tween:
 				return
-			_player_chrome_tween = null
+			_menu_chrome_tween = null
 			_finish_player_chrome_visibility(show_chrome)
 	)
 
 
 func _finish_player_chrome_visibility(show_chrome: bool) -> void:
-	_message_panel.position = _message_panel_rest_position
+	_dialogue_view.finish_frame_transition()
 	_system_menu.position = _system_menu_rest_position
-	_message_panel.modulate = _message_panel_rest_modulate
 	_system_menu.modulate = _system_menu_rest_modulate
-	_message_panel.visible = show_chrome
 	_system_menu.visible = show_chrome
 	if show_chrome:
 		_show_system_menu(true)
@@ -1904,9 +1830,10 @@ func _build_save_snapshot() -> SaveData:
 	data.presentation["message_font_size"] = _current_message_font_size
 	data.presentation["message_font_bound"] = true
 	data.presentation["message_frame_type"] = _message_frame_type
-	data.presentation["message_frame_position"] = [_message_panel.position.x, _message_panel.position.y]
-	data.presentation["message_frame_visible"] = _message_panel.visible
-	data.presentation["message_frame_alpha"] = _message_panel.modulate.a
+	var frame_position := _dialogue_view.frame_position()
+	data.presentation["message_frame_position"] = [frame_position.x, frame_position.y]
+	data.presentation["message_frame_visible"] = _dialogue_view.is_frame_visible()
+	data.presentation["message_frame_alpha"] = _dialogue_view.frame_alpha()
 	data.presentation["bgm"] = {
 		"file": _bgm_asset,
 		"position": _active_bgm_player.get_playback_position() if is_instance_valid(_active_bgm_player) and _active_bgm_player.playing else _bgm_pause_position,
@@ -1959,6 +1886,12 @@ func _restore_choice_navigation(data: SaveData) -> void:
 
 
 func _restore_presentation(presentation: Dictionary) -> void:
+	# Menu completion used to share the frame Tween. Cancel those caller-side
+	# callbacks too, so an earlier fade cannot overwrite the restored view.
+	_kill_tween(_menu_visibility_tween)
+	_menu_visibility_tween = null
+	_kill_tween(_menu_chrome_tween)
+	_menu_chrome_tween = null
 	_stage_director.restore_presentation(presentation)
 	_current_speaker = str(presentation.get("speaker", ""))
 	_current_message = str(presentation.get("message", ""))
@@ -1975,13 +1908,17 @@ func _restore_presentation(presentation: Dictionary) -> void:
 	_present_current_dialogue(true)
 	_apply_message_frame(str(presentation.get("message_frame_type", "0")))
 	var message_position: Variant = presentation.get("message_frame_position", [])
+	var restored_position := _dialogue_view.frame_position()
 	if message_position is Array and message_position.size() >= 2:
-		_message_panel.position = Vector2(float(message_position[0]), float(message_position[1]))
-	_message_panel.visible = bool(presentation.get("message_frame_visible", true))
-	_message_panel.modulate.a = float(presentation.get("message_frame_alpha", 1.0))
-	_system_menu.visible = _message_panel.visible
-	_system_menu.modulate.a = _message_panel.modulate.a
-	if _message_panel.visible:
+		restored_position = Vector2(float(message_position[0]), float(message_position[1]))
+	_dialogue_view.restore_frame_state(
+		restored_position,
+		float(presentation.get("message_frame_alpha", 1.0)),
+		bool(presentation.get("message_frame_visible", true))
+	)
+	_system_menu.visible = _dialogue_view.is_frame_visible()
+	_system_menu.modulate.a = _dialogue_view.frame_alpha()
+	if _dialogue_view.is_frame_visible():
 		_show_system_menu(true)
 	else:
 		_suspend_system_menu()
@@ -2110,7 +2047,7 @@ func _hide_system_menu() -> void:
 		_system_menu_locked
 		or _system_menu_pointer_inside
 		or not _system_menu.visible
-		or not _message_panel.visible
+		or not _dialogue_view.is_frame_visible()
 		or _choice_overlay.visible
 		or _jumping_to_next_choice
 	):
@@ -2137,12 +2074,12 @@ func _restart_system_menu_auto_hide() -> void:
 		_system_menu_locked
 		or _system_menu_pointer_inside
 		or not _system_menu.visible
-		or not _message_panel.visible
+		or not _dialogue_view.is_frame_visible()
 		or _choice_overlay.visible
 		or _jumping_to_next_choice
 		or _player_chrome_manually_hidden
 		or _player_chrome_overlay_depth > 0
-		or (_player_chrome_tween != null and _player_chrome_tween.is_valid())
+		or (_menu_chrome_tween != null and _menu_chrome_tween.is_valid())
 		or not is_equal_approx(_system_menu.position.x, SYSTEM_MENU_SHOWN_X)
 	):
 		return
@@ -2188,6 +2125,7 @@ func _can_skip_current_message() -> bool:
 func _apply_runtime_settings(settings: Dictionary) -> void:
 	_runtime_settings = SettingsModel.normalize(settings)
 	_message_speed_milliseconds = int(_runtime_settings.get("message_speed", 5))
+	_dialogue_view.set_reveal_speed(_message_speed_milliseconds)
 	_auto_wait_seconds = float(_runtime_settings.get("auto_speed", 5000)) / 1000.0
 	_allow_unread_skip = not bool(_runtime_settings.get("read_skip", true))
 	_stop_voice_on_advance = bool(_runtime_settings.get("voice_stop_on_click", false))
@@ -2225,20 +2163,16 @@ func _update_dialogue_chrome(speaker: String) -> void:
 	var normalized := _normalize_speaker_name(speaker)
 	var is_monologue := normalized.is_empty() or normalized in ["心の声", "語り", "モノローグ"]
 	var name_texture := _speaker_name_textures.get(normalized) as Texture2D
-	_speaker_name_image.texture = name_texture
-	_speaker_name_image.visible = not is_monologue and name_texture != null
-	_speaker_label.text = speaker
-	_speaker_label.visible = not is_monologue and name_texture == null
+	_dialogue_view.set_speaker(speaker, name_texture, not is_monologue)
 	_update_portrait(speaker)
 
 
 func _update_portrait(speaker: String) -> void:
-	if not is_instance_valid(_portrait) or not is_instance_valid(_stage_director):
+	if not is_instance_valid(_dialogue_view) or not is_instance_valid(_stage_director):
 		return
 	var show_portrait := bool(_runtime_settings.get("portrait_visible", true))
 	var texture := _stage_director.portrait_texture_for_speaker(speaker) if show_portrait else null
-	_portrait.texture = texture
-	_portrait.visible = texture != null
+	_dialogue_view.set_portrait(texture)
 
 
 func _normalize_speaker_name(speaker: String) -> String:
