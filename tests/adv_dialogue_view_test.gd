@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_input_seam(view)
 	_test_reveal(view)
 	_test_frame_transitions(view)
+	_test_permanent_frame_layout(view)
 	# Check that queued callbacks cannot alter a replacement line/restored frame.
 	view.reveal_message("old line", 100)
 	view.set_frame_visible(false, 0.02)
@@ -191,6 +192,46 @@ func _test_frame_transitions(view: AdvDialogueView) -> void:
 	view.set_frame_position(Vector2(30, 700))
 	view.set_frame_displayed(false)
 	_expect(view.frame_position() == Vector2(30, 700) and not view.is_frame_visible() and is_equal_approx(view.frame_alpha(), 0.8), "Move/display operations must preserve scenario alpha.")
+
+
+func _test_permanent_frame_layout(view: AdvDialogueView) -> void:
+	var panel := view.get_node("%MessagePanel") as Control
+	view.restore_frame_state(Vector2(0, 760), 1.0, true)
+	view.set_frame_position(Vector2(30, 700))
+	# Direct show must also respect a permanent move without first hiding.
+	view.set_chrome_visible(true, 0.0)
+	_expect(view.frame_position() == Vector2(30, 700), "Permanent moves must immediately update rest position.")
+	for frame_type in ["10", "ノベル", "0"]:
+		view.apply_frame_type(frame_type)
+		var expected_position := Vector2(0, 760) if frame_type == "0" else Vector2.ZERO
+		var expected_size := Vector2(1920, 320) if frame_type == "0" else Vector2(1920, 1080)
+		view.set_chrome_visible(true, 0.0)
+		_expect(view.frame_position() == expected_position, "Frame type must immediately update rest position.")
+		view.set_chrome_visible(false)
+		view.finish_frame_transition()
+		view.set_chrome_visible(true)
+		view.finish_frame_transition()
+		_expect(view.frame_position() == expected_position and panel.size == expected_size, "Frame types must survive animated hide/show.")
+	view.set_frame_position(Vector2(40, 680))
+	view.set_chrome_visible(false)
+	view._frame_tween.custom_step(0.15)
+	_expect(view._rest_position == Vector2(40, 680) and view.frame_position().y > 680, "Temporary slide positions must not replace rest state.")
+	view.set_chrome_visible(true)
+	view.finish_frame_transition()
+	_expect(view.frame_position() == Vector2(40, 680), "Custom movewindow must survive interrupted hide/show.")
+	view.set_chrome_visible(false)
+	view._frame_tween.custom_step(0.15)
+	var old_tween := view._frame_tween
+	view.set_frame_position(Vector2(30, 700))
+	_expect(not old_tween.is_valid() and view.frame_position() == Vector2(30, 700), "Permanent moves must cancel an old slide.")
+	view.set_chrome_visible(false, 0.0)
+	view.set_chrome_visible(true, 0.0)
+	_expect(view.frame_position() == Vector2(30, 700) and is_equal_approx(view.frame_alpha(), 1.0), "An interrupted animation must not become the next rest position or opacity.")
+	view.set_chrome_visible(false)
+	view._frame_tween.custom_step(0.15)
+	view.apply_frame_type("10")
+	view.set_chrome_visible(true, 0.0)
+	_expect(view.frame_position() == Vector2.ZERO and panel.size == Vector2(1920, 1080), "Frame type changes during a slide must replace its resting layout.")
 
 
 func _expect(condition: bool, message: String) -> void:

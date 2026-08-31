@@ -60,6 +60,8 @@ var _toggle_choices: Dictionary[StringName, SettingsChoiceGroup] = {}
 ## a gameplay page. A TextureRect displays the viewport without forwarding input.
 func install_preview(content: Control) -> void:
 	assert(_preview_viewport.get_child_count() == 0)
+	# Canvas visibility does not propagate across the SubViewport boundary.
+	content.visible = _preview_artwork.is_visible_in_tree()
 	_preview_viewport.add_child(content)
 	_preview_artwork.texture = _preview_viewport.get_texture()
 
@@ -70,6 +72,7 @@ func preview_content() -> Control:
 
 func _ready() -> void:
 	super._ready()
+	_preview_artwork.visibility_changed.connect(_sync_preview_visibility)
 	_configure_window_choices()
 	_configure_font_choices()
 	_configure_screen_toggles()
@@ -77,6 +80,12 @@ func _ready() -> void:
 	_opacity_slider.value_changed.connect(_on_opacity_changed)
 	if _is_mobile_platform():
 		_set_desktop_window_controls_visible(false)
+
+
+func _sync_preview_visibility() -> void:
+	var content := preview_content()
+	if content != null:
+		content.visible = _preview_artwork.is_visible_in_tree()
 
 
 func sync_from(settings: Dictionary) -> void:

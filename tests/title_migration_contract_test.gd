@@ -5,6 +5,7 @@ const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
+const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
 const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 
 var _failures: Array[String] = []
@@ -528,11 +529,11 @@ func _test_title_state() -> void:
 	root.add_child(settings)
 	await process_frame
 	var settings_page := settings.settings_page()
-	var preview := ADV_SCENE.instantiate() as AdvScreen
+	var preview := ADV_SETTINGS_PREVIEW_SCENE.instantiate() as AdvSettingsPreview
 	preview.name = "AdvPreview"
-	preview.configure_preview(settings_page.get_current_settings())
+	preview.configure(settings_page.get_current_settings())
 	settings_page.display_page().install_preview(preview)
-	settings_page.settings_preview_changed.connect(preview.apply_preview_settings)
+	settings_page.settings_preview_changed.connect(preview.apply_settings)
 	_expect(settings_page != null, "Settings must expose a dedicated HD window model.")
 	_expect(settings.get_node_or_null("Content") == null, "Settings route must not retain hidden generic feature chrome.")
 	_expect(settings.scene_file_path.ends_with("settings_screen.tscn"), "Settings must be owned by a dedicated route scene.")
@@ -633,14 +634,14 @@ func _test_title_state() -> void:
 	_expect(preview_card.get_node_or_null("Padding") == null, "Panel style margins must provide padding without an extra wrapper.")
 	_expect(not preview_content.clip_contents, "Preview content must use its rounded mask rather than square clipping.")
 	_expect(preview_artwork.texture is ViewportTexture, "The preview must render the real ADV scene, not a second hand-assembled dialogue frame.")
-	_expect(preview.scene_file_path.ends_with("adv_screen.tscn"), "Settings preview must reuse the exact gameplay scene.")
+	_expect(preview.scene_file_path.ends_with("adv_settings_preview.tscn"), "Settings must instantiate the lightweight dialogue preview, not gameplay.")
 	var preview_viewport := preview.get_viewport() as SubViewport
 	_expect(preview_viewport != null and preview_viewport.gui_disable_input, "The preview viewport must reject GUI input.")
-	_expect(preview.process_mode == Node.PROCESS_MODE_DISABLED and not preview.is_processing_unhandled_input(), "The preview must never process gameplay or input.")
+	_expect(not preview.is_processing_input() and not preview.is_processing_unhandled_input(), "The preview must never process gameplay or input.")
 	_expect(preview.get_node_or_null("SaveService") == null, "Rendering a preview must not construct a persistence service.")
-	_expect(preview.runtime().build_navigation_checkpoint().is_empty(), "Rendering a preview must not start the scenario runtime.")
-	for player in preview.find_children("*", "AudioStreamPlayer", true, false):
-		_expect(not player.playing and player.stream == null, "Preview must not load or play any audio.")
+	_expect(preview.find_children("*", "AudioStreamPlayer", true, false).is_empty(), "Preview must not instantiate any audio players.")
+	for forbidden in ["ScenarioRuntime", "StageDirector", "BgmPlayer", "VoicePlayer", "MoviePlayer", "ChoiceOverlay", "HistoryOverlay", "SystemMenu", "SaveService"]:
+		_expect(preview.find_child(forbidden, true, false) == null, "Preview must not instantiate %s." % forbidden)
 	for control in preview.find_children("*", "Control", true, false):
 		_expect(control.mouse_filter == Control.MOUSE_FILTER_IGNORE and control.focus_mode == Control.FOCUS_NONE, "All preview controls must reject pointer and keyboard focus: %s" % control.name)
 	_expect(preview_artwork.material == null, "Preview artwork must reuse the native content clip instead of a separate shader mask.")
@@ -652,7 +653,7 @@ func _test_title_state() -> void:
 	var preview_message := preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel
 	_expect(preview_textbox.theme_type_variation == &"AdvMessagePanel", "Preview must use the real ADV message Theme.")
 	_expect(preview_avatar.texture != null and preview_avatar.visible, "Preview must use the real ADV dialogue portrait.")
-	var preview_message_before := preview.current_message()
+	var preview_message_before := (preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text
 	var preview_focus_before := root.gui_get_focus_owner()
 	var preview_click := InputEventMouseButton.new()
 	preview_click.button_index = MOUSE_BUTTON_LEFT
@@ -663,14 +664,11 @@ func _test_title_state() -> void:
 	preview_key.action = &"vn_advance"
 	preview_key.pressed = true
 	preview_viewport.push_input(preview_key)
-	preview._unhandled_input(preview_key)
-	(preview.get_node("%QuickSaveButton") as BaseButton).pressed.emit()
-	(preview.get_node("%SettingsButton") as BaseButton).pressed.emit()
 	(preview.get_node("%DialogueView").get_node("%MessageHideButton") as BaseButton).pressed.emit()
 	await process_frame
-	_expect(preview.current_message() == preview_message_before and preview_textbox.visible, "Preview clicks and advance input must not advance or hide dialogue.")
+	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == preview_message_before and preview_textbox.visible, "Preview clicks and advance input must not advance or hide dialogue.")
 	_expect(root.gui_get_focus_owner() == preview_focus_before, "Preview input must not steal focus from Settings.")
-	_expect(not (preview.get_node("%FeatureOverlay") as Control).visible, "Preview menu clicks must not open any gameplay overlay.")
+	_expect(preview.find_child("FeatureOverlay", true, false) == null, "Preview must not own a gameplay overlay.")
 	var preview_style := preview_textbox.get_theme_stylebox("panel") as StyleBoxTexture
 	var shared_style := load("res://assets/themes/adv/message_panel.tres") as StyleBoxTexture
 	window_depth_slider.value = 25.0
@@ -681,15 +679,13 @@ func _test_title_state() -> void:
 	_expect(preview_message.get_theme_color("default_color").is_equal_approx(Color(0.98, 0.995, 1.0, 1.0)), "Read-color setting must refresh the real ADV text immediately.")
 	display_page.set_screen_toggle(&"read_color", true)
 	window_depth_slider.value = 50.0
-	var preview_stage := preview.get_node("%StageDirector") as AdvStageDirector
-	var sample_stage := preview_stage.presentation_state()
-	_expect(sample_stage.get("background") == "EA01E", "Settings preview must always show the fixed train background.")
-	_expect(preview.current_message() == "……别把我当小孩子，明明我和你一般大的。", "Settings preview must always show the fixed sample dialogue.")
+	var sample_background := (preview.get_node("%Background") as TextureRect).texture
+	_expect(sample_background.resource_path.ends_with("EA01E.png"), "Settings preview must always show the fixed train background.")
+	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == AdvSettingsPreview.SAMPLE_MESSAGE, "Settings preview must always show the fixed sample dialogue.")
 	_expect((preview.get_node("%DialogueView").get_node("%SpeakerLabel") as Label).text == "穹", "Settings preview must always use the fixed sample speaker.")
-	_expect(preview.get_node("%ChoiceList").get_child_count() == 0 and not (preview.get_node("%ChoiceOverlay") as Control).visible, "The fixed preview must never construct gameplay choices.")
-	_expect((sample_stage.get("camera_move", {}) as Dictionary).is_empty(), "The fixed preview must not start a camera animation.")
+
 	await create_timer(0.1).timeout
-	_expect(preview.current_message() == preview_message_before and preview_stage.presentation_state() == sample_stage, "Time and settings changes must not advance or replace the fixed preview sample.")
+	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == preview_message_before and (preview.get_node("%Background") as TextureRect).texture == sample_background, "Time and settings changes must not advance or replace the fixed preview sample.")
 	var system_page := settings_page.system_page()
 	_expect(system_page.scene_file_path.ends_with("system_settings_page.tscn"), "System settings layout must be owned by its page scene.")
 	_expect(system_page.find_child("MainColumns", true, false) is HBoxContainer, "System settings must use the same container-managed card layout as screen settings.")
@@ -781,7 +777,7 @@ func _test_title_state() -> void:
 	master_slider.value = 43.0
 	master_slider.value = 44.0
 	_expect(preview_updates.size() >= 3, "Settings slider must preview each value change in real time.")
-	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings() and preview_updates.back() == settings_page.get_current_settings(), "Audio edits must reach both the ADV preview and repository as the same complete settings snapshot.")
+	_expect(preview.get("_settings") == settings_page.get_current_settings() and preview_updates.back() == settings_page.get_current_settings(), "Audio edits must reach both the ADV preview and repository as the same complete settings snapshot.")
 	_expect(settings_repository.settings_write_count == writes_before_preview, "Slider preview must not write settings for every value_changed.")
 	_expect(settings_repository.settings_disk_read_count == settings_reads_before_preview, "Slider preview must use the settings snapshot without rereading disk.")
 	await create_timer(0.4, true, false, true).timeout
@@ -802,16 +798,16 @@ func _test_title_state() -> void:
 	settings_page.display_page().select_resolution(1280)
 	settings_page.display_page().select_font(3)
 	_expect(int(settings_repository.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
-	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "Font selection must reach the preview through SettingsPage without a Display-owned settings cache.")
+	_expect(preview.get("_settings") == settings_page.get_current_settings(), "Font selection must reach the preview through SettingsPage without a Display-owned settings cache.")
 	settings_page.display_page().set_screen_toggle(&"portrait_visible", false)
 	_expect(settings_repository.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
 	_expect(not preview_avatar.visible, "Screen preview must hide the avatar immediately when portrait display is disabled.")
 	settings_page.display_page().set_screen_toggle(&"portrait_visible", true)
 	_expect(preview_avatar.visible, "Screen preview must restore the avatar immediately when portrait display is enabled.")
 	settings_page.display_page().set_screen_toggle(&"screen_effect", false)
-	_expect(preview_stage.get("_screen_effects_enabled") == false and preview.get("_runtime_settings") == settings_page.get_current_settings(), "Screen-effect changes must immediately reach the static preview without starting an animation.")
+	_expect(preview.get("_settings") == settings_page.get_current_settings() and (preview.get_node("%Background") as TextureRect).texture == sample_background, "Screen-effect settings must retain the fixed sample without inventing a stage effect.")
 	settings_page.display_page().set_screen_toggle(&"screen_effect", true)
-	_expect(preview_stage.get("_screen_effects_enabled") == true, "Screen-effect settings must restore through the same settings-owner signal.")
+	_expect(preview.get("_settings").get("screen_effect") == true, "The complete settings snapshot must still include unused screen-effect settings.")
 	settings_page.system_page().set_system_toggle_for_test("read_skip", true)
 	_expect(settings_repository.read_settings().get("read_skip", true) == false, "The source readSkip flag is inverted relative to the HD YES/NO label.")
 	settings_page.system_page().set_system_toggle_for_test("lock_auto", true)
@@ -847,7 +843,7 @@ func _test_title_state() -> void:
 	settings_page.confirm_pending_action()
 	_expect(settings_repository.settings_write_count == writes_before_reset + 1, "Confirmed reset must persist once.")
 	var reset_values := settings_repository.read_settings()
-	_expect(preview.get("_runtime_settings") == reset_values, "Reset must publish the complete restored settings state to the preview.")
+	_expect(preview.get("_settings") == reset_values, "Reset must publish the complete restored settings state to the preview.")
 	_expect(is_equal_approx(float(reset_values.get("master_volume", 0.0)), 1.0), "Reset settings must restore default volumes.")
 	_expect(str(reset_values.get("window_mode", "")) == "windowed", "Reset settings must preserve window mode.")
 	_expect(int(reset_values.get("window_width", 0)) == 1280, "Reset settings must preserve window width.")
@@ -872,10 +868,10 @@ func _test_title_state() -> void:
 	var settings_status := chrome.get_node("SettingsStatus") as Label
 	_expect(settings_status.text.contains("设置保存失败"), "A settings persistence failure must remain visible in the settings window.")
 	_expect(int(settings_page.get_current_settings().get("font_type", -1)) == 0, "A failed settings write must roll the UI back to the durable snapshot.")
-	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "A failed settings write must also roll the ADV preview back to the durable snapshot.")
+	_expect(preview.get("_settings") == settings_page.get_current_settings(), "A failed settings write must also roll the ADV preview back to the durable snapshot.")
 	_expect(preview_updates.size() == previews_before_failure + 2 and preview_updates.back() == settings_page.get_current_settings(), "The repository must receive one attempted edit and one rollback notification, without duplicate forwarding.")
 	settings_page.display_page().set_screen_toggle(&"portrait_visible", false)
-	_expect(preview_avatar.visible and preview.get("_runtime_settings") == settings_page.get_current_settings(), "Rollback must restore preview appearance as well as its settings dictionary.")
+	_expect(preview_avatar.visible and preview.get("_settings") == settings_page.get_current_settings(), "Rollback must restore preview appearance as well as its settings dictionary.")
 	settings_repository.fail_settings_write = false
 	settings_page.display_page().select_font(0)
 	# The preceding confirmation may still be fading out even though its

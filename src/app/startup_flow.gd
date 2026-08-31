@@ -19,6 +19,7 @@ const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const TITLE_FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
+const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
 
 @onready var _screen_host: Control = $ScreenHost
 @onready var _overlay_host: Control = $OverlayLayer/OverlayHost
@@ -155,17 +156,17 @@ func _configure_settings_preview(screen: SettingsScreen) -> void:
 	var settings_page := screen.settings_page()
 	var display_page := settings_page.display_page()
 	var settings := settings_page.get_current_settings()
-	var preview := display_page.preview_content() as AdvScreen
+	var preview := display_page.preview_content() as AdvSettingsPreview
 	if preview == null:
-		preview = ADV_SCENE.instantiate() as AdvScreen
+		preview = ADV_SETTINGS_PREVIEW_SCENE.instantiate() as AdvSettingsPreview
 		preview.name = "AdvPreview"
-		preview.configure_preview(settings)
+		preview.configure(settings)
 		display_page.install_preview(preview)
 		# Prepared settings are configured again on activation; connect only
 		# when creating the preview, directly to the complete settings owner.
-		settings_page.settings_preview_changed.connect(preview.apply_preview_settings)
+		settings_page.settings_preview_changed.connect(preview.apply_settings)
 	else:
-		preview.apply_preview_settings(settings)
+		preview.apply_settings(settings)
 
 
 func _on_title_option_selected(option_id: StringName) -> void:

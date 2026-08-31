@@ -11,6 +11,7 @@ const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
+const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
 const FEATURE_ROUTES: Dictionary = {
 	&"album": &"album",
 	&"music": &"music",
@@ -153,11 +154,11 @@ func _capture() -> void:
 	root.add_child(screen)
 	if screen_name == &"settings":
 		var page := (screen as SettingsScreen).settings_page()
-		var preview := ADV_SCENE.instantiate() as AdvScreen
+		var preview := ADV_SETTINGS_PREVIEW_SCENE.instantiate() as AdvSettingsPreview
 		preview.name = "AdvPreview"
-		preview.configure_preview(page.get_current_settings())
+		preview.configure(page.get_current_settings())
 		page.display_page().install_preview(preview)
-		page.settings_preview_changed.connect(preview.apply_preview_settings)
+		page.settings_preview_changed.connect(preview.apply_settings)
 	if screen_name == &"adv_choice":
 		(screen as AdvScreen)._on_choices_ready([
 			{"text": "不过，我觉得这就是有意思的地方", "hint": "一叶", "disabled": false},

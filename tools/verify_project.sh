@@ -92,6 +92,10 @@ required_files=(
 	"src/adv/components/adv_dialogue_view.gd"
 	"src/adv/components/adv_dialogue_view.tscn"
 	"tests/adv_dialogue_view_test.gd"
+	"src/adv/components/adv_dialogue_appearance.gd"
+	"src/adv/preview/adv_settings_preview.gd"
+	"src/adv/preview/adv_settings_preview.tscn"
+	"tests/adv_settings_preview_test.gd"
 	"tools/import_krkr_scenarios.sh"
 	"tools/import_krkr_adv_assets.sh"
 	"tools/import_krkr_adv_sample_assets.sh"
@@ -403,10 +407,22 @@ require_pattern 'type="BackBufferCopy"' "$project_root/src/settings/settings_scr
 require_pattern 'settings_background_blur_material\.tres' "$project_root/src/settings/settings_screen.tscn" "Settings route must render its live backdrop through the blur material."
 require_pattern 'name="PreviewViewport" type="SubViewport"' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings must own a fixed ADV preview viewport."
 require_pattern 'gui_disable_input = true' "$project_root/src/settings/pages/display_settings_page.tscn" "Settings preview must reject GUI input."
-require_pattern 'func configure_preview' "$project_root/src/adv/adv_screen.gd" "ADV must expose a read-only presentation mode without starting gameplay."
-require_pattern 'preview.configure_preview\(settings\)' "$project_root/src/app/startup_flow.gd" "The app must configure the fixed Settings preview with settings only."
+require_pattern 'adv_settings_preview\.tscn' "$project_root/src/app/startup_flow.gd" "Settings must instantiate the lightweight preview scene."
+require_pattern 'preview.configure\(settings\)' "$project_root/src/app/startup_flow.gd" "The app must configure the fixed Settings preview with settings only."
 require_pattern '^func install_preview\(content: Control\)' "$project_root/src/settings/pages/display_settings_page.gd" "Display must only install the supplied preview Control, not accept a settings callback."
-require_pattern 'settings_page\.settings_preview_changed\.connect\(preview\.apply_preview_settings\)' "$project_root/src/app/startup_flow.gd" "The app must connect the ADV preview directly to SettingsPage's complete settings state."
+require_pattern 'settings_page\.settings_preview_changed\.connect\(preview\.apply_settings\)' "$project_root/src/app/startup_flow.gd" "The app must connect the lightweight preview directly to SettingsPage's complete settings state."
+require_pattern 'adv_dialogue_view\.tscn' "$project_root/src/adv/preview/adv_settings_preview.tscn" "Preview must reuse the actual dialogue scene."
+require_pattern 'name="DialogueView".*instance=' "$project_root/src/adv/preview/adv_settings_preview.tscn" "Preview dialogue must remain a normal scene instance."
+require_pattern 'name="ReplayTimer" type="Timer"' "$project_root/src/adv/preview/adv_settings_preview.tscn" "Preview must own a cancellable replay timer."
+require_pattern 'EA01E\.png' "$project_root/src/adv/preview/adv_settings_preview.tscn" "Preview must reference the existing fixed train CG."
+if rg -q 'Krkr|ScenarioRuntime|ScenarioLaunchRequest|SaveData|SaveService|SettingsRepository|AdvStageDirector|AudioStreamPlayer|VideoStreamPlayer|ChoiceOverlay|HistoryOverlay|SystemMenu|adv_screen|res://src/(scenario|core|app)|\.ks["\x27]|editable path=|parent="DialogueView/' "$project_root/src/adv/preview"; then
+	echo "Settings preview must not contain gameplay dependencies or override dialogue internals." >&2
+	exit 1
+fi
+if rg -q '_preview_only|configure_preview|apply_preview_settings|_initialize_preview|_disable_preview_input' "$project_root/src/adv/adv_screen.gd"; then
+	echo "AdvScreen must no longer contain a Settings-preview mode." >&2
+	exit 1
+fi
 if rg -q 'preview_settings_changed|_preview_settings|func _refresh_preview' "$project_root/src/settings/pages/display_settings_page.gd"; then
 	echo "Display must not own a private preview settings cache or update signal." >&2
 	exit 1
@@ -449,6 +465,8 @@ check_runtime_log() {
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --editor --quit --log-file "$verification_log" --path "$project_root"
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_settings_preview_test.gd
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
 check_runtime_log

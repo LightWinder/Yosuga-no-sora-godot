@@ -102,6 +102,8 @@ func _run() -> void:
 	_expect(prepared_settings != null and not prepared_settings.visible, "Settings must finish its first-time scene setup invisibly before the first click.")
 	_expect(prepared_settings.process_mode == Node.PROCESS_MODE_DISABLED, "Prepared settings must not process input behind Title.")
 	_expect_preview_connection(prepared_settings)
+	var prepared_preview := prepared_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
+	_expect(not (prepared_preview.get_node("%DialogueView") as AdvDialogueView).is_revealing() and (prepared_preview.get_node("%ReplayTimer") as Timer).is_stopped(), "Prepared Settings must not start an invisible demo loop.")
 	var previous_max_fps := Engine.max_fps
 	startup_flow._show_title_feature(&"settings")
 	await create_timer(0.4, true, false, true).timeout
@@ -113,17 +115,17 @@ func _run() -> void:
 	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 1, "Settings must overlay the live Title route instead of replacing it.")
 	_expect(not title_underlay.is_processing_input() and not title_underlay.is_processing_unhandled_input(), "The scene behind settings must stop receiving route input while it remains visible.")
 	_expect(title_underlay.is_subscreen_departed(), "Opening settings must run the reusable Title child-screen departure animation.")
-	var title_preview := settings_screen.settings_page().display_page().preview_content() as AdvScreen
+	var title_preview := settings_screen.settings_page().display_page().preview_content() as AdvSettingsPreview
 	_expect_preview_connection(settings_screen)
 	startup_flow._configure_settings_preview(settings_screen)
 	_expect(settings_screen.settings_page().display_page().preview_content() == title_preview, "Repeated preview setup must reuse the prepared ADV instance.")
 	_expect_preview_connection(settings_screen)
 	_test_preview_settings_flow(settings_screen)
-	var sample_message := title_preview.current_message()
-	var sample_stage := (title_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state()
+	var sample_message := (title_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text
+	var sample_background := (title_preview.get_node("%Background") as TextureRect).texture
 	var sample_portrait := (title_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture
 	var sample_speaker := (title_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture
-	_expect(sample_stage.get("background") == "EA01E", "Title Settings must show the fixed train sample.")
+	_expect(sample_background.resource_path.ends_with("EA01E.png"), "Title Settings must show the fixed train sample.")
 	settings_screen.settings_page().read_flags_reset_requested.emit()
 	_expect(read_reset_events.size() == 1, "StartupFlow must expose the settings read-reset integration seam.")
 	settings_screen.back_requested.emit()
@@ -166,16 +168,30 @@ func _run() -> void:
 		adv_settings.visible and not adv_message_panel.visible,
 		"Opening route-level Settings above ADV must hide dialogue chrome from the live blurred backdrop."
 	)
-	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvScreen
+	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
+	var gameplay_view := adv.get_node("%DialogueView") as AdvDialogueView
+	var preview_view := adv_preview.get_node("%DialogueView") as AdvDialogueView
+	_expect(gameplay_view.scene_file_path == preview_view.scene_file_path and preview_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay and preview must reuse the same unmodified dialogue scene.")
+	var gameplay_style := (gameplay_view.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
+	var preview_style := (preview_view.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
+	var gameplay_alpha := gameplay_style.modulate_color.a
+	var preview_settings := adv_settings.settings_page().get_current_settings()
+	var isolated_settings := preview_settings.duplicate(true)
+	isolated_settings["window_depth"] = 17
+	# Bypass the repository deliberately: legitimate settings propagation is not
+	# a shared-resource leak. This checks only direct preview-style mutation.
+	adv_preview.apply_settings(isolated_settings)
+	_expect(gameplay_style != preview_style and is_equal_approx(gameplay_style.modulate_color.a, gameplay_alpha) and is_equal_approx(preview_style.modulate_color.a, 0.17), "Preview-only opacity changes must not mutate gameplay's frame StyleBox.")
+	adv_preview.apply_settings(preview_settings)
 	_expect_preview_connection(adv_settings)
 	_test_preview_settings_flow(adv_settings)
-	_expect(adv_preview != null and adv_preview.current_message() == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
+	_expect(adv_preview != null and (adv_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
 	_expect((adv_preview.get_node("%DialogueView").get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
-	var preview_stage := adv_preview.get_node("%StageDirector") as AdvStageDirector
-	_expect(preview_stage.presentation_state() == sample_stage, "Preview background, characters and camera must match the Title sample, independent of gameplay.")
+	var preview_background := adv_preview.get_node("%Background") as TextureRect
+	_expect(preview_background.texture == sample_background, "Preview background, characters and camera must match the Title sample, independent of gameplay.")
 	_expect((adv_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture == sample_portrait, "In-game Settings must retain the fixed sample portrait.")
 	_expect((adv_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
-	_expect(not (adv_preview.get_node("%ChoiceOverlay") as Control).visible and adv_preview.get_node("%ChoiceList").get_child_count() == 0, "The fixed preview must not contain gameplay choices.")
+	_expect(adv_preview.find_child("ChoiceOverlay", true, false) == null, "The fixed preview must not contain gameplay choices.")
 	adv_settings.back_requested.emit()
 	await create_timer(0.7, true, false, true).timeout
 	_expect(
@@ -184,10 +200,10 @@ func _run() -> void:
 	)
 	_expect(adv.current_message() == source_message, "Closing Settings must preserve the real dialogue instead of applying the preview sample to gameplay.")
 	var reopened_settings := startup_flow.open_settings()
-	var reopened_preview := reopened_settings.settings_page().display_page().preview_content() as AdvScreen
+	var reopened_preview := reopened_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
 	_expect_preview_connection(reopened_settings)
-	_expect(reopened_preview.current_message() == sample_message, "Reopening in-game Settings must still initialize the same fixed sample.")
-	_expect((reopened_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state() == sample_stage, "Reopened Settings must retain the fixed sample stage.")
+	_expect((reopened_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == sample_message, "Reopening in-game Settings must still initialize the same fixed sample.")
+	_expect((reopened_preview.get_node("%Background") as TextureRect).texture == sample_background, "Reopened Settings must retain the fixed sample stage.")
 	startup_flow._close_settings_overlay(false)
 	adv.title_exit_seconds = 0.01
 	adv.title_exit_audio_seconds = 0.01
@@ -247,52 +263,65 @@ func _run() -> void:
 
 func _expect_preview_connection(screen: SettingsScreen) -> void:
 	var settings_page := screen.settings_page()
-	var preview := settings_page.display_page().preview_content() as AdvScreen
+	var preview := settings_page.display_page().preview_content() as AdvSettingsPreview
 	var preview_connections := 0
 	var repository_connections := 0
 	for connection in settings_page.settings_preview_changed.get_connections():
 		var callback: Callable = connection["callable"]
-		if callback == preview.apply_preview_settings:
+		if callback == preview.apply_settings:
 			preview_connections += 1
 		if callback == screen._on_settings_preview:
 			repository_connections += 1
 	_expect(preview_connections == 1, "SettingsPage must connect directly to its preview exactly once, including prepared/reopened Settings.")
 	_expect(repository_connections == 1, "SettingsPage must retain exactly one SettingsScreen repository-forwarding connection.")
 	_expect(not settings_page.display_page().has_signal("preview_settings_changed"), "Display must host the preview without owning a private settings signal.")
-	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "Preview setup must receive the complete current settings snapshot.")
+	_expect(preview.get("_settings") == settings_page.get_current_settings(), "Preview setup must receive the complete current settings snapshot.")
 
 
 func _test_preview_settings_flow(screen: SettingsScreen) -> void:
 	var page := screen.settings_page()
-	var preview := page.display_page().preview_content() as AdvScreen
+	var preview := page.display_page().preview_content() as AdvSettingsPreview
 	var initial_settings := page.get_current_settings()
-	var initial_message := preview.current_message()
+	var initial_message := (preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text
 	var repository := screen.get("_settings_repository") as SettingsRepository
 	var repository_updates: Array[Dictionary] = []
 	var observe_repository := func(values: Dictionary) -> void: repository_updates.append(values.duplicate(true))
 	repository.settings_preview_changed.connect(observe_repository)
 	page.show_tab(SettingsChrome.Tab.SYSTEM)
+	var view := preview.get_node("%DialogueView") as AdvDialogueView
+	var replay := preview.get_node("%ReplayTimer") as Timer
+	_expect(not preview.visible and not view.is_revealing() and replay.is_stopped(), "Leaving Display must stop the preview across its SubViewport boundary.")
 	_expect(not page.display_page().visible, "System slider updates must work while the Display tab is hidden.")
 	page.find_setting_slider("message_speed").value = 77.0
-	var preview_values: Dictionary = preview.get("_runtime_settings")
+	var preview_values: Dictionary = preview.get("_settings")
 	_expect(preview_values.get("message_speed") == 23 and preview_values == page.get_current_settings(), "System message-speed changes must immediately reach the preview as a full snapshot.")
 	_expect(repository_updates.size() == 1 and repository_updates.back() == preview_values, "The repository must receive the same message-speed snapshot exactly once.")
 	page.find_setting_slider("auto_speed").value = 36.0
-	preview_values = preview.get("_runtime_settings")
+	preview_values = preview.get("_settings")
 	_expect(preview_values.get("auto_speed") == 6400 and preview_values.get("message_speed") == 23 and preview_values == page.get_current_settings(), "System auto-speed changes must preserve message speed and all other settings in the preview.")
 	_expect(repository_updates.size() == 2 and repository_updates.back() == preview_values, "The repository must receive the same auto-speed snapshot exactly once.")
 	page.show_tab(SettingsChrome.Tab.DISPLAY)
+	_expect(preview.visible and view.is_revealing() and (view.get_node("%MessageLabel") as RichTextLabel).visible_characters == 0, "Returning to Display must restart the sample from zero.")
 	page.find_setting_slider("window_depth").value = 25.0
-	preview_values = preview.get("_runtime_settings")
+	preview_values = preview.get("_settings")
 	var message_style := (preview.get_node("%DialogueView").get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
 	_expect(is_equal_approx(message_style.modulate_color.a, 0.25) and preview_values == page.get_current_settings(), "Display opacity must update immediately without overwriting the latest System settings.")
 	_expect(repository_updates.size() == 3 and repository_updates.back() == preview_values, "Opacity edits must not duplicate repository preview notifications.")
+	page.display_page().set_screen_toggle(&"portrait_visible", false)
+	_expect(not (view.get_node("%Portrait") as TextureRect).visible and preview.get("_settings") == page.get_current_settings(), "Portrait settings must reach the preview directly.")
+	page.display_page().set_screen_toggle(&"read_color", false)
+	_expect((view.get_node("%MessageLabel") as RichTextLabel).get_theme_color("default_color") == AdvDialogueAppearance.UNREAD_COLOR, "Read-color settings must reach shared dialogue presentation.")
+	page.display_page().select_font(3)
+	_expect(preview.get("_settings").get("font_type") == 3 and (view.get_node("%MessageLabel") as RichTextLabel).get_theme_font("normal_font") == AdvDialogueAppearance.message_font(3), "Font selection must reach the shared gameplay/preview font mapping.")
 	var updates_before_restore := repository_updates.size()
 	page.configure(initial_settings)
-	_expect(preview.get("_runtime_settings") == initial_settings, "Replacing SettingsPage state must also restore the preview snapshot.")
+	_expect(preview.get("_settings") == initial_settings, "Replacing SettingsPage state must also restore the preview snapshot.")
 	_expect(repository_updates.size() == updates_before_restore + 1 and repository_updates.back() == initial_settings, "Reconfiguration must forward the restored snapshot through the existing repository flow once.")
-	_expect(preview.current_message() == initial_message and preview.runtime().build_navigation_checkpoint().is_empty(), "Receiving System settings must not animate the sample or start a scenario.")
+	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == initial_message and (preview.get_node("%DialogueView") as AdvDialogueView).is_revealing(), "Receiving System settings must retain the same sample and resume only its reveal demo.")
 	repository.settings_preview_changed.disconnect(observe_repository)
+	# Toggle/font actions commit immediately, unlike slider previews. Restore
+	# the isolated durable fixture too before reopening Settings in another route.
+	_expect(repository.write_settings(initial_settings), "Preview settings tests must restore their isolated durable snapshot.")
 
 
 func _expect(condition: bool, message: String) -> void:

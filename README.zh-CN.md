@@ -32,14 +32,14 @@ ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，
 环境设定现在完整复刻源 `ConfigWindowHD2` 的 HD 信息架构：
 
 - 全屏 1920×1080 配置窗口以覆盖层形式保留并实时模糊 Title；右上三个页签（Screen/System/Audio）由场景中的原生 `Button`、共享 `ButtonGroup` 和语义化 Theme variation 组成。
-- Screen 页作为高 DPI 重构模板：包含全屏/窗口、1080p/900p/720p、透明度滑块、六个字体选项、简体/日语选项（日语按源工程禁用）以及真实 ADV 场景的只读预览。无论从 Title 还是游戏打开，StartupFlow 都注入同一个固定列车示例，不捕获或传递当前剧情进度、台词、选项或镜头状态。场景中固定声明的 1920×1080 SubViewport 禁用输入，预览不会启动剧情、连接游戏操作、恢复音频或创建存档服务。对话框底图透明度、已读文字颜色与头像显隐共用 ADV 渲染逻辑实时刷新，但不替换示例内容；面板、标题、文字光带选项、开关与滑杆仍由 Theme 和 CanvasItem 绘制。单独打开编辑器场景时，在应用注入渲染器之前仅显示背景图占位。
+- Screen 页作为高 DPI 重构模板：包含全屏/窗口、1080p/900p/720p、透明度滑块、六个字体选项、简体/日语选项（日语按源工程禁用）和轻量 `AdvSettingsPreview`。Title 与游戏入口统一注入固定列车 CG、姓名、头像和示例文本，不捕获当前剧情状态。预览只有固定贴图、真实 `AdvDialogueView` 场景和重播 Timer，不含剧情运行器、舞台控制器、音频、持久化、选项或游戏菜单。保留 1920×1080 SubViewport、10 px 内边距及圆角裁切；视口和对话框均拒绝鼠标、键盘及焦点输入。底图透明度、已读颜色和头像显隐实时更新，不替换示例内容；面板、标题、选项与滑杆仍由 Theme/CanvasItem 绘制。单独打开编辑器场景时，在应用注入渲染器之前仅显示背景图占位。
 - System 页：五组 YES/NO 开关、文字速度/自动播放等待滑块、11 个由 Canvas primitives 绘制的确认窗口勾选框。
 - Audio 页：九个角色语音按钮（sora/nao/akira/kazuha/motoka/ryohei/yahiro/kozue/npc 源坐标）与立绘切换；每角色独立音量使用源梯形滑块（旋钮随值 115%→155% 缩放）；六个固定 100% 全局通道滑块；角色音量拖动结束后播放源 `個別音声` 样本，音量 = Master × Voice × 角色细节（经由 Godot 总线等效实现）。
 - 页脚：初始化设定/初始化已读/快捷键/返回标题四个 Godot 文本按钮；快捷键和确认弹窗共用 `SettingsModal` 的局部背景模糊、遮罩淡入淡出和居中缩放动画，只有弹窗实际覆盖区域会模糊，外侧画面保持清晰；内容仍由面板、文字和表格控件组成，不依赖文字贴图；右击或 Esc 先播放弹窗退出动画，再关闭窗口。
 - 初始化流程按源 `CallConfirm`：确认窗口使用源 `ui_1920/confirm` 的 bg/yes/no/ask_always 贴图，Y/Enter 确认、N/Esc/右击取消，“总是询问”勾选框直接改写对应 `confirmations` 项；关闭勾选后重置不再弹窗。初始化设定保留窗口模式与窗口宽度（对应源保留 `fullScreen`/`windowZoom`）；初始化已读发出 typed seam（读档数据存储待 ADV 层迁移）。
 - 设置模型 schema 升级到 3：语音细节从原型 9 槽迁移为源 VCID_TO_INDEX 的 11 槽（SR/AK/NO/KA/MT/RH/YH/KO/YM/SH/NP）并自动重排旧值；`window_opacity` 迁移为源的 `window_depth`（0–100）；`message_speed` 迁移为源 0–100 刻度。滑块拖动实时预览、拖动结束或 250ms debounce 后写入，且每次预览不重读磁盘。
 
-ADV 预览在视觉上由 Display 页承载，但设置数据来自 `SettingsPage` 的完整状态。StartupFlow 仅在预览首次创建时连接信号，SettingsScreen 同时沿原路径把同一信号转发给 SettingsRepository。因此系统页的 `message_speed`、`auto_speed` 修改也会立即传入静态预览，暂不增加演示动画；重新配置及保存失败回退同样广播恢复后的状态，但不发起新的提交。
+ADV 预览在视觉上由 Display 页承载，但设置来自 `SettingsPage` 的完整状态。StartupFlow 仅在首次创建时连接预览；SettingsScreen 独立沿原路径转发给 SettingsRepository。固定台词按 `message_speed` 打字，完成后等待 `auto_speed` 毫秒再重复；实时修改打字速度保留当前进度，等待途中修改自动速度只影响下一轮等待。Display 把宿主显隐同步到 SubViewport 内：隐藏页签／预先准备的设置停止打字和 Timer，重新显示画面页从零开始。重新配置及保存失败回退广播恢复后的设置，不发起新提交。`AdvDialogueAppearance` 共用游戏／预览的颜色和字体解析。**现有字体限制：**原版六套字体尚未导入，所有字体 ID 在游戏和预览中仍使用已打包的小赖字体回退，不另造预览专用替代字体。
 
 ## 运行
 
@@ -82,7 +82,7 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 - `src/app/`：负责启动状态流转及路由级合成；设置作为覆盖层保留当前页面，并通过 `BackBufferCopy + SCREEN_TEXTURE` 直接实时模糊其后方画面。Title 的离场/返回动画和设置 UI 都在同一个主 Viewport 中运行。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
 - `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、角色差分、主菜单/鉴赏菜单按钮和底部 chrome，脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
-- `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。`components/adv_dialogue_view` 持有原样的对话布局、外观、打字与框体动画，仅接收已解析的贴图和数值，不依赖剧情或设置模块。
+- `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。`components/adv_dialogue_view` 持有原样的对话布局、外观、打字与框体动画，仅接收已解析的贴图和数值，不依赖剧情或设置模块。永久坐标、框型及恢复 API 同步静止状态，临时下滑偏移不会成为保存的静止坐标。`preview/adv_settings_preview` 复用该组件，负责独立循环的设置演示。
 - `src/save_load/`：与 Title 解耦的存读档功能；单个场景固定持有 4×3 槽位网格、预览、分页、操作区和确认层，槽位卡是独立复用场景。Title 以 Load 模式配置，ADV 使用当前 `SaveData` 复用同一页面的 Save/Load 模式。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。

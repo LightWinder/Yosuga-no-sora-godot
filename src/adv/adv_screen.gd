@@ -139,45 +139,6 @@ var _choice_jump_environment_target: Dictionary = {}
 var _choice_jump_stage_instructions: Array[KrkrScenarioInstruction] = []
 var _route_exit_tween: Tween
 var _route_exiting := false
-var _preview_only := false
-
-
-## Settings always shows the same fixed sample, independent of the active route.
-## Configure before entering the tree: this path never starts a scenario,
-## connects gameplay actions, creates services, or restores audio.
-func configure_preview(settings: Dictionary) -> void:
-	assert(not is_inside_tree())
-	_preview_only = true
-	_runtime_settings = SettingsModel.normalize(settings)
-	process_mode = Node.PROCESS_MODE_DISABLED
-
-
-func _initialize_preview() -> void:
-	_stage_director.restore_presentation({"background": "EA01E"})
-	_current_speaker = "穹"
-	_current_message = "……别把我当小孩子，明明我和你一般大的。"
-	_current_message_already_read = true
-	_apply_runtime_settings(_runtime_settings)
-	_present_current_dialogue(true)
-	_dialogue_view.set_interactive(false)
-	_disable_preview_input(self)
-
-
-func apply_preview_settings(settings: Dictionary) -> void:
-	assert(_preview_only)
-	_apply_runtime_settings(settings)
-
-
-func _disable_preview_input(node: Node) -> void:
-	node.set_process_input(false)
-	node.set_process_unhandled_input(false)
-	node.set_process_unhandled_key_input(false)
-	if node is Control:
-		(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
-		(node as Control).focus_mode = Control.FOCUS_NONE
-		(node as Control).tooltip_text = ""
-	for child in node.get_children(true):
-		_disable_preview_input(child)
 
 
 func configure(
@@ -192,10 +153,6 @@ func configure(
 
 func _ready() -> void:
 	super._ready()
-	if _preview_only:
-		_load_speaker_name_textures()
-		_initialize_preview()
-		return
 	InputActions.ensure_actions()
 	_progress_catalog = AdvProgressCatalog.load_default()
 	if not _progress_catalog.load_error.is_empty():
@@ -244,8 +201,6 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _preview_only:
-		return
 	if _route_exiting:
 		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
 			get_viewport().set_input_as_handled()
@@ -641,10 +596,11 @@ func _refresh_message_appearance() -> void:
 		float(_runtime_settings.get("window_depth", 50)) / 100.0
 	)
 	_dialogue_view.set_message_font_size(_current_message_font_size)
+	_dialogue_view.set_message_font(AdvDialogueAppearance.message_font(int(_runtime_settings.get("font_type", 0))))
 	_dialogue_view.set_message_color(
-		Color(0.72, 0.91, 1.0, 1.0)
-		if _current_message_already_read and bool(_runtime_settings.get("read_color", true))
-		else Color(0.98, 0.995, 1.0, 1.0)
+		AdvDialogueAppearance.message_color(
+			_current_message_already_read, bool(_runtime_settings.get("read_color", true))
+		)
 	)
 
 
@@ -2131,8 +2087,7 @@ func _apply_runtime_settings(settings: Dictionary) -> void:
 	_stop_voice_on_advance = bool(_runtime_settings.get("voice_stop_on_click", false))
 	_preserve_skip_after_choice = bool(_runtime_settings.get("lock_skip", false))
 	_preserve_auto_after_choice = bool(_runtime_settings.get("lock_auto", false))
-	if not _preview_only:
-		_set_system_menu_locked(bool(_runtime_settings.get("system_menu_lock", true)))
+	_set_system_menu_locked(bool(_runtime_settings.get("system_menu_lock", true)))
 	_route_guide_enabled = bool(_runtime_settings.get("route_guide", true))
 	_update_portrait(_current_speaker)
 	_refresh_message_appearance()

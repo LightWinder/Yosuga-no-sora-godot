@@ -16,6 +16,10 @@ const HIDE_OFFSET := Vector2(0.0, 120.0)
 @onready var _message_label: RichTextLabel = %MessageLabel
 @onready var _portrait: TextureRect = %Portrait
 @onready var _hide_button: TextureButton = %MessageHideButton
+@onready var _message_focus_mode := _message_label.focus_mode
+@onready var _message_scrollbar: VScrollBar = _message_label.get_v_scroll_bar()
+@onready var _scrollbar_focus_mode := _message_scrollbar.focus_mode
+@onready var _scrollbar_mouse_filter := _message_scrollbar.mouse_filter
 
 var _frame_style: StyleBoxTexture
 var _interactive := true
@@ -53,6 +57,10 @@ func set_interactive(enabled: bool) -> void:
 	_message_panel.mouse_filter = Control.MOUSE_FILTER_PASS if enabled else Control.MOUSE_FILTER_IGNORE
 	(%MessageColumn as Control).mouse_filter = _message_panel.mouse_filter
 	_speaker_label.mouse_filter = _message_panel.mouse_filter
+	# RichTextLabel owns an internal scrollbar even when scrolling is disabled.
+	_message_label.focus_mode = _message_focus_mode if enabled else Control.FOCUS_NONE
+	_message_scrollbar.focus_mode = _scrollbar_focus_mode if enabled else Control.FOCUS_NONE
+	_message_scrollbar.mouse_filter = _scrollbar_mouse_filter if enabled else Control.MOUSE_FILTER_IGNORE
 
 
 func _on_hide_pressed() -> void:
@@ -80,6 +88,10 @@ func set_portrait(texture: Texture2D) -> void:
 
 func set_message_font_size(font_size: int) -> void:
 	_message_label.add_theme_font_size_override("normal_font_size", font_size)
+
+
+func set_message_font(font: Font) -> void:
+	_message_label.add_theme_font_override("normal_font", font)
 
 
 func set_message_color(color: Color) -> void:
@@ -171,7 +183,11 @@ func is_frame_visible() -> bool:
 
 
 func set_frame_position(value: Vector2) -> void:
+	# A permanent move replaces the resting position, never an animation offset.
+	_cancel_frame_transition()
+	_rest_position = value
 	_message_panel.position = value
+	_message_panel.modulate = _rest_modulate
 
 
 ## Change only the display flag, preserving a scenario fade's current alpha.
@@ -190,19 +206,21 @@ func restore_frame_state(frame_position_value: Vector2, alpha: float, visible_va
 
 func apply_frame_type(frame_type: String) -> void:
 	if frame_type == "10" or frame_type == "ノベル":
-		_message_panel.position = Vector2.ZERO
+		set_frame_position(Vector2.ZERO)
 		_message_panel.size = Vector2(1920.0, 1080.0)
 	else:
-		_message_panel.position = Vector2(0.0, 760.0)
+		set_frame_position(Vector2(0.0, 760.0))
 		_message_panel.size = Vector2(1920.0, 320.0)
 
 
 ## Script show/hide and initial dialogue use a fade, without manual sliding.
 func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 	_cancel_frame_transition()
+	_message_panel.position = _rest_position
 	_message_panel.visible = true
 	var alpha := 1.0 if value else 0.0
 	_frame_finish = func() -> void:
+		_rest_modulate.a = alpha
 		_message_panel.modulate.a = alpha
 		_message_panel.visible = value
 	if duration <= 0.0:
@@ -216,7 +234,7 @@ func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 ## Player chrome slides and fades, retaining the resting frame even when hidden.
 ## Overlay callers use duration 0 to hide/restore synchronously.
 func set_chrome_visible(value: bool, duration: float = 0.3) -> void:
-	# Settle an interrupted slide before capturing its resting state again.
+	# Temporary slide offsets never become the resting frame state.
 	finish_frame_transition()
 	if value:
 		_message_panel.visible = true
@@ -225,9 +243,6 @@ func set_chrome_visible(value: bool, duration: float = 0.3) -> void:
 		if duration > 0.0:
 			_message_panel.position += HIDE_OFFSET
 			_message_panel.modulate.a = 0.0
-	else:
-		_rest_position = _message_panel.position
-		_rest_modulate = _message_panel.modulate
 	_frame_finish = func() -> void:
 		_message_panel.position = _rest_position
 		_message_panel.modulate = _rest_modulate
