@@ -2,11 +2,9 @@ class_name DisplaySettingsPage
 extends SettingsPageBase
 
 
-signal preview_settings_changed(settings: Dictionary)
-
 ## Display-settings controller. The scene owns the complete visual hierarchy;
-## this script only groups choices, translates UI values and updates preview
-## state.
+## this script groups choices, translates UI values and hosts preview content.
+## SettingsPage owns the complete settings state and preview updates.
 const WINDOW_MODES: Array[String] = ["fullscreen", "windowed"]
 const RESOLUTION_WIDTHS: Array[int] = [1920, 1600, 1280]
 const FONT_TYPES: Array[int] = [2, 4, 0, 3, 5, 1]
@@ -23,7 +21,6 @@ var _window_mode_choices := SettingsChoiceGroup.new()
 var _resolution_choices := SettingsChoiceGroup.new()
 var _font_choices := SettingsChoiceGroup.new()
 var _toggle_choices: Dictionary[StringName, SettingsChoiceGroup] = {}
-var _preview_settings: Dictionary = {}
 
 @onready var _window_mode_buttons: Array[SettingsChoiceButton] = [
 	%FullscreenChoice,
@@ -61,12 +58,10 @@ var _preview_settings: Dictionary = {}
 
 ## The composition root supplies presentation content; Settings never imports
 ## a gameplay page. A TextureRect displays the viewport without forwarding input.
-func install_preview(content: Control, apply_settings: Callable) -> void:
+func install_preview(content: Control) -> void:
 	assert(_preview_viewport.get_child_count() == 0)
 	_preview_viewport.add_child(content)
 	_preview_artwork.texture = _preview_viewport.get_texture()
-	preview_settings_changed.connect(apply_settings)
-	apply_settings.call(_preview_settings)
 
 
 func preview_content() -> Control:
@@ -91,7 +86,6 @@ func sync_from(settings: Dictionary) -> void:
 	for key in _toggle_choices:
 		_toggle_choices[key].select_value(bool(settings.get(key, true)))
 	_opacity_slider.set_value_silent(float(settings.get(WINDOW_DEPTH_KEY, 50)))
-	_refresh_preview(settings)
 
 
 func select_window_mode(mode: String) -> void:
@@ -162,17 +156,10 @@ func _on_font_selected(value: Variant) -> void:
 
 func _on_opacity_changed(value: float) -> void:
 	emit_patch({WINDOW_DEPTH_KEY: int(value)})
-	_preview_settings[WINDOW_DEPTH_KEY] = int(value)
-	preview_settings_changed.emit(_preview_settings.duplicate(true))
 
 
 func _on_screen_toggle_selected(value: Variant, key: StringName) -> void:
 	emit_patch({key: bool(value)}, true)
-
-
-func _refresh_preview(settings: Dictionary) -> void:
-	_preview_settings = settings.duplicate(true)
-	preview_settings_changed.emit(_preview_settings.duplicate(true))
 
 
 func _set_desktop_window_controls_visible(visible_value: bool) -> void:

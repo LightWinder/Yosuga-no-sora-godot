@@ -31,7 +31,7 @@ src/ui/                      不含业务语义的共享 UI/layout
 - `tools/import_krkr_adv_assets.sh` 只导入这 306 个 UTF-8 剧本实际引用的媒体及固定 ADV 界面素材；完整素材覆盖测试负责阻止缺图、缺音频或缺转场规则进入运行时。导入阶段还会将 `CgSetupInfo.tjs` 中的背景环境色调归一化为 UTF-8 CSV，运行时不读取 TJS 或 UTF-16 源文件。
 - `src/scenario/` 持有跨功能的 instruction/document/parser/runtime，不引用具体页面或媒体节点。运行时在 Talk/Hitret、选择、等待、影片等边界暂停并发出 typed signal。
 - `src/adv/adv_screen.tscn` 固定持有舞台、文本框、菜单、选项/履历/影片覆盖层和音频播放器；脚本只协调状态并创建剧本数量决定的角色和选项。
-- 设置预览由 `StartupFlow` 把同一 ADV 场景以只读模式注入 Display 页的固定 `SubViewport`；Settings 只接受 `Control` 和设置同步回调，不反向导入 ADV。Title 和游戏入口统一使用固定列车示例，预览接口只接受设置，不捕获、传递或恢复当前游戏的演出快照与选项。只读模式不启动 runtime、不连接操作、不创建持久化服务、不恢复声音，整个场景暂停处理，视口和子控件均拒绝输入。对话框底图透明度修改实例自己的 StyleBox，不能污染共享 Theme 或让文字、头像一起变淡。
+- 设置预览由 `StartupFlow` 把同一 ADV 场景以只读模式注入 Display 页的固定 `SubViewport`；Display 的 `install_preview(Control)` 只负责视觉承载，不保存预览设置或广播私有更新信号，也不反向导入 ADV。`SettingsPage` 是三个页签完整设置状态的唯一来源；组合根仅在预览首次创建时，把它的 `settings_preview_changed` 连接到预览，同时保留 `SettingsScreen → SettingsRepository` 的原有转发。系统页的 `message_speed` / `auto_speed` 因而直接传入预览，暂不播放速度演示。重新配置（含保存失败回退）由 `SettingsPage` 广播恢复后的快照，不触发新的提交，也不额外重复通知 Repository。Title 和游戏入口统一使用固定列车示例，预览接口只接受设置，不捕获、传递或恢复当前游戏的演出快照与选项。只读模式不启动 runtime、不连接操作、不创建持久化服务、不恢复声音，整个场景暂停处理，视口和子控件均拒绝输入。对话框底图透明度修改实例自己的 StyleBox，不能污染共享 Theme 或让文字、头像一起变淡。
 - `SaveData` 持久化源 `_stackSelect`/`_logSaveInfo` 对应的选项导航检查点；读档必须在恢复首个对话并写自动存档之前恢复该栈，确保“上一选项”不会因读档丢失。
 - `src/adv/adv_asset_resolver.gd` 只解析项目内 `res://` 资源，按不区分大小写的源 ID 复用 event、BGM 和 video 目录。缺失资源不改变 scenario 状态机语义。
 

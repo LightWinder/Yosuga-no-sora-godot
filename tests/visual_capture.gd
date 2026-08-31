@@ -156,7 +156,8 @@ func _capture() -> void:
 		var preview := ADV_SCENE.instantiate() as AdvScreen
 		preview.name = "AdvPreview"
 		preview.configure_preview(page.get_current_settings())
-		page.display_page().install_preview(preview, preview.apply_preview_settings)
+		page.display_page().install_preview(preview)
+		page.settings_preview_changed.connect(preview.apply_preview_settings)
 	if screen_name == &"adv_choice":
 		(screen as AdvScreen)._on_choices_ready([
 			{"text": "不过，我觉得这就是有意思的地方", "hint": "一叶", "disabled": false},

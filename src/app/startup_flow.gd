@@ -152,14 +152,18 @@ func _prepare_settings_screen() -> void:
 
 
 func _configure_settings_preview(screen: SettingsScreen) -> void:
-	var page := screen.settings_page().display_page()
-	var settings := screen.settings_page().get_current_settings()
-	var preview := page.preview_content() as AdvScreen
+	var settings_page := screen.settings_page()
+	var display_page := settings_page.display_page()
+	var settings := settings_page.get_current_settings()
+	var preview := display_page.preview_content() as AdvScreen
 	if preview == null:
 		preview = ADV_SCENE.instantiate() as AdvScreen
 		preview.name = "AdvPreview"
 		preview.configure_preview(settings)
-		page.install_preview(preview, preview.apply_preview_settings)
+		display_page.install_preview(preview)
+		# Prepared settings are configured again on activation; connect only
+		# when creating the preview, directly to the complete settings owner.
+		settings_page.settings_preview_changed.connect(preview.apply_preview_settings)
 	else:
 		preview.apply_preview_settings(settings)
 

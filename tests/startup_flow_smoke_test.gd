@@ -55,6 +55,10 @@ func _run() -> void:
 	Engine.time_scale = 20.0
 	var startup_flow := STARTUP_FLOW_SCENE.instantiate() as StartupFlow
 	root.add_child(startup_flow)
+	var startup_settings_repository := startup_flow.get("_settings_repository") as SettingsRepository
+	startup_settings_repository.configure_storage(
+		"/tmp/yosuga-startup-settings-smoke-%d/settings.json" % Time.get_ticks_usec()
+	)
 	await create_timer(1.5, true, false, true).timeout
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "Automatic startup flow did not reach Title.")
 	var startup_audio := startup_flow.get_node("StartupAudio") as StartupAudio
@@ -97,6 +101,7 @@ func _run() -> void:
 	var prepared_settings := overlay_host.get_child(overlay_host.get_child_count() - 1) as SettingsScreen
 	_expect(prepared_settings != null and not prepared_settings.visible, "Settings must finish its first-time scene setup invisibly before the first click.")
 	_expect(prepared_settings.process_mode == Node.PROCESS_MODE_DISABLED, "Prepared settings must not process input behind Title.")
+	_expect_preview_connection(prepared_settings)
 	var previous_max_fps := Engine.max_fps
 	startup_flow._show_title_feature(&"settings")
 	await create_timer(0.4, true, false, true).timeout
@@ -109,6 +114,11 @@ func _run() -> void:
 	_expect(not title_underlay.is_processing_input() and not title_underlay.is_processing_unhandled_input(), "The scene behind settings must stop receiving route input while it remains visible.")
 	_expect(title_underlay.is_subscreen_departed(), "Opening settings must run the reusable Title child-screen departure animation.")
 	var title_preview := settings_screen.settings_page().display_page().preview_content() as AdvScreen
+	_expect_preview_connection(settings_screen)
+	startup_flow._configure_settings_preview(settings_screen)
+	_expect(settings_screen.settings_page().display_page().preview_content() == title_preview, "Repeated preview setup must reuse the prepared ADV instance.")
+	_expect_preview_connection(settings_screen)
+	_test_preview_settings_flow(settings_screen)
 	var sample_message := title_preview.current_message()
 	var sample_stage := (title_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state()
 	var sample_portrait := (title_preview.get_node("%Portrait") as TextureRect).texture
@@ -157,6 +167,8 @@ func _run() -> void:
 		"Opening route-level Settings above ADV must hide dialogue chrome from the live blurred backdrop."
 	)
 	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvScreen
+	_expect_preview_connection(adv_settings)
+	_test_preview_settings_flow(adv_settings)
 	_expect(adv_preview != null and adv_preview.current_message() == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
 	_expect((adv_preview.get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
 	var preview_stage := adv_preview.get_node("%StageDirector") as AdvStageDirector
@@ -173,6 +185,7 @@ func _run() -> void:
 	_expect(adv.current_message() == source_message, "Closing Settings must preserve the real dialogue instead of applying the preview sample to gameplay.")
 	var reopened_settings := startup_flow.open_settings()
 	var reopened_preview := reopened_settings.settings_page().display_page().preview_content() as AdvScreen
+	_expect_preview_connection(reopened_settings)
 	_expect(reopened_preview.current_message() == sample_message, "Reopening in-game Settings must still initialize the same fixed sample.")
 	_expect((reopened_preview.get_node("%StageDirector") as AdvStageDirector).presentation_state() == sample_stage, "Reopened Settings must retain the fixed sample stage.")
 	startup_flow._close_settings_overlay(false)
@@ -230,6 +243,56 @@ func _run() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
+
+
+func _expect_preview_connection(screen: SettingsScreen) -> void:
+	var settings_page := screen.settings_page()
+	var preview := settings_page.display_page().preview_content() as AdvScreen
+	var preview_connections := 0
+	var repository_connections := 0
+	for connection in settings_page.settings_preview_changed.get_connections():
+		var callback: Callable = connection["callable"]
+		if callback == preview.apply_preview_settings:
+			preview_connections += 1
+		if callback == screen._on_settings_preview:
+			repository_connections += 1
+	_expect(preview_connections == 1, "SettingsPage must connect directly to its preview exactly once, including prepared/reopened Settings.")
+	_expect(repository_connections == 1, "SettingsPage must retain exactly one SettingsScreen repository-forwarding connection.")
+	_expect(not settings_page.display_page().has_signal("preview_settings_changed"), "Display must host the preview without owning a private settings signal.")
+	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "Preview setup must receive the complete current settings snapshot.")
+
+
+func _test_preview_settings_flow(screen: SettingsScreen) -> void:
+	var page := screen.settings_page()
+	var preview := page.display_page().preview_content() as AdvScreen
+	var initial_settings := page.get_current_settings()
+	var initial_message := preview.current_message()
+	var repository := screen.get("_settings_repository") as SettingsRepository
+	var repository_updates: Array[Dictionary] = []
+	var observe_repository := func(values: Dictionary) -> void: repository_updates.append(values.duplicate(true))
+	repository.settings_preview_changed.connect(observe_repository)
+	page.show_tab(SettingsChrome.Tab.SYSTEM)
+	_expect(not page.display_page().visible, "System slider updates must work while the Display tab is hidden.")
+	page.find_setting_slider("message_speed").value = 77.0
+	var preview_values: Dictionary = preview.get("_runtime_settings")
+	_expect(preview_values.get("message_speed") == 23 and preview_values == page.get_current_settings(), "System message-speed changes must immediately reach the preview as a full snapshot.")
+	_expect(repository_updates.size() == 1 and repository_updates.back() == preview_values, "The repository must receive the same message-speed snapshot exactly once.")
+	page.find_setting_slider("auto_speed").value = 36.0
+	preview_values = preview.get("_runtime_settings")
+	_expect(preview_values.get("auto_speed") == 6400 and preview_values.get("message_speed") == 23 and preview_values == page.get_current_settings(), "System auto-speed changes must preserve message speed and all other settings in the preview.")
+	_expect(repository_updates.size() == 2 and repository_updates.back() == preview_values, "The repository must receive the same auto-speed snapshot exactly once.")
+	page.show_tab(SettingsChrome.Tab.DISPLAY)
+	page.find_setting_slider("window_depth").value = 25.0
+	preview_values = preview.get("_runtime_settings")
+	var message_style := (preview.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
+	_expect(is_equal_approx(message_style.modulate_color.a, 0.25) and preview_values == page.get_current_settings(), "Display opacity must update immediately without overwriting the latest System settings.")
+	_expect(repository_updates.size() == 3 and repository_updates.back() == preview_values, "Opacity edits must not duplicate repository preview notifications.")
+	var updates_before_restore := repository_updates.size()
+	page.configure(initial_settings)
+	_expect(preview.get("_runtime_settings") == initial_settings, "Replacing SettingsPage state must also restore the preview snapshot.")
+	_expect(repository_updates.size() == updates_before_restore + 1 and repository_updates.back() == initial_settings, "Reconfiguration must forward the restored snapshot through the existing repository flow once.")
+	_expect(preview.current_message() == initial_message and preview.runtime().build_navigation_checkpoint().is_empty(), "Receiving System settings must not animate the sample or start a scenario.")
+	repository.settings_preview_changed.disconnect(observe_repository)
 
 
 func _expect(condition: bool, message: String) -> void:

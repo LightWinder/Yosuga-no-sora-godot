@@ -39,6 +39,8 @@ Settings now reproduce the source `ConfigWindowHD2` information architecture:
 - Reset follows the source `CallConfirm` behavior. The confirmation window uses the source `ui_1920/confirm` bg/yes/no/ask_always artwork. Y/Enter confirms; N/Escape/right-click cancels. “Always ask” writes directly to the associated `confirmations` setting, and disabling it skips future confirmation for that reset. Reset Settings preserves window mode and width, matching source `fullScreen`/`windowZoom` behavior. Reset Read Text emits a typed seam pending the ADV storage migration.
 - Settings schema 3 migrates the prototype's nine voice-detail slots into the source VCID_TO_INDEX layout with 11 slots—SR/AK/NO/KA/MT/RH/YH/KO/YM/SH/NP—and reorders legacy values automatically. `window_opacity` migrates to the source-compatible `window_depth` range of 0–100, while `message_speed` migrates to the source 0–100 scale. Sliders preview live and persist at drag end or after a 250 ms debounce without rereading disk on every preview.
 
+The ADV preview is visually hosted by Display, but its settings source is the complete `SettingsPage` state. StartupFlow connects the preview once on creation, while SettingsScreen independently forwards the same signal to SettingsRepository. System-tab `message_speed` and `auto_speed` edits therefore reach the static preview immediately without adding animation; reconfiguration and failed-write rollback also publish the restored state without scheduling another commit.
+
 ## Running
 
 Open the directory with Godot 4.7.1 or a compatible 4.7 maintenance release, or run:

@@ -39,6 +39,8 @@ ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，
 - 初始化流程按源 `CallConfirm`：确认窗口使用源 `ui_1920/confirm` 的 bg/yes/no/ask_always 贴图，Y/Enter 确认、N/Esc/右击取消，“总是询问”勾选框直接改写对应 `confirmations` 项；关闭勾选后重置不再弹窗。初始化设定保留窗口模式与窗口宽度（对应源保留 `fullScreen`/`windowZoom`）；初始化已读发出 typed seam（读档数据存储待 ADV 层迁移）。
 - 设置模型 schema 升级到 3：语音细节从原型 9 槽迁移为源 VCID_TO_INDEX 的 11 槽（SR/AK/NO/KA/MT/RH/YH/KO/YM/SH/NP）并自动重排旧值；`window_opacity` 迁移为源的 `window_depth`（0–100）；`message_speed` 迁移为源 0–100 刻度。滑块拖动实时预览、拖动结束或 250ms debounce 后写入，且每次预览不重读磁盘。
 
+ADV 预览在视觉上由 Display 页承载，但设置数据来自 `SettingsPage` 的完整状态。StartupFlow 仅在预览首次创建时连接信号，SettingsScreen 同时沿原路径把同一信号转发给 SettingsRepository。因此系统页的 `message_speed`、`auto_speed` 修改也会立即传入静态预览，暂不增加演示动画；重新配置及保存失败回退同样广播恢复后的状态，但不发起新的提交。
+
 ## 运行
 
 使用 Godot 4.7.1 或兼容的 4.7 维护版本打开目录，或执行：

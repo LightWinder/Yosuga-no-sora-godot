@@ -124,5 +124,4 @@ func _on_settings_commit(settings: Dictionary) -> void:
 	# failed write was saved.
 	var persisted := _settings_repository.read_settings()
 	_settings_page.configure(persisted)
-	_settings_repository.preview_settings(persisted)
 	_settings_page.report_error("设置保存失败：%s" % write_error)

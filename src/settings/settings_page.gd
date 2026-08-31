@@ -30,6 +30,9 @@ func configure(settings: Dictionary) -> void:
 	_values = SettingsModel.normalize(settings)
 	if is_inside_tree():
 		_sync_pages()
+		# Reconfiguration also covers rollback after a failed write. Publish the
+		# restored snapshot without treating it as an edit or scheduling a commit.
+		settings_preview_changed.emit(_values.duplicate(true))
 
 
 ## Lets the route owner finish this page's one-time scene setup in the

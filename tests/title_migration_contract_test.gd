@@ -531,7 +531,8 @@ func _test_title_state() -> void:
 	var preview := ADV_SCENE.instantiate() as AdvScreen
 	preview.name = "AdvPreview"
 	preview.configure_preview(settings_page.get_current_settings())
-	settings_page.display_page().install_preview(preview, preview.apply_preview_settings)
+	settings_page.display_page().install_preview(preview)
+	settings_page.settings_preview_changed.connect(preview.apply_preview_settings)
 	_expect(settings_page != null, "Settings must expose a dedicated HD window model.")
 	_expect(settings.get_node_or_null("Content") == null, "Settings route must not retain hidden generic feature chrome.")
 	_expect(settings.scene_file_path.ends_with("settings_screen.tscn"), "Settings must be owned by a dedicated route scene.")
@@ -780,6 +781,7 @@ func _test_title_state() -> void:
 	master_slider.value = 43.0
 	master_slider.value = 44.0
 	_expect(preview_updates.size() >= 3, "Settings slider must preview each value change in real time.")
+	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings() and preview_updates.back() == settings_page.get_current_settings(), "Audio edits must reach both the ADV preview and repository as the same complete settings snapshot.")
 	_expect(settings_repository.settings_write_count == writes_before_preview, "Slider preview must not write settings for every value_changed.")
 	_expect(settings_repository.settings_disk_read_count == settings_reads_before_preview, "Slider preview must use the settings snapshot without rereading disk.")
 	await create_timer(0.4, true, false, true).timeout
@@ -800,11 +802,16 @@ func _test_title_state() -> void:
 	settings_page.display_page().select_resolution(1280)
 	settings_page.display_page().select_font(3)
 	_expect(int(settings_repository.read_settings().get("font_type", 0)) == 3, "Font type must persist.")
+	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "Font selection must reach the preview through SettingsPage without a Display-owned settings cache.")
 	settings_page.display_page().set_screen_toggle(&"portrait_visible", false)
 	_expect(settings_repository.read_settings().get("portrait_visible", true) == false, "Screen toggles must persist.")
 	_expect(not preview_avatar.visible, "Screen preview must hide the avatar immediately when portrait display is disabled.")
 	settings_page.display_page().set_screen_toggle(&"portrait_visible", true)
 	_expect(preview_avatar.visible, "Screen preview must restore the avatar immediately when portrait display is enabled.")
+	settings_page.display_page().set_screen_toggle(&"screen_effect", false)
+	_expect(preview_stage.get("_screen_effects_enabled") == false and preview.get("_runtime_settings") == settings_page.get_current_settings(), "Screen-effect changes must immediately reach the static preview without starting an animation.")
+	settings_page.display_page().set_screen_toggle(&"screen_effect", true)
+	_expect(preview_stage.get("_screen_effects_enabled") == true, "Screen-effect settings must restore through the same settings-owner signal.")
 	settings_page.system_page().set_system_toggle_for_test("read_skip", true)
 	_expect(settings_repository.read_settings().get("read_skip", true) == false, "The source readSkip flag is inverted relative to the HD YES/NO label.")
 	settings_page.system_page().set_system_toggle_for_test("lock_auto", true)
@@ -840,6 +847,7 @@ func _test_title_state() -> void:
 	settings_page.confirm_pending_action()
 	_expect(settings_repository.settings_write_count == writes_before_reset + 1, "Confirmed reset must persist once.")
 	var reset_values := settings_repository.read_settings()
+	_expect(preview.get("_runtime_settings") == reset_values, "Reset must publish the complete restored settings state to the preview.")
 	_expect(is_equal_approx(float(reset_values.get("master_volume", 0.0)), 1.0), "Reset settings must restore default volumes.")
 	_expect(str(reset_values.get("window_mode", "")) == "windowed", "Reset settings must preserve window mode.")
 	_expect(int(reset_values.get("window_width", 0)) == 1280, "Reset settings must preserve window width.")
@@ -859,10 +867,15 @@ func _test_title_state() -> void:
 	_expect(feature_read_reset_events.size() == 1, "Settings feature must forward the read-reset request to StartupFlow.")
 
 	settings_repository.fail_settings_write = true
+	var previews_before_failure := preview_updates.size()
 	settings_page.display_page().select_font(4)
 	var settings_status := chrome.get_node("SettingsStatus") as Label
 	_expect(settings_status.text.contains("设置保存失败"), "A settings persistence failure must remain visible in the settings window.")
 	_expect(int(settings_page.get_current_settings().get("font_type", -1)) == 0, "A failed settings write must roll the UI back to the durable snapshot.")
+	_expect(preview.get("_runtime_settings") == settings_page.get_current_settings(), "A failed settings write must also roll the ADV preview back to the durable snapshot.")
+	_expect(preview_updates.size() == previews_before_failure + 2 and preview_updates.back() == settings_page.get_current_settings(), "The repository must receive one attempted edit and one rollback notification, without duplicate forwarding.")
+	settings_page.display_page().set_screen_toggle(&"portrait_visible", false)
+	_expect(preview_avatar.visible and preview.get("_runtime_settings") == settings_page.get_current_settings(), "Rollback must restore preview appearance as well as its settings dictionary.")
 	settings_repository.fail_settings_write = false
 	settings_page.display_page().select_font(0)
 	# The preceding confirmation may still be fading out even though its
