@@ -163,7 +163,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="SkyFallback" type="ColorRect" parent="VisualCanvas/Stage" unique_id=141948237]
+[node name="StageFallback" type="ColorRect" parent="VisualCanvas/Stage" unique_id=141948237]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -172,7 +172,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.41, 0.74, 0.88, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="CameraCanvas" type="Control" parent="VisualCanvas/Stage" unique_id=376091437]
 unique_name_in_owner = true
@@ -254,7 +254,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.41, 0.74, 0.88, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="SnapshotBackground" type="TextureRect" parent="VisualCanvas/Stage/TransitionSnapshot/SnapshotGroup/SnapshotCamera" unique_id=1930853658]
 unique_name_in_owner = true
@@ -863,7 +863,7 @@ one_shot = true
 unique_name_in_owner = true
 script = ExtResource("4_stage")
 camera_canvas_path = NodePath("../VisualCanvas/Stage/CameraCanvas")
-fallback_path = NodePath("../VisualCanvas/Stage/SkyFallback")
+fallback_path = NodePath("../VisualCanvas/Stage/StageFallback")
 background_path = NodePath("../VisualCanvas/Stage/CameraCanvas/Background")
 background_scroll_layer_path = NodePath("../VisualCanvas/Stage/CameraCanvas/BackgroundScrollLayer")
 background_scroll_tiles_path = NodePath("../VisualCanvas/Stage/CameraCanvas/BackgroundScrollLayer/BackgroundScrollTiles")

@@ -39,7 +39,7 @@ src/ui/                      不含业务语义的共享 UI/layout
 
 - 固定节点、布局、层级、主题 variation 和可复用弹窗由 `.tscn` 持有，可在编辑器和 Remote Tree 中直接检查。
 - 路由级覆盖层由 `StartupFlow/OverlayLayer` 的独立 `CanvasLayer` 承载；ADV 内部舞台、消息框、系统菜单和模态窗口使用场景中明确的层级区间，不能依赖节点添加顺序覆盖源剧本的角色 order。
-- 路由交接由 `StartupFlow` 编排、由离场页面执行自身语义动画：Title 在源 `FRM_0501` `RouteBackdrop` 上退场后才创建 ADV；Continue/Title 侧 Load 复用场景化的 `LoadTransitionCover`，按源 `BeginLoad` 300 ms 覆盖、遮挡时恢复、`EndLoad` 500 ms 揭示的顺序交接；ADV 先结束选项、淡出自身 UI/音频并完成黑场后才创建 Title。路由不得为了方便而在同一帧直接替换这两个页面。
+- 路由交接由 `StartupFlow` 编排、由离场页面执行自身语义动画：New Game 让 Title 淡到黑色 `RouteBackdrop` 后才创建 ADV；ADV 空场及首帧转场快照也使用同一黑底，首句对话框/菜单复用消息显隐逻辑做 300 ms 淡入，自动存档先保存完整显隐状态，不能保存动画半透明值。Continue/Title 侧 Load 则独立使用场景化的蓝色 `FRM_0501` `LoadTransitionCover`，按源 `BeginLoad` 300 ms 覆盖、遮挡时恢复、`EndLoad` 500 ms 揭示的顺序交接，不把这张蓝图当作 New Game 的窗口底；ADV 先结束选项、淡出自身 UI/音频并完成黑场后才创建 Title。路由不得为了方便而在同一帧直接替换这两个页面。
 - 脚本负责依赖注入、信号、状态同步、分页和数据驱动的重复项。
 - 运行时只生成数量取决于 manifest 或用户数据的节点，例如相册卡片、曲目、回忆与收藏项。
 - 动态项必须使用稳定业务名称；刷新列表时先从父节点移除旧项，再 `queue_free()`，避免同帧重名。

@@ -122,7 +122,7 @@ var _background_asset := ""
 var _background_spec: Dictionary = {}
 var _environment_tone := "normal"
 var _background_tone := "normal"
-var _fallback_base_color := Color(0.41, 0.74, 0.88, 1.0)
+var _fallback_base_color := Color.BLACK
 var _background_coordinate_scale := NORMAL_CAMERA_COORDINATE_SCALE
 var _auto_positioning := true
 var _transition_tween: Tween
@@ -377,7 +377,7 @@ func clear(immediate: bool = true) -> void:
 	_background_tone = "normal"
 	_background_coordinate_scale = NORMAL_CAMERA_COORDINATE_SCALE
 	_configure_background_rect(DESIGN_SIZE * 0.5, DESIGN_SIZE)
-	_fallback_base_color = Color(0.41, 0.74, 0.88, 1.0)
+	_fallback_base_color = Color.BLACK
 	_refresh_background_tone()
 	_reset_camera_transform()
 	if not immediate:
@@ -792,7 +792,7 @@ func _apply_cg(instruction: KrkrScenarioInstruction) -> void:
 		missing_asset.emit("背景", resource_id)
 		return
 	_background.texture = texture
-	_fallback_base_color = Color(0.41, 0.74, 0.88, 1.0)
+	_fallback_base_color = Color.BLACK
 	_refresh_background_tone()
 	_configure_texture_background(instruction, texture, resource_id)
 

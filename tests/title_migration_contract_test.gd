@@ -72,6 +72,7 @@ func _run() -> void:
 	_test_theme_font()
 	await _test_save_service_round_trip()
 	_test_export_presets()
+	await _test_display_preview_layout()
 	await _test_title_state()
 
 	if _failures.is_empty():
@@ -81,6 +82,24 @@ func _run() -> void:
 	for failure in _failures:
 		push_error(failure)
 	quit(1)
+
+
+func _test_display_preview_layout() -> void:
+	var page := preload("res://src/settings/pages/display_settings_page.tscn").instantiate() as SettingsPageBase
+	root.add_child(page)
+	var preview := page.find_child("PreviewCard", true, false) as PanelContainer
+	var artwork := page.get_node("%PreviewArtwork") as TextureRect
+	var language := page.find_child("DisplayLanguageCard", true, false) as PanelContainer
+	var language_choice := page.get_node("%ChineseLanguageChoice") as Control
+	for page_size in [Vector2(1853, 585), Vector2(2013, 585), Vector2(1853, 685)]:
+		page.size = page_size
+		for frame in range(3):
+			await process_frame
+		_expect(absf(preview.size.x - preview.size.y * 16.0 / 9.0) <= 1.5, "Standalone/resized preview must remain 16:9: %s" % page_size)
+		_expect(artwork.get_global_rect().is_equal_approx(preview.get_global_rect().grow(-10.0)), "Standalone/resized preview artwork must retain 10 px padding: %s" % page_size)
+		_expect(absf(language_choice.get_global_rect().get_center().x - language.get_global_rect().get_center().x) <= 1.0, "Language choices must remain centered in the narrower panel.")
+	page.free()
+	await process_frame
 
 
 func _test_input_actions() -> void:
@@ -588,18 +607,30 @@ func _test_title_state() -> void:
 	_expect(font_selection_title.get_node_or_null("OuterKeyline") is Label and font_selection_title.get_node_or_null("Foreground") is Label, "Section heading stroke layers must remain explicit scene-owned labels.")
 	var preview_artwork := display_page.find_child("PreviewArtwork", true, false) as TextureRect
 	var preview_card := display_page.find_child("PreviewCard", true, false) as PanelContainer
-	var preview_background := preview_card.get_node("Background") as Panel
-	var preview_padding := preview_card.get_node("Padding") as MarginContainer
-	var preview_content := preview_padding.get_node("BusinessContent") as Control
-	var preview_mask_style := preview_card.get_theme_stylebox(&"panel") as StyleBoxFlat
-	var preview_background_style := preview_background.get_theme_stylebox(&"panel") as StyleBoxFlat
+	var preview_aspect := preview_card.get_parent() as AspectRatioContainer
+	var preview_content := preview_card.get_node("BusinessContent") as PanelContainer
+	var language_card := display_page.find_child("DisplayLanguageCard", true, false) as PanelContainer
+	var preview_panel_style := preview_card.get_theme_stylebox(&"panel") as StyleBoxFlat
+	var preview_mask_style := preview_content.get_theme_stylebox(&"panel") as StyleBoxFlat
 	_expect(preview_card != null and preview_card.scene_file_path.is_empty(), "The preview frame must be authored directly in the display page scene.")
-	_expect(preview_card.clip_children == CanvasItem.CLIP_CHILDREN_ONLY, "Only the preview frame must retain rounded descendant clipping.")
+	_expect(preview_aspect != null and is_equal_approx(preview_aspect.ratio, 16.0 / 9.0), "A native aspect-ratio container must maintain the preview panel's 16:9 proportions.")
+	_expect(absf(preview_card.size.x - preview_card.size.y * 16.0 / 9.0) <= 1.0, "The actual preview panel must be 16:9 within whole-pixel layout rounding.")
+	_expect(language_card.size.x < 271.0 and preview_card.size.x > 590.0, "The language panel must give horizontal space to the enlarged preview.")
+	_expect(absf(preview_card.get_global_rect().position.y - language_card.get_global_rect().position.y) <= 1.0 and absf(preview_card.get_global_rect().end.y - language_card.get_global_rect().end.y) <= 1.0, "Language and preview panels must retain aligned top and bottom edges.")
+	_expect(absf(preview_card.get_global_rect().end.x - upper_row.get_global_rect().end.x) <= 1.0, "The preview must stay aligned with the right column's outer edge.")
+	_expect(preview_content.position.is_equal_approx(Vector2(10.0, 10.0)) and preview_content.size.is_equal_approx(preview_card.size - Vector2(20.0, 20.0)), "The preview panel must inset its content by exactly 10 px on every side.")
+	_expect(preview_artwork.get_global_rect().is_equal_approx(preview_content.get_global_rect()), "The ADV image must fill the padded content region.")
+	_expect(preview_artwork.stretch_mode == TextureRect.STRETCH_SCALE, "The preview must fill its padded region without additional letterbox bars.")
+	_expect(preview_content.clip_children == CanvasItem.CLIP_CHILDREN_ONLY and preview_card.clip_children == CanvasItem.CLIP_CHILDREN_DISABLED, "Only the inset preview content must clip descendants; rounded clips must not be nested.")
 	_expect(preview_mask_style != null and is_equal_approx(preview_mask_style.bg_color.a, 1.0), "The inline preview mask must stay opaque so child colors retain their original intensity.")
-	_expect(preview_background_style != null and is_equal_approx(preview_background_style.bg_color.a, 0.7), "The inline preview background must retain the shared 70% alpha appearance.")
+	_expect(is_equal_approx(preview_panel_style.bg_color.a, 0.7), "The padding must use the same translucent panel background as the neighboring cards.")
+	for corner in [CORNER_TOP_LEFT, CORNER_TOP_RIGHT, CORNER_BOTTOM_LEFT, CORNER_BOTTOM_RIGHT]:
+		_expect(preview_panel_style.get_corner_radius(corner) == 20 and preview_mask_style.get_corner_radius(corner) == 10, "The preview must retain concentric 20 px outer and 10 px inset rounded corners.")
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		_expect(is_equal_approx(preview_panel_style.get_content_margin(side), 10.0) and is_zero_approx(preview_mask_style.get_content_margin(side)), "Only the outer preview panel must provide 10 px padding.")
 	_expect(is_equal_approx(preview_content.modulate.a, 1.0), "Preview content must retain full opacity.")
-	_expect(preview_padding.get_theme_constant(&"margin_left") == 16 and preview_padding.get_theme_constant(&"margin_top") == 16, "The inline preview frame must retain its 16 px padding.")
-	_expect(not preview_content.clip_contents, "Preview content must leave clipping to the rounded outer mask.")
+	_expect(preview_card.get_node_or_null("Padding") == null, "Panel style margins must provide padding without an extra wrapper.")
+	_expect(not preview_content.clip_contents, "Preview content must use its rounded mask rather than square clipping.")
 	_expect(preview_artwork.texture is ViewportTexture, "The preview must render the real ADV scene, not a second hand-assembled dialogue frame.")
 	_expect(preview.scene_file_path.ends_with("adv_screen.tscn"), "Settings preview must reuse the exact gameplay scene.")
 	var preview_viewport := preview.get_viewport() as SubViewport
@@ -611,7 +642,7 @@ func _test_title_state() -> void:
 		_expect(not player.playing and player.stream == null, "Preview must not load or play any audio.")
 	for control in preview.find_children("*", "Control", true, false):
 		_expect(control.mouse_filter == Control.MOUSE_FILTER_IGNORE and control.focus_mode == Control.FOCUS_NONE, "All preview controls must reject pointer and keyboard focus: %s" % control.name)
-	_expect(preview_artwork.material is ShaderMaterial, "Preview artwork must use a resolution-independent rounded mask.")
+	_expect(preview_artwork.material == null, "Preview artwork must reuse the native content clip instead of a separate shader mask.")
 	var preview_texture_size := preview_artwork.texture.get_size()
 	var preview_source_aspect := preview_texture_size.x / preview_texture_size.y
 	_expect(absf(preview_source_aspect - 16.0 / 9.0) < 0.01, "Preview artwork must retain the full source 16:9 composition.")

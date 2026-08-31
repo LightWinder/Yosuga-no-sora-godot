@@ -199,13 +199,21 @@ func _test_scene_and_animation_contract() -> void:
 
 	_expect(screen.get_node_or_null("VisualCanvas/MessagePanel") is PanelContainer, "Dialogue frame must remain scene-owned.")
 	_expect(screen.get_node_or_null("VisualCanvas/MessagePanel/MessageColumn/Portrait") is TextureRect, "Dialogue portrait must remain scene-owned.")
-	var sky_fallback := screen.get_node("VisualCanvas/Stage/SkyFallback") as Control
+	var stage_fallback := screen.get_node("VisualCanvas/Stage/StageFallback") as ColorRect
 	var message_panel := screen.get_node("VisualCanvas/MessagePanel") as Control
 	_expect(
-		sky_fallback.mouse_filter == Control.MOUSE_FILTER_IGNORE
+		stage_fallback.mouse_filter == Control.MOUSE_FILTER_IGNORE
 		and message_panel.mouse_filter == Control.MOUSE_FILTER_PASS,
 		"The stage must ignore pointer input while the dialogue panel passes empty-area clicks and retains interactive child controls."
 	)
+	_expect(stage_fallback.color.is_equal_approx(Color.BLACK), "The initial ADV stage must use the source black backing, never a blue placeholder.")
+	_expect(message_panel.modulate.a < 1.0, "New Game must begin with a gradual dialogue reveal.")
+	screen._open_history()
+	_expect(not message_panel.visible, "Opening history during the initial fade must hide dialogue immediately.")
+	await create_timer(0.35).timeout
+	_expect(not message_panel.visible, "The initial reveal must not finish underneath an active overlay and show dialogue again.")
+	screen._close_history()
+	_expect(message_panel.visible and is_equal_approx(message_panel.modulate.a, 1.0), "Closing an early overlay must restore full dialogue opacity, not a partial fade value.")
 	_expect(
 		screen.get_node_or_null("VisualCanvas/MessagePanel/MessageColumn/AdvanceIndicator") == null,
 		"The removed blinking advance arrow must not remain in the dialogue scene."

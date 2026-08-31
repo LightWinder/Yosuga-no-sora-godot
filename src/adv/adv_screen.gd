@@ -475,6 +475,7 @@ func _on_dialogue_ready(
 		anchor: String,
 		already_read: bool
 ) -> void:
+	var reveal_initial_dialogue := _launch_request.is_new_game() and _current_anchor.is_empty()
 	if _jumping_to_next_choice:
 		_choice_jump_stage_instructions.append(_choice_jump_stage_boundary())
 	else:
@@ -507,6 +508,12 @@ func _on_dialogue_ready(
 	_play_voice(voice_id)
 	if not restored_navigation:
 		_write_autosave()
+	if reveal_initial_dialogue:
+		# Source MessageFrame starts hidden; outputMessage reveals it over 300 ms
+		# alongside the first CG update. Save the settled frame before animating.
+		_message_panel.modulate.a = 0.0
+		_system_menu.modulate.a = 0.0
+		_set_message_visible(true)
 	_refresh_choice_navigation_buttons()
 	if _skip_enabled and _can_skip_current_message():
 		_schedule_advance(0.06)
@@ -1475,7 +1482,7 @@ func _try_schedule_auto_advance() -> void:
 	_schedule_advance(_auto_wait_seconds)
 
 
-func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstruction) -> void:
+func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstruction = null) -> void:
 	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
 		_message_visibility_tween.kill()
 	_message_visibility_tween = null
@@ -1514,7 +1521,7 @@ func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstructi
 				_suspend_system_menu()
 			_runtime.resume_external(&"message")
 	)
-	if instruction.has_flag("wait"):
+	if instruction != null and instruction.has_flag("wait"):
 		_runtime.suspend_external(&"message", false)
 
 
@@ -1746,6 +1753,8 @@ func _close_save_load() -> void:
 func _hide_player_chrome_manually() -> void:
 	if _player_chrome_overlay_depth > 0 or not _message_panel.visible:
 		return
+	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
+		_finish_message_visibility()
 	_stop_player_chrome_automation()
 	_player_chrome_manually_hidden = true
 	_set_player_chrome_visible(false, PLAYER_CHROME_TRANSITION_SECONDS)
@@ -1759,6 +1768,10 @@ func _show_player_chrome_manually() -> void:
 
 
 func _enter_player_chrome_overlay() -> void:
+	# Do not preserve a partial opening fade as the dialogue's return opacity,
+	# or let its completion callback reveal chrome behind an active overlay.
+	if _message_visibility_tween != null and _message_visibility_tween.is_valid():
+		_finish_message_visibility()
 	_stop_player_chrome_automation()
 	if _player_chrome_overlay_depth == 0:
 		_restore_player_chrome_after_overlay = (

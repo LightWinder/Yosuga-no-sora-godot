@@ -78,19 +78,18 @@ func _run() -> void:
 	var read_reset_events: Array[bool] = []
 	startup_flow.read_flags_reset_requested.connect(func() -> void: read_reset_events.append(true))
 	var screen_host := startup_flow.get_node("ScreenHost") as Control
-	var route_backdrop := startup_flow.get_node("RouteBackdrop") as TextureRect
+	var route_backdrop := startup_flow.get_node("RouteBackdrop") as ColorRect
 	var overlay_layer := startup_flow.get_node("OverlayLayer") as CanvasLayer
 	var overlay_host := startup_flow.get_node("OverlayLayer/OverlayHost") as Control
 	var load_transition_cover := startup_flow.get_node("OverlayLayer/LoadTransitionCover") as TextureRect
 	_expect(
 		route_backdrop.get_index() < screen_host.get_index()
-		and route_backdrop.texture.resource_path == "res://assets/ui/intro/FRM_0501.png"
-		and route_backdrop.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED,
-		"Title departure must reveal the exact source blue route artwork beneath ScreenHost."
+		and route_backdrop.color.is_equal_approx(Color.BLACK),
+		"New Game must fade Title to the source black base, not the blue load artwork."
 	)
 	_expect(overlay_layer.layer > 0, "Route overlays must render on a dedicated CanvasLayer above feature-local z indices.")
 	_expect(
-		load_transition_cover.texture == route_backdrop.texture
+		load_transition_cover.texture.resource_path == "res://assets/ui/intro/FRM_0501.png"
 		and not load_transition_cover.visible,
 		"Continue must reuse the serialized source route artwork as its initially hidden load cover."
 	)
@@ -191,12 +190,33 @@ func _run() -> void:
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "ADV must construct Title only after its black exit completes.")
 	var returned_title := screen_host.get_child(0) as TitleScreen
 	_expect(returned_title != null, "ADV return must create the scene-owned Title screen.")
-	returned_title.game_exit_seconds = 0.01
-	var new_game_request := ScenarioLaunchRequest.new_game()
-	startup_flow._on_scenario_requested(new_game_request)
+	Engine.time_scale = 1.0
+	# The frame that changes time_scale can still carry the old scaled delta.
+	await process_frame
+	await process_frame
+	returned_title.game_exit_seconds = 0.25
+	(returned_title.get_node("%NewGame") as BaseButton).pressed.emit()
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "New Game must keep Title alive during its deferred departure.")
-	await create_timer(0.1, true, false, true).timeout
+	_expect(not load_transition_cover.visible, "New Game must never raise the Continue/Load blue cover.")
+	await create_timer(0.04).timeout
+	_expect(is_instance_valid(returned_title) and returned_title.modulate.a > 0.0 and returned_title.modulate.a < 1.0, "The real Start button must fade Title gradually before replacing it.")
+	var new_game_deadline := Time.get_ticks_msec() + 2000
+	while startup_flow.current_stage == StartupFlow.Stage.TITLE and Time.get_ticks_msec() < new_game_deadline:
+		await process_frame
 	_expect(startup_flow.current_stage == StartupFlow.Stage.ADV, "New Game must enter ADV after the complete Title fade.")
+	var new_adv := screen_host.get_child(0) as AdvScreen
+	var new_stage := new_adv.get_node("%StageDirector") as AdvStageDirector
+	var initial_snapshot := new_adv.get_node("%SnapshotFallback") as ColorRect
+	var initial_message_panel := new_adv.get_node("%MessagePanel") as Control
+	var initial_menu := new_adv.get_node("%SystemMenu") as Control
+	_expect(new_stage.is_transitioning() and initial_snapshot.color.is_equal_approx(Color.BLACK), "The first CG must crossfade from the same black base as Title's exit.")
+	_expect((new_adv.get_node("%SnapshotBackground") as TextureRect).texture == null, "The first CG must not inherit Title or Settings-preview artwork.")
+	_expect(initial_message_panel.modulate.a < 1.0 and initial_menu.modulate.a < 1.0, "The first dialogue and menu must fade in rather than appear at full opacity.")
+	_expect(is_equal_approx(float(startup_save_service.load_autosave().presentation.get("message_frame_alpha", 0.0)), 1.0), "Opening-animation opacity must not leak into the first autosave.")
+	await create_timer(0.55).timeout
+	_expect(not new_stage.is_transitioning() and new_stage.presentation_state().get("background") == "B27a", "New Game must settle on the original opening sky CG after its 500 ms update.")
+	_expect(is_equal_approx(initial_message_panel.modulate.a, 1.0) and is_equal_approx(initial_menu.modulate.a, 1.0), "The first dialogue and menu must complete their 300 ms reveal.")
+	_expect(initial_message_panel.position.is_equal_approx(Vector2(0, 760)) and is_equal_approx(initial_menu.position.y, 870.0), "The initial dialogue reveal is a fade, not the manual-hide slide animation.")
 	startup_flow.free()
 	Engine.time_scale = 1.0
 	# Give the audio mixing thread time to release stopped Vorbis playback objects.

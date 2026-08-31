@@ -158,7 +158,7 @@ func is_exit_confirmation_visible() -> bool:
 
 
 ## Mirrors the source Title scene's deferred New Game hand-off: the complete
-## title remains alive and fades away over the route's blue base before
+## title remains alive and fades away over the route's black base before
 ## StartupFlow is allowed to construct ADV.
 func play_game_exit() -> void:
 	if _game_exit_tween != null and _game_exit_tween.is_valid():

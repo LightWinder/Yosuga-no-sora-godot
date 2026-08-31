@@ -8,7 +8,7 @@
 [node name="StartupFlow" type="Node" unique_id=1271856247]
 script = ExtResource("1_flow")
 
-[node name="RouteBackdrop" type="TextureRect" parent="."]
+[node name="RouteBackdrop" type="ColorRect" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,9 +16,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("4_route_base")
-expand_mode = 1
-stretch_mode = 6
+color = Color(0, 0, 0, 1)
 
 [node name="ScreenHost" type="Control" parent="." unique_id=1249288274]
 layout_mode = 3
