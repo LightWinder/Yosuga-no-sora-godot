@@ -554,6 +554,13 @@ func _test_title_state() -> void:
 	var window_depth_slider := settings_page.find_setting_slider("window_depth")
 	_expect(window_depth_slider is HSlider and window_depth_slider.scene_file_path.ends_with("settings_knob_slider.tscn"), "Screen settings slider must instantiate the reusable native HSlider scene.")
 	var display_page := settings_page.display_page()
+	var shared_frame_style := load("res://assets/themes/settings/section/frame.tres") as StyleBoxFlat
+	for page in [display_page, settings_page.system_page(), settings_page.audio_page()]:
+		for card in page.find_children("*Card", "PanelContainer", true, false):
+			if card.name == &"PreviewCard":
+				continue
+			_expect(card.has_theme_stylebox_override(&"panel") and card.get_theme_stylebox(&"panel") == shared_frame_style, "Ordinary settings cards must share the same external panel StyleBox: %s/%s" % [page.name, card.name])
+	_expect(is_equal_approx(shared_frame_style.bg_color.a, 100.0 / 255.0), "Ordinary settings cards must use source alpha 100.")
 	_expect(display_page.scene_file_path.ends_with("display_settings_page.tscn"), "Screen settings layout must be scene-owned instead of rebuilt by its controller.")
 	var fullscreen_choice := display_page.get_node_or_null("%FullscreenChoice") as SettingsChoiceButton
 	_expect(fullscreen_choice != null, "Screen choices must be declared by the scene and exposed with unique names.")
@@ -625,7 +632,8 @@ func _test_title_state() -> void:
 	_expect(preview_artwork.stretch_mode == TextureRect.STRETCH_SCALE, "The preview must fill its padded region without additional letterbox bars.")
 	_expect(preview_content.clip_children == CanvasItem.CLIP_CHILDREN_ONLY and preview_card.clip_children == CanvasItem.CLIP_CHILDREN_DISABLED, "Only the inset preview content must clip descendants; rounded clips must not be nested.")
 	_expect(preview_mask_style != null and is_equal_approx(preview_mask_style.bg_color.a, 1.0), "The inline preview mask must stay opaque so child colors retain their original intensity.")
-	_expect(is_equal_approx(preview_panel_style.bg_color.a, 0.7), "The padding must use the same translucent panel background as the neighboring cards.")
+	_expect(preview_panel_style.resource_path == "res://assets/themes/settings/section/preview_panel.tres", "The preview panel must keep its independent external StyleBox.")
+	_expect(is_equal_approx(preview_panel_style.bg_color.a, 100.0 / 255.0), "The preview panel must use source alpha 100.")
 	for corner in [CORNER_TOP_LEFT, CORNER_TOP_RIGHT, CORNER_BOTTOM_LEFT, CORNER_BOTTOM_RIGHT]:
 		_expect(preview_panel_style.get_corner_radius(corner) == 20 and preview_mask_style.get_corner_radius(corner) == 10, "The preview must retain concentric 20 px outer and 10 px inset rounded corners.")
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:

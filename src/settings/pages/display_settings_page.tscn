@@ -5,28 +5,8 @@
 [ext_resource type="Script" uid="uid://ctsqr1osembgp" path="res://src/settings/ui/settings_choice_button.gd" id="4_choice"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="5_slider"]
 [ext_resource type="Texture2D" uid="uid://t601octbyigq" path="res://assets/content/event_1920/EA01E.png" id="6_preview"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(0.96, 0.99, 1, 0.7)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_preview_panel"]
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-bg_color = Color(0.96, 0.99, 1, 0.7)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
+[ext_resource type="StyleBox" path="res://assets/themes/settings/section/frame.tres" id="7_frame"]
+[ext_resource type="StyleBox" path="res://assets/themes/settings/section/preview_panel.tres" id="8_preview_panel"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_preview_mask"]
 content_margin_left = 0.0
@@ -71,7 +51,7 @@ clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/DisplayModeCard" unique_id=1781747272]
 layout_mode = 2
@@ -113,7 +93,7 @@ clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/WindowSizeCard" unique_id=1649493644]
 layout_mode = 2
@@ -166,7 +146,7 @@ clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/TextboxOpacityCard" unique_id=186137095]
 layout_mode = 2
@@ -193,7 +173,7 @@ custom_minimum_size = Vector2(962, 220)
 clip_contents = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/LeftColumn/FontSelectionCard" unique_id=936149193]
 layout_mode = 2
@@ -292,7 +272,7 @@ custom_minimum_size = Vector2(237, 352)
 clip_contents = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/RightColumn/UpperRow/DisplayLanguageCard" unique_id=1367112960]
 layout_mode = 2
@@ -350,7 +330,7 @@ alignment_vertical = 0
 [node name="PreviewCard" type="PanelContainer" parent="MainColumns/RightColumn/UpperRow/PreviewAspect" unique_id=1856388664]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_preview_panel")
+theme_override_styles/panel = ExtResource("8_preview_panel")
 
 [node name="BusinessContent" type="PanelContainer" parent="MainColumns/RightColumn/UpperRow/PreviewAspect/PreviewCard" unique_id=1612235904]
 clip_children = 1
@@ -393,7 +373,7 @@ custom_minimum_size = Vector2(307, 220)
 clip_contents = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/RightColumn/LowerRow/PortraitDisplayCard" unique_id=1762195236]
 layout_mode = 2
@@ -434,7 +414,7 @@ custom_minimum_size = Vector2(346, 220)
 clip_contents = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/RightColumn/LowerRow/ReadColorCard" unique_id=1572324836]
 layout_mode = 2
@@ -476,7 +456,7 @@ custom_minimum_size = Vector2(197, 220)
 clip_contents = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("7_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/RightColumn/LowerRow/ScreenEffectCard" unique_id=1646478216]
 layout_mode = 2

@@ -6,17 +6,7 @@
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_voice_choice_button.tscn" id="5_voice_choice"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="6_slider"]
 [ext_resource type="Texture2D" uid="uid://bl7yu2ty8e42l" path="res://assets/content/settings/voices/portraits/sora.png" id="8_sora_portrait"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-bg_color = Color(0.96, 0.99, 1, 0.7)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
+[ext_resource type="StyleBox" path="res://assets/themes/settings/section/frame.tres" id="9_frame"]
 
 [node name="AudioSettingsPage" type="Control" unique_id=644159893]
 layout_mode = 3
@@ -43,7 +33,7 @@ clip_contents = true
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("9_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/CharacterVolumeCard" unique_id=307245450]
 layout_mode = 2
@@ -194,7 +184,7 @@ clip_contents = true
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_frame")
+theme_override_styles/panel = ExtResource("9_frame")
 
 [node name="BusinessContent" type="Control" parent="MainColumns/GlobalVolumeCard" unique_id=1137625207]
 layout_mode = 2
