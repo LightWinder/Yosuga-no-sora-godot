@@ -20,16 +20,32 @@
 [ext_resource type="StyleBox" path="res://assets/themes/settings/section/portrait_frame.tres" id="21_portrait_frame"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/choice/check_choice_empty.tres" id="22_check_choice_empty"]
 [ext_resource type="StyleBox" path="res://assets/themes/ui/glass_panel.tres" id="23_glass_panel"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_frame.tres" id="24_save_preview_frame"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_normal.tres" id="25_save_slot_normal"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_hover.tres" id="26_save_slot_hover"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_pressed.tres" id="27_save_slot_pressed"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_disabled.tres" id="28_save_slot_disabled"]
+[ext_resource type="StyleBox" uid="uid://clx4ga7dfjxq2" path="res://assets/themes/save_load/slot_normal.tres" id="25_save_slot_normal"]
+[ext_resource type="StyleBox" uid="uid://bgf3jyhag5bq6" path="res://assets/themes/save_load/slot_hover.tres" id="26_save_slot_hover"]
+[ext_resource type="StyleBox" uid="uid://dtaqtknjtxlu5" path="res://assets/themes/save_load/slot_pressed.tres" id="27_save_slot_pressed"]
+[ext_resource type="StyleBox" uid="uid://bshq20dca2nt4" path="res://assets/themes/save_load/slot_disabled.tres" id="28_save_slot_disabled"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/message_panel.tres" id="29_adv_message"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/choice_normal.tres" id="30_adv_choice_normal"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/choice_hover.tres" id="31_adv_choice_hover"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/choice_pressed.tres" id="32_adv_choice_pressed"]
-[ext_resource type="StyleBox" path="res://assets/themes/adv/eyecatch_panel.tres" id="33_adv_eyecatch"]
+[ext_resource type="StyleBox" uid="uid://bd2q07inplkag" path="res://assets/themes/adv/eyecatch_panel.tres" id="33_adv_eyecatch"]
+[ext_resource type="StyleBox" uid="uid://2ayy6ufmr8ik" path="res://assets/themes/ui/frame.tres" id="40_page_frame"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_preview_frame.tres" id="41_slot_preview"]
+[ext_resource type="StyleBox" uid="uid://ddxp5onblpqep" path="res://assets/themes/save_load/page_track.tres" id="50_nav"]
+[ext_resource type="StyleBox" uid="uid://b4abqcbmnep3k" path="res://assets/themes/save_load/page_grabber.tres" id="51_nav"]
+[ext_resource type="StyleBox" uid="uid://bku4i1i7k00uj" path="res://assets/themes/save_load/page_grabber_hover.tres" id="52_nav"]
+[ext_resource type="StyleBox" uid="uid://b7qhipy8v4ucl" path="res://assets/themes/save_load/page_arrow.tres" id="53_nav"]
+[ext_resource type="StyleBox" uid="uid://dtjlm1iy0kg12" path="res://assets/themes/save_load/page_arrow_hover.tres" id="54_arrow"]
+[ext_resource type="StyleBox" uid="uid://dt42q83lsyc5c" path="res://assets/themes/save_load/page_arrow_pressed.tres" id="55_arrow"]
+[ext_resource type="StyleBox" uid="uid://cdtsqudn2v6w1" path="res://assets/themes/save_load/page_arrow_disabled.tres" id="56_arrow"]
+[ext_resource type="StyleBox" uid="uid://cj881vyw7wahr" path="res://assets/themes/save_load/page_arrow_focus.tres" id="57_arrow"]
+[ext_resource type="Texture2D" uid="uid://c0cescc7sjxgo" path="res://assets/themes/save_load/page_chevron_down.svg" id="arrow_down"]
+[ext_resource type="Texture2D" uid="uid://blp2iuyeltw3v" path="res://assets/themes/save_load/page_chevron_up.svg" id="arrow_up"]
+[ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="save_play"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/thumbnail_action.tres" id="save_play_style"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_focus.tres" id="slot_focus"]
+[ext_resource type="StyleBox" path="res://assets/themes/title/menu_glow.tres" id="title_glow"]
+[ext_resource type="StyleBox" path="res://assets/themes/title/menu_glow_hover.tres" id="title_glow_hover"]
 
 [resource]
 default_font = ExtResource("1_xiaolai")
@@ -85,26 +101,52 @@ ConfirmationOverlayMessage/base_type = &"SharedInfoHeading"
 ConfirmationOverlayPanel/base_type = &"SharedGlassPanel"
 ConfirmationOverlayPrimaryButton/base_type = &"SharedPrimaryActionButton"
 ConfirmationOverlayPrimaryButton/font_sizes/font_size = 32
-SaveLoadActionButton/base_type = &"SharedActionButton"
-SaveLoadActionButton/colors/font_color = Color(0.96, 0.99, 1, 1)
-SaveLoadActionButton/colors/font_outline_color = Color(0.05, 0.4, 0.62, 0.92)
-SaveLoadActionButton/constants/outline_size = 4
-SaveLoadActionButton/font_sizes/font_size = 28
-SaveLoadInfoHeading/base_type = &"SharedInfoHeading"
-SaveLoadInfoLabel/base_type = &"Label"
-SaveLoadInfoLabel/colors/font_color = Color(0.12, 0.34, 0.44, 0.94)
-SaveLoadInfoLabel/font_sizes/font_size = 22
+SaveLoadActionButton/base_type = &"SettingsFooterButton"
+SaveLoadCommentEdit/base_type = &"LineEdit"
+SaveLoadCommentEdit/colors/font_color = Color(0.07, 0.32, 0.43, 1)
+SaveLoadCommentEdit/colors/font_placeholder_color = Color(0.07, 0.32, 0.43, 0.6)
+SaveLoadCommentEdit/font_sizes/font_size = 22
+SaveLoadCommentEdit/styles/focus = ExtResource("27_save_slot_pressed")
+SaveLoadCommentEdit/styles/normal = ExtResource("25_save_slot_normal")
+SaveLoadCommentEdit/styles/read_only = ExtResource("28_save_slot_disabled")
+SaveLoadInfoHeading/base_type = &"SettingsOptionLabel"
+SaveLoadInfoLabel/base_type = &"SettingsRangeLabel"
 SaveLoadModeButton/base_type = &"SharedActionButton"
 SaveLoadModeButton/colors/font_color = Color(0.82, 0.93, 0.97, 0.72)
 SaveLoadModeButton/colors/font_disabled_color = Color(0.95, 0.99, 1, 1)
 SaveLoadModeButton/colors/font_outline_color = Color(0.06, 0.37, 0.55, 0.9)
 SaveLoadModeButton/constants/outline_size = 4
 SaveLoadModeButton/font_sizes/font_size = 48
-SaveLoadPagePanel/base_type = &"SharedGlassPanel"
-SaveLoadPreviewFrame/base_type = &"PanelContainer"
-SaveLoadPreviewFrame/styles/panel = ExtResource("24_save_preview_frame")
-SaveLoadPrimaryButton/base_type = &"SharedPrimaryActionButton"
-SaveLoadPrimaryButton/font_sizes/font_size = 32
+SaveLoadNextPageArrow/base_type = &"SaveLoadPageArrow"
+SaveLoadNextPageArrow/icons/icon = ExtResource("arrow_down")
+SaveLoadPageArrow/base_type = &"Button"
+SaveLoadPageArrow/colors/icon_disabled_color = Color(0.16, 0.46, 0.62, 0.3)
+SaveLoadPageArrow/colors/icon_focus_color = Color(0.08, 0.38, 0.56, 1)
+SaveLoadPageArrow/colors/icon_hover_color = Color(0.08, 0.38, 0.56, 1)
+SaveLoadPageArrow/colors/icon_normal_color = Color(0.16, 0.46, 0.62, 0.95)
+SaveLoadPageArrow/colors/icon_pressed_color = Color(0.08, 0.38, 0.56, 1)
+SaveLoadPageArrow/constants/h_separation = 0
+SaveLoadPageArrow/styles/disabled = ExtResource("56_arrow")
+SaveLoadPageArrow/styles/focus = ExtResource("57_arrow")
+SaveLoadPageArrow/styles/hover = ExtResource("54_arrow")
+SaveLoadPageArrow/styles/normal = ExtResource("53_nav")
+SaveLoadPageArrow/styles/pressed = ExtResource("55_arrow")
+SaveLoadPageNumber/base_type = &"SettingsRangeLabel"
+SaveLoadPageNumber/colors/font_color = Color(0.12, 0.39, 0.53, 1)
+SaveLoadPageNumber/constants/outline_size = 0
+SaveLoadPageNumber/font_sizes/font_size = 16
+SaveLoadPagePanel/base_type = &"PanelContainer"
+SaveLoadPagePanel/styles/panel = ExtResource("40_page_frame")
+SaveLoadPageScrollBar/base_type = &"VScrollBar"
+SaveLoadPageScrollBar/styles/grabber = ExtResource("51_nav")
+SaveLoadPageScrollBar/styles/grabber_highlight = ExtResource("52_nav")
+SaveLoadPageScrollBar/styles/grabber_pressed = ExtResource("52_nav")
+SaveLoadPageScrollBar/styles/scroll = ExtResource("50_nav")
+SaveLoadPageScrollBar/styles/scroll_focus = ExtResource("50_nav")
+SaveLoadPreviewFrame/base_type = &"SaveLoadSlotPreviewFrame"
+SaveLoadPreviousPageArrow/base_type = &"SaveLoadPageArrow"
+SaveLoadPreviousPageArrow/icons/icon = ExtResource("arrow_up")
+SaveLoadPrimaryButton/base_type = &"SettingsFooterPrimaryButton"
 SaveLoadSlotButton/base_type = &"Button"
 SaveLoadSlotButton/colors/font_color = Color(0.96, 0.99, 1, 1)
 SaveLoadSlotButton/colors/font_disabled_color = Color(0.8, 0.9, 0.94, 0.34)
@@ -112,31 +154,41 @@ SaveLoadSlotButton/colors/font_focus_color = Color(1, 1, 1, 1)
 SaveLoadSlotButton/colors/font_hover_color = Color(1, 1, 1, 1)
 SaveLoadSlotButton/colors/font_pressed_color = Color(0.07, 0.32, 0.43, 1)
 SaveLoadSlotButton/styles/disabled = ExtResource("28_save_slot_disabled")
-SaveLoadSlotButton/styles/focus = ExtResource("26_save_slot_hover")
+SaveLoadSlotButton/styles/focus = ExtResource("slot_focus")
 SaveLoadSlotButton/styles/hover = ExtResource("26_save_slot_hover")
+SaveLoadSlotButton/styles/hover_pressed = ExtResource("27_save_slot_pressed")
 SaveLoadSlotButton/styles/normal = ExtResource("25_save_slot_normal")
 SaveLoadSlotButton/styles/pressed = ExtResource("27_save_slot_pressed")
 SaveLoadSlotComment/base_type = &"Label"
-SaveLoadSlotComment/colors/font_color = Color(0.97, 0.995, 1, 1)
-SaveLoadSlotComment/colors/font_outline_color = Color(0.05, 0.26, 0.34, 0.86)
+SaveLoadSlotComment/colors/font_color = Color(0.1, 0.48, 0.68, 1)
+SaveLoadSlotComment/colors/font_outline_color = Color(0.96, 0.99, 1, 0.85)
 SaveLoadSlotComment/constants/outline_size = 2
 SaveLoadSlotComment/font_sizes/font_size = 19
 SaveLoadSlotCommentSelected/base_type = &"SaveLoadSlotComment"
 SaveLoadSlotCommentSelected/colors/font_color = Color(0.07, 0.3, 0.4, 1)
 SaveLoadSlotDate/base_type = &"Label"
-SaveLoadSlotDate/colors/font_color = Color(0.86, 0.95, 0.98, 0.86)
+SaveLoadSlotDate/colors/font_color = Color(0.1, 0.48, 0.68, 1)
 SaveLoadSlotDate/font_sizes/font_size = 15
 SaveLoadSlotDateSelected/base_type = &"SaveLoadSlotDate"
 SaveLoadSlotDateSelected/colors/font_color = Color(0.12, 0.4, 0.5, 0.9)
 SaveLoadSlotNumber/base_type = &"Label"
-SaveLoadSlotNumber/colors/font_color = Color(0.98, 1, 1, 1)
-SaveLoadSlotNumber/colors/font_outline_color = Color(0.05, 0.3, 0.4, 0.86)
+SaveLoadSlotNumber/colors/font_color = Color(0.1, 0.48, 0.68, 1)
+SaveLoadSlotNumber/colors/font_outline_color = Color(0.96, 0.99, 1, 0.85)
 SaveLoadSlotNumber/constants/outline_size = 3
 SaveLoadSlotNumber/font_sizes/font_size = 23
 SaveLoadSlotNumberSelected/base_type = &"SaveLoadSlotNumber"
 SaveLoadSlotNumberSelected/colors/font_color = Color(0.07, 0.3, 0.4, 1)
+SaveLoadSlotPreviewFrame/base_type = &"PanelContainer"
+SaveLoadSlotPreviewFrame/styles/panel = ExtResource("41_slot_preview")
+SaveLoadSmallAction/base_type = &"SettingsFooterButton"
+SaveLoadSmallAction/font_sizes/font_size = 26
 SaveLoadStatus/base_type = &"SharedStatusLabel"
 SaveLoadStatus/font_sizes/font_size = 22
+SaveLoadThumbnailButton/base_type = &"Button"
+SaveLoadThumbnailButton/icons/icon = ExtResource("save_play")
+SaveLoadThumbnailButton/styles/hover = ExtResource("save_play_style")
+SaveLoadThumbnailButton/styles/normal = ExtResource("save_play_style")
+SaveLoadThumbnailButton/styles/pressed = ExtResource("save_play_style")
 SettingsCheckChoiceButton/base_type = &"SettingsChoiceButtonConfirmation"
 SettingsCheckChoiceButton/colors/check_fill_active_color = Color(0.72, 0.9, 0.96, 0.28)
 SettingsCheckChoiceButton/colors/check_fill_color = Color(0.72, 0.9, 0.96, 0.12)
@@ -377,3 +429,34 @@ SharedStatusLabel/colors/font_color = Color(1, 1, 1, 1)
 SharedStatusLabel/colors/font_outline_color = Color(0.05, 0.08, 0.12, 0.9)
 SharedStatusLabel/constants/outline_size = 4
 SharedStatusLabel/font_sizes/font_size = 24
+TitleMenuButton/base_type = &"Button"
+TitleMenuButton/colors/font_color = Color(1, 1, 1, 1)
+TitleMenuButton/colors/font_disabled_color = Color(1, 1, 1, 0.45)
+TitleMenuButton/colors/subtitle_color = Color(1, 1, 1, 1)
+TitleMenuButton/colors/subtitle_disabled_color = Color(1, 1, 1, 0.4)
+TitleMenuButton/colors/subtitle_outline_color = Color(0.29, 0.55, 0.64, 0.9)
+TitleMenuButton/colors/text_glow_color = Color(0.94, 0.99, 1, 0.16)
+TitleMenuButton/colors/text_glow_hover_color = Color(0.97, 1, 1, 0.22)
+TitleMenuButton/colors/tile_color = Color(0.27, 0.53, 0.61, 0.95)
+TitleMenuButton/colors/tile_disabled_color = Color(0.27, 0.53, 0.61, 0.38)
+TitleMenuButton/colors/tile_hover_color = Color(0.41, 0.64, 0.7, 0.96)
+TitleMenuButton/constants/glow_pulse_period_ms = 2400
+TitleMenuButton/constants/glow_pulse_spread = 2
+TitleMenuButton/constants/subtitle_baseline = 73
+TitleMenuButton/constants/subtitle_outline_size = 1
+TitleMenuButton/constants/text_glow_radius = 6
+TitleMenuButton/constants/tile_center_y = 32
+TitleMenuButton/constants/tile_glow_layers = 16
+TitleMenuButton/constants/tile_inset = 6
+TitleMenuButton/constants/tile_size = 44
+TitleMenuButton/font_sizes/font_size = 42
+TitleMenuButton/font_sizes/subtitle_font_size = 16
+TitleMenuButton/fonts/font = ExtResource("1_xiaolai")
+TitleMenuButton/fonts/subtitle_font = ExtResource("1_xiaolai")
+TitleMenuButton/styles/disabled = ExtResource("5_empty_style")
+TitleMenuButton/styles/focus = ExtResource("5_empty_style")
+TitleMenuButton/styles/hover = ExtResource("5_empty_style")
+TitleMenuButton/styles/normal = ExtResource("5_empty_style")
+TitleMenuButton/styles/pressed = ExtResource("5_empty_style")
+TitleMenuButton/styles/tile_glow = ExtResource("title_glow")
+TitleMenuButton/styles/tile_glow_hover = ExtResource("title_glow_hover")

@@ -88,12 +88,12 @@ func _populate() -> void:
 	_clear_entries()
 	_back_button.visible = true
 	_status_label.text = ""
-	_background.visible = feature_id != &"load_game"
+	_background.visible = true
 	_background.texture = load(_background_path()) as Texture2D if _background.visible else null
 	match feature_id:
 		&"load_game":
 			_title_label.text = "读取存档"
-			_description_label.text = "选择自动存档或 20 个手动存档槽；确认后才会删除。"
+			_description_label.text = "900 个手动槽位、9 条快速存档和自动存档；点击预览图片读取。"
 			_populate_load_page()
 		&"album", &"music", &"memories", &"voice":
 			_title_label.text = _catalog_title(feature_id)
@@ -113,6 +113,8 @@ func _on_back_pressed() -> void:
 
 
 func _background_path() -> String:
+	if feature_id == &"load_game":
+		return "res://assets/ui/title/QD-13-BG.png"
 	return "res://assets/content/appreciation/bg.png"
 
 

@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://bve5lcaos2u88"]
+
+[ext_resource type="Script" path="res://src/title/title_cloud_field.gd" id="1_controller"]
+[ext_resource type="Material" path="res://assets/shaders/title/title_perspective_clouds_material.tres" id="2_material"]
+
+[node name="TitleCloudField" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_controller")
+
+[node name="PerspectiveCloudProjection" type="ColorRect" parent="."]
+material = ExtResource("2_material")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

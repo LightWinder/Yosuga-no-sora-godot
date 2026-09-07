@@ -384,6 +384,10 @@ func clear(immediate: bool = true) -> void:
 		_start_transition(DEFAULT_UPDATE_MILLISECONDS)
 
 
+func capture_background_preview(renderer: AdvBackgroundPreview) -> Image:
+	return await renderer.capture(_camera_canvas, _fallback)
+
+
 func presentation_state() -> Dictionary:
 	var characters: Dictionary = {}
 	for character_id in _character_nodes:

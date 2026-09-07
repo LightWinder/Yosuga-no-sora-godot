@@ -204,6 +204,18 @@ func play_subscreen_exit() -> void:
 		_subscreen_tween = null
 
 
+## Enter transparent overlays immediately while retaining the original
+## animated departure API for other routes.
+func hide_for_subscreen() -> void:
+	_subscreen_departed = true
+	_set_menu_interaction_enabled(false)
+	_finish_reveal_animation()
+	_kill_subscreen_tween()
+	_bottom_chrome.position = _bottom_chrome_rest_position + Vector2(0.0, subscreen_exit_offset_y)
+	_bottom_chrome.visible = false
+	_logo.modulate.a = 0.0
+
+
 ## Reverses play_subscreen_exit when a transparent overlay such as settings
 ## closes and the same Title instance becomes interactive again.
 func play_subscreen_return() -> void:
@@ -213,6 +225,10 @@ func play_subscreen_return() -> void:
 		var departure_tween := _subscreen_tween
 		await departure_tween.finished
 	_subscreen_departed = false
+	# Keep input locked until the return completes, but restore the normal
+	# button artwork before it becomes visible and starts moving into place.
+	_set_menu_interaction_enabled(false, false)
+	_bottom_chrome.visible = true
 	_kill_subscreen_tween()
 	var tween := create_tween().set_parallel(true)
 	_subscreen_tween = tween
@@ -431,9 +447,11 @@ func _kill_subscreen_tween() -> void:
 	_subscreen_tween = null
 
 
-func _set_menu_interaction_enabled(enabled: bool) -> void:
+func _set_menu_interaction_enabled(enabled: bool, show_disabled_visual := true) -> void:
 	for control in _active_controls:
-		if control is BaseButton:
+		if control is TitleMenuButton:
+			(control as TitleMenuButton).set_interaction_disabled(not enabled, show_disabled_visual)
+		elif control is BaseButton:
 			(control as BaseButton).disabled = not enabled
 
 

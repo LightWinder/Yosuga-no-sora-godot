@@ -2,19 +2,14 @@
 
 [ext_resource type="Script" uid="uid://bw2c0n7y0uth0" path="res://src/save_load/save_load_page.gd" id="1_page"]
 [ext_resource type="PackedScene" uid="uid://b2de26dkf67x7" path="res://src/ui/page_title.tscn" id="2_title"]
-[ext_resource type="PackedScene" path="res://src/save_load/save_slot_card.tscn" id="3_slot"]
+[ext_resource type="PackedScene" path="res://src/save_load/save_slot_list.tscn" id="3_slot"]
 [ext_resource type="PackedScene" path="res://src/ui/confirmation_overlay.tscn" id="4_confirmation"]
+[ext_resource type="Script" uid="uid://8ymbjpqr43kd" path="res://src/ui/page_tab_button.gd" id="5_tab"]
+[ext_resource type="Script" uid="uid://c7hk0tgat1b6s" path="res://src/ui/text_action_button.gd" id="6_action"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="7_blur"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_mask.tres" id="8_mask"]
 
-[sub_resource type="Gradient" id="Gradient_background"]
-offsets = PackedFloat32Array(0, 0.46, 1)
-colors = PackedColorArray(0.23, 0.62, 0.73, 1, 0.62, 0.84, 0.9, 1, 0.94, 0.975, 0.985, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture_background"]
-gradient = SubResource("Gradient_background")
-width = 1920
-height = 1080
-fill_from = Vector2(0.15, 0)
-fill_to = Vector2(0.85, 1)
+[sub_resource type="ButtonGroup" id="ButtonGroup_modes"]
 
 [node name="SaveLoadPage" type="Control" unique_id=1152897506]
 layout_mode = 3
@@ -25,6 +20,30 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_page")
+metadata/_edit_horizontal_guides_ = [146.0]
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="." unique_id=1924832187]
+copy_mode = 2
+
+[node name="BackgroundBlur" type="ColorRect" parent="." unique_id=2125096215]
+material = ExtResource("7_blur")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BackgroundTint" type="ColorRect" parent="." unique_id=1499390860]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.31764707, 0.627451, 0.8235294, 0.39215687)
 
 [node name="VisualCanvas" type="Control" parent="." unique_id=649448335]
 anchors_preset = 0
@@ -32,101 +51,131 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 1
 
-[node name="Background" type="TextureRect" parent="VisualCanvas" unique_id=1473255795]
-layout_mode = 0
-offset_right = 1920.0
-offset_bottom = 1080.0
-mouse_filter = 2
-texture = SubResource("GradientTexture_background")
-expand_mode = 1
-stretch_mode = 6
+[node name="PageLayout" type="VBoxContainer" parent="VisualCanvas" unique_id=886640579]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
 
-[node name="BackgroundWash" type="ColorRect" parent="VisualCanvas" unique_id=1671842404]
-visible = false
-layout_mode = 0
-offset_top = 108.0
-offset_right = 1920.0
-offset_bottom = 1080.0
+[node name="Header" type="Control" parent="VisualCanvas/PageLayout" unique_id=1278878359]
+custom_minimum_size = Vector2(0, 148)
+layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
-color = Color(0.93, 0.98, 1, 0.28)
 
-[node name="PageTitle" parent="VisualCanvas" unique_id=434601218 instance=ExtResource("2_title")]
+[node name="PageTitle" parent="VisualCanvas/PageLayout/Header" unique_id=180458252 instance=ExtResource("2_title")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 16.0
-offset_top = 18.0
-offset_right = 582.0
-offset_bottom = 134.0
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -58.0
+offset_right = 577.0
+offset_bottom = 58.0
+grow_vertical = 2
 title = "读取"
 subtitle = "DATA LOAD."
 
-[node name="ModeTabs" type="HBoxContainer" parent="VisualCanvas" unique_id=1450157799]
-layout_mode = 0
-offset_left = 1320.0
-offset_top = 42.0
-offset_right = 1748.0
-offset_bottom = 128.0
-theme_override_constants/separation = 18
-alignment = 2
+[node name="ModeTabs" type="HBoxContainer" parent="VisualCanvas/PageLayout/Header" unique_id=1973449006]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 1399.667
+offset_top = -19.0
+offset_right = 1825.0004
+offset_bottom = 71.00003
+grow_vertical = 2
+theme_override_constants/separation = 0
 
-[node name="SaveMode" type="Button" parent="VisualCanvas/ModeTabs" unique_id=1864816838]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(154, 78)
+[node name="SaveSlot" type="Control" parent="VisualCanvas/PageLayout/Header/ModeTabs" unique_id=597758498]
 layout_mode = 2
-focus_mode = 0
-theme_type_variation = &"SaveLoadModeButton"
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="SaveMode" type="Button" parent="VisualCanvas/PageLayout/Header/ModeTabs/SaveSlot" unique_id=210747650]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SettingsTabButton"
 disabled = true
 toggle_mode = true
+button_group = SubResource("ButtonGroup_modes")
 text = "存档"
+script = ExtResource("5_tab")
+tab_label = "存档"
 
-[node name="Divider" type="Label" parent="VisualCanvas/ModeTabs" unique_id=1410295041]
+[node name="LoadSlot" type="Control" parent="VisualCanvas/PageLayout/Header/ModeTabs" unique_id=971533224]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.9)
-theme_override_font_sizes/font_size = 50
-text = "·"
-vertical_alignment = 1
+size_flags_horizontal = 3
+mouse_filter = 2
 
-[node name="LoadMode" type="Button" parent="VisualCanvas/ModeTabs" unique_id=824828585]
+[node name="LoadMode" type="Button" parent="VisualCanvas/PageLayout/Header/ModeTabs/LoadSlot" unique_id=1092440705]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(210, 78)
-layout_mode = 2
-focus_mode = 0
-theme_type_variation = &"SaveLoadModeButton"
-disabled = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SettingsTabButton"
+theme_override_font_sizes/font_size = 64
 toggle_mode = true
 button_pressed = true
-text = "读取"
+button_group = SubResource("ButtonGroup_modes")
+text = "• 读取 •"
+script = ExtResource("5_tab")
+tab_label = "读取"
 
-[node name="Main" type="HBoxContainer" parent="VisualCanvas" unique_id=502659515]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 155.0
-offset_right = 1756.0
-offset_bottom = 942.0
-theme_override_constants/separation = 22
+[node name="ContentMargin" type="MarginContainer" parent="VisualCanvas/PageLayout" unique_id=1974105123]
+custom_minimum_size = Vector2(0, 811)
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
 
-[node name="PreviewPanel" type="PanelContainer" parent="VisualCanvas/Main" unique_id=13068280]
-custom_minimum_size = Vector2(535, 0)
+[node name="Main" type="HBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin" unique_id=1746650461]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="PreviewPanel" type="PanelContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main" unique_id=13068280]
+custom_minimum_size = Vector2(510, 0)
 layout_mode = 2
 theme_type_variation = &"SaveLoadPagePanel"
 
-[node name="PreviewMargin" type="MarginContainer" parent="VisualCanvas/Main/PreviewPanel" unique_id=104092446]
+[node name="PreviewMargin" type="MarginContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel" unique_id=104092446]
 layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 10
 
-[node name="PreviewColumn" type="VBoxContainer" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin" unique_id=1499041823]
+[node name="PreviewColumn" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin" unique_id=1499041823]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PreviewFrame" type="PanelContainer" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=162999006]
-custom_minimum_size = Vector2(0, 298)
+[node name="PreviewAspect" type="AspectRatioContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1359688660]
+custom_minimum_size = Vector2(0, 259)
+layout_mode = 2
+ratio = 1.7777778
+stretch_mode = 0
+
+[node name="PreviewFrame" type="PanelContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect" unique_id=162999006]
 layout_mode = 2
 theme_type_variation = &"SaveLoadPreviewFrame"
 
-[node name="PreviewTexture" type="TextureRect" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewFrame" unique_id=1828928215]
+[node name="RoundedClip" type="PanelContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame" unique_id=2059368530]
+clip_children = 1
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("8_mask")
+
+[node name="PreviewTexture" type="TextureRect" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip" unique_id=1828928215]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -134,226 +183,214 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="PreviewEmpty" type="CenterContainer" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewFrame" unique_id=1434904313]
+[node name="PreviewEmpty" type="CenterContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip" unique_id=1434904313]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 
-[node name="EmptyMark" type="VBoxContainer" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewFrame/PreviewEmpty" unique_id=1464945119]
+[node name="EmptyMark" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty" unique_id=1464945119]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = -8
 
-[node name="Name" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewFrame/PreviewEmpty/EmptyMark" unique_id=1314838676]
+[node name="Name" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1314838676]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.55, 0.67, 0.18)
+theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.55)
 theme_override_font_sizes/font_size = 46
 text = "ヨスガノソラ"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewFrame/PreviewEmpty/EmptyMark" unique_id=1473742008]
+[node name="Caption" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1473742008]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.55, 0.67, 0.16)
+theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.45)
 theme_override_font_sizes/font_size = 16
-text = "SAVE DATA PREVIEW"
+text = "YOSUGA NO SORA"
 horizontal_alignment = 1
 
-[node name="DateHeading" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=232938518]
+[node name="DetailsMargin" type="MarginContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=116102721]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 12
+
+[node name="Details" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin" unique_id=1453866667]
+layout_mode = 2
+theme_override_constants/separation = 26
+
+[node name="Date" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details" unique_id=2003111802]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DateHeading" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Date" unique_id=232938518]
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoHeading"
 text = "存档日期"
 
-[node name="PreviewDate" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=301314754]
+[node name="PreviewDate" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Date" unique_id=301314754]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoLabel"
-text = "尚未选择存档"
-vertical_alignment = 1
+text = "---- / -- / --   --:--"
 
-[node name="LocationHeading" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=881797201]
+[node name="Location" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details" unique_id=928259063]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LocationHeading" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Location" unique_id=881797201]
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoHeading"
 text = "存档位置"
 
-[node name="PreviewLocation" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=388986850]
+[node name="PreviewLocation" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Location" unique_id=388986850]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoLabel"
-text = "—"
-vertical_alignment = 1
+text = "空槽位"
 autowrap_mode = 2
 
-[node name="CommentHeading" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=139754885]
+[node name="Comment" type="VBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details" unique_id=230554172]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CommentHeading" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Comment" unique_id=139754885]
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoHeading"
 text = "文本注释"
 
-[node name="PreviewComment" type="Label" parent="VisualCanvas/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1678231389]
+[node name="PreviewComment" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Comment" unique_id=1678231389]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
 theme_type_variation = &"SaveLoadInfoLabel"
-text = "从右侧选择一个槽位以查看详细信息。"
+text = "这里还没有存档。"
 autowrap_mode = 2
 
-[node name="SlotPanel" type="PanelContainer" parent="VisualCanvas/Main" unique_id=149289042]
+[node name="CommentEdit" type="LineEdit" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=202987181]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"SaveLoadCommentEdit"
+placeholder_text = "添加备注 · Enter 保存"
+max_length = 120
+editable = false
+
+[node name="ManageActions" type="HBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=735181353]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Move" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/ManageActions" unique_id=1705745183]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SaveLoadSmallAction"
+disabled = true
+text = "移动存档"
+
+[node name="Lock" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/ManageActions" unique_id=386050717]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SaveLoadSmallAction"
+disabled = true
+text = "锁定存档"
+
+[node name="NavigationSpace" type="Control" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1071445110]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Shortcuts" type="HBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1570490037]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ManualShortcut" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/Shortcuts" unique_id=496443464]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SaveLoadSmallAction"
+text = "手动"
+
+[node name="QuickShortcut" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/Shortcuts" unique_id=1746943133]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SaveLoadSmallAction"
+text = "快速"
+
+[node name="AutoShortcut" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/Shortcuts" unique_id=864360390]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SaveLoadSmallAction"
+text = "自动"
+
+[node name="SlotPanel" type="PanelContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main" unique_id=149289042]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadPagePanel"
 
-[node name="SlotMargin" type="MarginContainer" parent="VisualCanvas/Main/SlotPanel" unique_id=1686626780]
+[node name="SlotList" parent="VisualCanvas/PageLayout/ContentMargin/Main/SlotPanel" unique_id=1284170718 instance=ExtResource("3_slot")]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
 
-[node name="SlotGrid" type="GridContainer" parent="VisualCanvas/Main/SlotPanel/SlotMargin" unique_id=1817061750]
+[node name="FooterSpace" type="Control" parent="VisualCanvas/PageLayout" unique_id=1799884327]
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 14
-theme_override_constants/v_separation = 14
-columns = 4
-
-[node name="Slot01" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1289399455 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "自动存档（空）"
-
-[node name="Slot02" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1161629210 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 01（空）"
-
-[node name="Slot03" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1396455485 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 02（空）"
-
-[node name="Slot04" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=2031513762 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 03（空）"
-
-[node name="Slot05" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1239040024 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 04（空）"
-
-[node name="Slot06" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=2032633826 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 05（空）"
-
-[node name="Slot07" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=984185710 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 06（空）"
-
-[node name="Slot08" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1042309389 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 07（空）"
-
-[node name="Slot09" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1277122539 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 08（空）"
-
-[node name="Slot10" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=690319151 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 09（空）"
-
-[node name="Slot11" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=1956029796 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 10（空）"
-
-[node name="Slot12" parent="VisualCanvas/Main/SlotPanel/SlotMargin/SlotGrid" unique_id=646429099 instance=ExtResource("3_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-tooltip_text = "手动存档 11（空）"
-
-[node name="PageNavigation" type="VBoxContainer" parent="VisualCanvas/Main" unique_id=27405877]
-custom_minimum_size = Vector2(104, 0)
-layout_mode = 2
-theme_override_constants/separation = 18
-alignment = 1
-
-[node name="PreviousPage" type="Button" parent="VisualCanvas/Main/PageNavigation" unique_id=315908810]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(104, 70)
-layout_mode = 2
-theme_type_variation = &"SaveLoadActionButton"
-disabled = true
-text = "▲"
-
-[node name="PageNumber" type="Label" parent="VisualCanvas/Main/PageNavigation" unique_id=1761102890]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(104, 66)
-layout_mode = 2
-theme_type_variation = &"SaveLoadInfoHeading"
-text = "01 / 02"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="PageRail" type="ColorRect" parent="VisualCanvas/Main/PageNavigation" unique_id=690512953]
-custom_minimum_size = Vector2(4, 410)
-layout_mode = 2
-size_flags_horizontal = 4
 mouse_filter = 2
-color = Color(0.94, 0.99, 1, 0.84)
 
-[node name="NextPage" type="Button" parent="VisualCanvas/Main/PageNavigation" unique_id=2125382864]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(104, 70)
+[node name="FooterMargin" type="MarginContainer" parent="VisualCanvas/PageLayout" unique_id=1099946574]
 layout_mode = 2
-theme_type_variation = &"SaveLoadActionButton"
-text = "▼"
+theme_override_constants/margin_left = 42
+theme_override_constants/margin_right = 40
 
-[node name="Footer" type="HBoxContainer" parent="VisualCanvas" unique_id=1864118989]
-layout_mode = 0
-offset_left = 38.0
-offset_top = 964.0
-offset_right = 1870.0
-offset_bottom = 1040.0
+[node name="Footer" type="HBoxContainer" parent="VisualCanvas/PageLayout/FooterMargin" unique_id=1332086384]
+custom_minimum_size = Vector2(0, 73)
+layout_mode = 2
 theme_override_constants/separation = 26
 
-[node name="Status" type="Label" parent="VisualCanvas/Footer" unique_id=1381505505]
+[node name="Status" type="Label" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1381505505]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadStatus"
-text = "请选择一个存档。"
+text = "已选择：手动存档 001"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="Back" type="Button" parent="VisualCanvas/Footer" unique_id=1240335205]
+[node name="Delete" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1938157881]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 64)
-layout_mode = 2
-theme_type_variation = &"SaveLoadActionButton"
-text = "返回标题"
-
-[node name="Delete" type="Button" parent="VisualCanvas/Footer" unique_id=1938157881]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 64)
+custom_minimum_size = Vector2(150, 73)
 layout_mode = 2
 theme_type_variation = &"SaveLoadActionButton"
 disabled = true
 text = "删除"
+script = ExtResource("6_action")
 
-[node name="Primary" type="Button" parent="VisualCanvas/Footer" unique_id=2111406521]
+[node name="Copy" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=236384260]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 64)
+custom_minimum_size = Vector2(160, 73)
+layout_mode = 2
+theme_type_variation = &"SaveLoadActionButton"
+disabled = true
+text = "复制"
+script = ExtResource("6_action")
+
+[node name="Primary" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=2111406521]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(280, 73)
 layout_mode = 2
 theme_type_variation = &"SaveLoadPrimaryButton"
 disabled = true
-text = "读取所选存档"
+text = "保存存档"
+script = ExtResource("6_action")
+
+[node name="Back" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1240335205]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(273, 73)
+layout_mode = 2
+theme_type_variation = &"SettingsFooterPrimaryButton"
+text = "返回标题"
+script = ExtResource("6_action")
 
 [node name="ConfirmationOverlay" parent="VisualCanvas" unique_id=991065110 instance=ExtResource("4_confirmation")]
 unique_name_in_owner = true

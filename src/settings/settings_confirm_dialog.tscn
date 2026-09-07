@@ -1,9 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://src/settings/settings_confirm_dialog.gd" id="1_dialog"]
-[ext_resource type="Texture2D" path="res://assets/content/confirm/bg.png" id="2_background"]
-[ext_resource type="Script" path="res://src/settings/ui/settings_text_button.gd" id="3_button"]
-[ext_resource type="Script" path="res://src/settings/ui/settings_check_button.gd" id="4_check"]
+[ext_resource type="Script" uid="uid://vny0ww3jqlxx" path="res://src/settings/settings_confirm_dialog.gd" id="1_dialog"]
+[ext_resource type="Texture2D" uid="uid://doayg1l7fu2d" path="res://assets/content/confirm/bg.png" id="2_background"]
+[ext_resource type="Script" uid="uid://bqypdgjm6vhqd" path="res://src/settings/ui/settings_text_button.gd" id="3_button"]
+[ext_resource type="Script" uid="uid://cbypqijsa3jxq" path="res://src/settings/ui/settings_check_button.gd" id="4_check"]
 [ext_resource type="Material" path="res://assets/shaders/ui/settings_modal_blur_material.tres" id="5_blur_material"]
 
 [node name="SettingsConfirm" type="Control"]

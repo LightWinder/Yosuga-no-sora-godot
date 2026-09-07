@@ -1,0 +1,6 @@
+[gd_resource type="StyleBoxFlat" format=3 uid="uid://cxgyxicgxb1wj"]
+
+[resource]
+draw_center = false
+shadow_color = Color(0.92, 0.99, 1, 0.3)
+shadow_size = 13

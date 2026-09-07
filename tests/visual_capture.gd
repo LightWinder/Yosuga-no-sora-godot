@@ -138,6 +138,11 @@ func _capture() -> void:
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
 		root.add_child(service)
+		var title_backdrop := (SCENES[&"title"] as PackedScene).instantiate() as TitleScreen
+		title_backdrop.configure(service)
+		title_backdrop.reveal_seconds = 0.0
+		title_backdrop.menu_fade_seconds = 0.0
+		root.add_child(title_backdrop)
 		var payload := service._sample_save("当前剧情状态", "hitret:current", 0, true)
 		screen = SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
 		(screen as SaveLoadPage).configure(SaveLoadPage.Mode.SAVE, service, payload)
@@ -216,14 +221,14 @@ func _capture() -> void:
 				quit(2)
 				return
 			var save_load_page := feature.load_page()
-			(save_load_page.get_node("VisualCanvas/Footer/Delete") as Button).pressed.emit()
+			(save_load_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Delete") as Button).pressed.emit()
 			await create_timer(0.25).timeout
 	if screen_name == &"save" and arguments.size() >= 4:
 		if arguments[3] != "overwrite_confirm":
 			push_error("Unknown save overlay: %s" % arguments[3])
 			quit(2)
 			return
-		((screen as SaveLoadPage).get_node("VisualCanvas/Footer/Primary") as Button).pressed.emit()
+		((screen as SaveLoadPage).get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Primary") as Button).pressed.emit()
 		await create_timer(0.25).timeout
 	if screen_name == &"title_press":
 		var title := screen as TitleScreen

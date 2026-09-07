@@ -10,7 +10,7 @@
 
 1. 播放 5 秒 Sphere 品牌视频；1.5 秒时随机播放一条品牌语音。
 2. 警告页淡入 1 秒，停留 8 秒，再通过 1 秒白场过渡离开。
-3. Title 页由白场揭示 1 秒，菜单同时淡入 0.5 秒，播放随机标题语音与循环 BGM。若存在自动存档，会显示“继续”；读取页列出自动存档和 20 个手动槽并支持选择/删除确认，环境设定持久化完整的 Audio/Screen/System 项，音量拖动实时预览并在结束/短暂 debounce 后写入。
+3. Title 页由白场揭示 1 秒，菜单同时淡入 0.5 秒，播放随机标题语音与循环 BGM。若存在自动存档，会显示“继续”；读取页连续滚动展示 900 个手动槽、9 条快速存档及独立自动存档，支持图片读取、复制、移动、锁定、备注和删除确认，环境设定持久化完整的 Audio/Screen/System 项，音量拖动实时预览并在结束/短暂 debounce 后写入。
 
 Title 的 Bonus 已按源 HD 信息架构重建，而不是一个文字占位列表：
 
@@ -27,7 +27,7 @@ ADV 运行层把源工程 306 个 `.ks` 剧本全部规范化为 UTF-8 文本，
 
 `tools/import_krkr_adv_assets.sh` 会导入 306 个已转换剧本实际引用的完整媒体子集：背景、立绘和对话头像、语音、音效、转场规则及固定 ADV 界面，同时不会无差别复制源工程中未引用的目录。资源解析大小写不敏感，并复用既有事件 CG、BGM、影片、存读档、设置、Theme、输入与持久化组件；验证会在任何剧本引用素材缺失时失败。
 
-视频阶段按键盘、主鼠标键、手柄确认键或触摸可进入警告页。警告页第一次输入会完成淡入并将剩余等待缩短为 4 秒，第二次输入会直接开始白场过渡。Title 菜单使用语义化 `vn_advance`/`vn_cancel`/`vn_confirm`。Godot 默认开启触摸转鼠标，编辑器可以省略这个默认项目配置；验证脚本只拒绝显式的 `false`。所有 `Control` 因此仍走同一 GUI 路径，并由 `StartupInput` 过滤 `DEVICE_ID_EMULATION` 合成鼠标，避免一次触摸推进两次；滚轮和次鼠标键不会误触发。菜单按钮保留双帧高亮、按下/回弹反馈、手柄焦点和扩大后的触摸命中区。
+视频阶段按键盘、主鼠标键、手柄确认键或触摸可进入警告页。警告页第一次输入会完成淡入并将剩余等待缩短为 4 秒，第二次输入会直接开始白场过渡。Title 菜单使用语义化 `vn_advance`/`vn_cancel`/`vn_confirm`。Godot 默认开启触摸转鼠标，编辑器可以省略这个默认项目配置；验证脚本只拒绝显式的 `false`。所有 `Control` 因此仍走同一 GUI 路径，并由 `StartupInput` 过滤 `DEVICE_ID_EMULATION` 合成鼠标，避免一次触摸推进两次；滚轮和次鼠标键不会误触发。Title 菜单改用原生 Button，以 Xiaolai 字体绘制中文及英文副标题，逐字还原略微倾斜的蓝色方块。颜色和字号由 Theme 管理；保留悬停／焦点高亮、按下／回弹反馈和扩大后的触摸命中区。主菜单与鉴赏子菜单不再切分烘焙按钮图片。
 
 环境设定现在完整复刻源 `ConfigWindowHD2` 的 HD 信息架构：
 
@@ -49,9 +49,11 @@ ADV 预览在视觉上由 Display 页承载，但设置来自 `SettingsPage` 的
 godot --path .
 ```
 
-项目以 1920×1080 为设计分辨率，当前开发窗口默认以 2560×1440 启动，并按 16:9 等比缩放；Title 背景独立按比例 cover 整个 viewport，内容根节点会在超宽、4:3 和竖屏窗口中保持比例，桌面端 16:9 不额外缩小，移动端再按系统安全区（不可用时使用保守 fallback）留边。
+项目以 1920×1080 为设计分辨率，当前开发窗口默认以 2560×1440 启动，并按 16:9 等比缩放；Title 背景独立按比例 cover 整个 viewport。云层使用完整透明 `AAA.png`，围绕设计坐标 (1280, 864) 按角度和可调对数半径做放射映射。单个场景化 CanvasItem 完成绘制，不生成或重生独立云体；归一化相位时钟避免全局 Shader 时间每小时回绕，静态天空遮罩保护山树。投影同步背景 cover 裁切。内容根节点会在超宽、4:3 和竖屏窗口中保持比例，桌面端 16:9 不额外缩小，移动端再按系统安全区（不可用时使用保守 fallback）留边。
 
 ## 验证
+
+Title 已接入整张纹理的放射云实现。`tests/cloud_test.tscn` 保留普通垂直循环检查，`tests/cloud_radial_test.tscn` 直接预览 Title 使用的同一云层；两者都使用提供的 `AAA.png`。按最新要求，纹理边缘缺陷记录为后续素材修复项，不再阻挡推进。详见[云循环验证与调参记录](docs/cloud_loop_validation.md)。
 
 ```bash
 GODOT_EXECUTABLE=/path/to/godot ./tools/verify_project.sh
@@ -81,9 +83,9 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 
 - `src/app/`：负责启动状态流转及路由级合成；设置作为覆盖层保留当前页面，并通过 `BackBufferCopy + SCREEN_TEXTURE` 直接实时模糊其后方画面。Title 的离场/返回动画和设置 UI 都在同一个主 Viewport 中运行。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
-- `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、角色差分、主菜单/鉴赏菜单按钮和底部 chrome，脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
+- `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、投影云层、角色差分、主菜单/鉴赏菜单按钮和底部 chrome。云层是单个场景化全屏 Control，由 CanvasItem shader 按角度和对数半径映射单张循环云纹理，并应用静态天空遮罩；局部控制器只推进归一化纹理相位；Title 控制脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
 - `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。`components/adv_dialogue_view` 持有原样的对话布局、外观、打字与框体动画，仅接收已解析的贴图和数值，不依赖剧情或设置模块。永久坐标、框型及恢复 API 同步静止状态，临时下滑偏移不会成为保存的静止坐标。`preview/adv_settings_preview` 复用该组件，负责独立循环的设置演示。
-- `src/save_load/`：与 Title 解耦的存读档功能；单个场景固定持有 4×3 槽位网格、预览、分页、操作区和确认层，槽位卡是独立复用场景。Title 以 Load 模式配置，ADV 使用当前 `SaveData` 复用同一页面的 Save/Load 模式。
+- `src/save_load/`：与 Title 解耦的存读档功能；页面场景拥有预览、操作区、共享确认层及原生 ScrollContainer。有限数量的复用卡片场景仅渲染 900 槽位列表的可见行。Title 配置 Load，ADV 提供当前快照复用 Save/Load。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
 - `src/title/title_catalog.gd`、`title_catalog_entry.gd`：鉴赏条目定义、profile 解锁状态和内容 runner 数据接口。
 - `src/settings/`：独立的环境设定路由、设置编辑器、设置模型（schema 3）和显示设置服务；`SettingsPage` 只协调设置快照、预览/保存和重置规则，页签、页脚、状态与弹窗由静态 `SettingsChrome` 子场景持有。`pages/` 的 Display/System/Audio 三个页签均为独立子场景，Audio 页自己持有语音试听器，Display 页的两列 Container、九张卡片和标题由 `.tscn` 固定持有；顶部页签使用原生 `Button`、共享 `ButtonGroup` 与 `SettingsTabButton` Theme variation，`SettingsSectionTitle` 可直接在编辑器预览；`ui/` 只保留交互/自绘组件，字号、字重、颜色、描边和 StyleBox 统一来自项目 Theme 的语义化 variation。
@@ -117,3 +119,13 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 存档永远写 `user://`，不写入只读的 `res://`；`SaveData` 保留 schema/content 版本、场景锚点、局部 flag、已读文本、演出快照及与原版一致的上一选项返回栈，`ProfileData` 单独保存跨存档全局 flag 与鉴赏解锁。每次覆盖先保留 `.bak`，可通过 `SaveService.restore_*_backup()` 恢复上一份有效文件。
 
 `BGM07_title.ogg` 按原 `BGM07.ogg.sli` 的跳转点裁切，并从 161922 / 44100 秒处循环；`sphere.ogv` 是源 `sphere.mp4` 的 Ogg Theora 版本，以使用 Godot 核心原生视频解码器。游戏素材沿用源项目权利状态，本项目不对其重新授权。
+
+存读档保留当前设置页视觉：内容固定高度、标题和页脚弹性留白、面板内边距 25 px、外边距与面板间距 18 px、页脚下边距 12 px。可视区为四列三行，原生连续滚动支持滚轮、拖动、触摸和键盘导航；快捷入口跳到手动、快速和自动存档。滚动条位于右侧面板内，与网格间距 14 px；图片维持原有 10 px 圆角遮罩。
+
+原项目容量为 10 本 × 10 页 × 9 个手动槽，共 900 个，其后为按新到旧排序的 9 条快存。移植版将独立的“继续”自动存档列在快存之后；既有 `slot_00.json` 文件名兼容。快存使用带序号的九个轮换原子文件，与自动存档独立。复制保留剧情、时间和图片；移动先写目标再删除来源。锁定可防止覆盖、删除和移动，支持手动备注；复制/移动及破坏性操作复用确认层。
+
+SaveData schema 5 增加可选的锁定、备注及 WebP 缩略图字段并兼容旧版迁移。ADV 使用离屏 SubViewport 仅渲染背景相机，排除 GUI 和独立角色层，生成 960×540 图片，覆盖 4K 下约 920 px 宽的左侧预览。压缩图片与剧情数据共同原子写入 JSON，复制和 `.bak` 恢复时保持一致。没有截图的旧存档继续显示空预览。默认选中手动槽 001；只有选中的非空槽位才显示并启用图片中央的读取按钮。槽位图片铺满圆角框，左侧预览由原生 AspectRatioContainer 保持 16:9，图片贴合并共用圆角裁切。页脚保留管理和返回操作，仅存档模式显示保存按钮。
+
+标题入口的读取页与设置页一样覆盖在原 Title 实例上；返回时用 0.30 秒淡出并向下移动 18 px，再恢复原菜单与焦点，不重播标题音频。返回按钮位于页脚最后，复用 `SettingsFooterPrimaryButton`。
+
+读存档页面采用与设置页一致的 0.30 秒三次缓出淡入及 18 px 向上归位。 从标题进入设置或读档时，标题 Logo 和菜单立即隐藏；原离场动画函数保留供其他路由使用，返回时仍使用现有菜单恢复动画。

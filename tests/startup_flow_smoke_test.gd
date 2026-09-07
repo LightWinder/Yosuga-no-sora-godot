@@ -114,7 +114,7 @@ func _run() -> void:
 	_expect((settings_screen.get_node("BackBufferCopy") as BackBufferCopy).copy_mode == BackBufferCopy.COPY_MODE_VIEWPORT, "Settings must copy the live route behind it directly from the root viewport.")
 	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 1, "Settings must overlay the live Title route instead of replacing it.")
 	_expect(not title_underlay.is_processing_input() and not title_underlay.is_processing_unhandled_input(), "The scene behind settings must stop receiving route input while it remains visible.")
-	_expect(title_underlay.is_subscreen_departed(), "Opening settings must run the reusable Title child-screen departure animation.")
+	_expect(title_underlay.is_subscreen_departed(), "Opening settings must mark the title as departed for the existing return animation.")
 	var title_preview := settings_screen.settings_page().display_page().preview_content() as AdvSettingsPreview
 	_expect_preview_connection(settings_screen)
 	startup_flow._configure_settings_preview(settings_screen)
@@ -133,10 +133,30 @@ func _run() -> void:
 	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 0, "Closing settings must reveal the same Title instance without replaying its route.")
 	_expect(title_underlay.is_processing_input() and title_underlay.is_processing_unhandled_input(), "Closing settings must restore input to the underlying route.")
 	_expect(Engine.max_fps == previous_max_fps, "Closing settings must leave the application frame rate unchanged.")
+	var load_return_focus: Control
+	for button in title_underlay.get_menu_buttons():
+		if button.is_visible_in_tree() and not button.disabled:
+			button.grab_focus()
+			load_return_focus = button
+			break
+	startup_flow._show_title_feature(&"load_game")
+	await process_frame
+	var load_overlay := overlay_host.get_child(overlay_host.get_child_count() - 1) as SaveLoadPage
+	_expect(load_overlay != null and screen_host.get_child(0) == title_underlay, "Load must overlay the existing title like Settings.")
+	var load_back := load_overlay.get_node("%Back") as Button
+	_expect(load_back.get_index() == load_back.get_parent().get_child_count() - 1 and load_back.theme_type_variation == &"SettingsFooterPrimaryButton", "Load return must be the final footer action and reuse Settings primary styling.")
+	load_back.pressed.emit()
+	_expect(load_overlay.is_closing(), "Returning from Load must start a close transition before removal.")
+	load_back.pressed.emit()
+	await create_timer(0.7, true, false, true).timeout
+	_expect(overlay_host.get_child_count() == 0 and screen_host.get_child(0) == title_underlay and not title_underlay.is_subscreen_departed(), "Load return must restore the same title without replaying its route.")
+	_expect(title_underlay.is_processing_input() and root.gui_get_focus_owner() == load_return_focus, "Load return restores title input and previous focus.")
 	var route_save := SaveData.create_empty("smoke")
 	route_save.scenario_id = "00_z000"
 	route_save.instruction_anchor = "hitret:1"
 	_expect(startup_save_service.save_slot(0, route_save), "ADV route smoke test must create an isolated save fixture.")
+	startup_flow._show_title_feature(&"load_game")
+	await process_frame
 	var path_only_request := ScenarioLaunchRequest.new()
 	path_only_request.kind = ScenarioLaunchRequest.RequestKind.CONTINUE
 	path_only_request.save_path = startup_save_service.slot_path(0)
@@ -153,6 +173,7 @@ func _run() -> void:
 		await process_frame
 	_expect(startup_flow.current_stage == StartupFlow.Stage.ADV, "Scenario requests must replace Title with the ADV route.")
 	_expect(not load_transition_cover.visible, "The blue load cover must leave only after ADV restore is ready.")
+	_expect(overlay_host.get_child_count() == 0, "Entering ADV must discard the title load overlay.")
 	var adv := screen_host.get_child(0) as AdvScreen
 	_expect(adv != null and adv.scene_file_path.ends_with("adv_screen.tscn"), "StartupFlow must instantiate the scene-owned ADV screen.")
 	_expect(adv.get_node_or_null("VisualCanvas/Stage/CameraCanvas/Background") is TextureRect, "ADV background layer must be declared in the scene-owned camera canvas.")

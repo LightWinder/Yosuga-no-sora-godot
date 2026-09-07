@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/title/cloud_vertical_loop.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/clouds/AAA.png" id="2_texture"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_shader")
+shader_parameter/cloud_texture = ExtResource("2_texture")
+shader_parameter/speed = 0.015
+shader_parameter/phase = 0.0
+shader_parameter/uv_scale = Vector2(1, 0.675)
+shader_parameter/uv_offset = Vector2(0, 0)
+shader_parameter/opacity = 1.0

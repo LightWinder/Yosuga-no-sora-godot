@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" path="res://src/title/title_menu_button.gd" id="1_script"]
 
-[node name="TitleMenuButton" type="TextureButton"]
-custom_minimum_size = Vector2(1, 1)
-offset_right = 1.0
-offset_bottom = 1.0
+[node name="TitleMenuButton" type="Button"]
+custom_minimum_size = Vector2(192, 78)
+offset_right = 192.0
+offset_bottom = 78.0
 mouse_default_cursor_shape = 2
 focus_mode = 2
-ignore_texture_size = true
+theme_type_variation = &"TitleMenuButton"
 script = ExtResource("1_script")
 

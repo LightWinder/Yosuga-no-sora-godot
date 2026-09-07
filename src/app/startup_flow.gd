@@ -17,6 +17,7 @@ const BRAND_MOVIE_SCENE: PackedScene = preload("res://src/intro/brand_movie_scre
 const CONTENT_WARNING_SCENE: PackedScene = preload("res://src/intro/content_warning_screen.tscn")
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
 const TITLE_FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const SAVE_LOAD_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
 const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
@@ -35,6 +36,8 @@ var last_selected_option: StringName = &""
 var last_content_request: TitleContentRequest
 var last_scenario_request: ScenarioLaunchRequest
 var _current_screen: Control
+var _title_load_overlay: SaveLoadPage
+var _title_load_return_focus: Control
 var _settings_overlay: SettingsScreen
 var _prepared_settings_screen: SettingsScreen
 var _settings_return_focus: Control
@@ -92,6 +95,7 @@ func _show_title() -> void:
 
 
 func _replace_screen(scene: PackedScene) -> Control:
+	_discard_title_load_overlay()
 	_close_settings_overlay(false)
 	if is_instance_valid(_current_screen):
 		if _current_screen.get_parent() == _screen_host:
@@ -137,7 +141,7 @@ func open_settings() -> SettingsScreen:
 	_overlay_host.move_child(_settings_overlay, _overlay_host.get_child_count() - 1)
 	_settings_overlay.activate()
 	if _current_screen is TitleScreen:
-		(_current_screen as TitleScreen).play_subscreen_exit()
+		(_current_screen as TitleScreen).hide_for_subscreen()
 	return _settings_overlay
 
 
@@ -177,6 +181,9 @@ func _show_title_feature(feature_id: StringName) -> void:
 	last_selected_option = feature_id
 	if feature_id == &"settings":
 		open_settings()
+		return
+	if feature_id == &"load_game" and _current_screen is TitleScreen:
+		_open_title_load_overlay()
 		return
 	_open_title_feature_after_transition(feature_id)
 
@@ -401,3 +408,57 @@ func _return_to_title_from_adv() -> void:
 
 func _on_exit_requested() -> void:
 	get_tree().quit()
+
+
+func _open_title_load_overlay() -> void:
+	if is_instance_valid(_title_load_overlay) or is_instance_valid(_settings_overlay) or _route_transitioning:
+		return
+	var title := _current_screen as TitleScreen
+	if title == null:
+		return
+	_title_load_return_focus = get_viewport().gui_get_focus_owner()
+	get_viewport().gui_release_focus()
+	_set_current_screen_input_enabled(false)
+	_title_load_overlay = SAVE_LOAD_SCENE.instantiate() as SaveLoadPage
+	_title_load_overlay.name = "TitleLoadOverlay"
+	_title_load_overlay.configure(SaveLoadPage.Mode.LOAD, _save_service)
+	_title_load_overlay.back_requested.connect(_close_title_load_overlay)
+	_title_load_overlay.load_requested.connect(_load_from_title_overlay)
+	_overlay_host.add_child(_title_load_overlay)
+	title.hide_for_subscreen()
+
+
+func _load_from_title_overlay(data: SaveData, path: String) -> void:
+	if not is_instance_valid(_title_load_overlay) or _title_load_overlay.is_closing():
+		return
+	_on_scenario_requested(ScenarioLaunchRequest.from_save(data, path))
+
+
+func _close_title_load_overlay() -> void:
+	if not is_instance_valid(_title_load_overlay) or _title_load_overlay.is_closing() or _route_transitioning:
+		return
+	var overlay := _title_load_overlay
+	var title := _current_screen as TitleScreen
+	await overlay.play_close_transition()
+	if not is_instance_valid(overlay) or overlay != _title_load_overlay:
+		return
+	var return_focus := _title_load_return_focus
+	_discard_title_load_overlay()
+	if title != null and _current_screen == title:
+		await title.play_subscreen_return()
+		if _current_screen != title:
+			return
+	_set_current_screen_input_enabled(true)
+	if is_instance_valid(return_focus) and return_focus.is_visible_in_tree():
+		return_focus.call_deferred("grab_focus")
+
+
+func _discard_title_load_overlay() -> void:
+	if not is_instance_valid(_title_load_overlay):
+		return
+	var overlay := _title_load_overlay
+	_title_load_overlay = null
+	_title_load_return_focus = null
+	if overlay.get_parent() == _overlay_host:
+		_overlay_host.remove_child(overlay)
+	overlay.queue_free()

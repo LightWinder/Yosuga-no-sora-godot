@@ -92,6 +92,23 @@ required_files=(
 	"src/adv/components/adv_dialogue_view.gd"
 	"src/adv/components/adv_dialogue_view.tscn"
 	"tests/adv_dialogue_view_test.gd"
+	"tests/cloud_test.tscn"
+	"tests/cloud_loop_capture.gd"
+	"assets/shaders/title/cloud_vertical_loop.gdshader"
+	"assets/shaders/title/cloud_vertical_loop_material.tres"
+	"assets/ui/title/clouds/cloud_loop_test.png"
+	"docs/cloud_loop_validation.md"
+	"tests/cloud_radial_test.tscn"
+	"tests/cloud_radial_viewports.tscn"
+	"tests/cloud_radial_capture.gd"
+	"tests/title_cloud_field_test.gd"
+	"src/title/title_cloud_field.gd"
+	"src/title/title_cloud_field.tscn"
+	"assets/shaders/title/title_perspective_clouds.gdshader"
+	"assets/shaders/title/title_perspective_clouds_material.tres"
+	"assets/ui/title/clouds/AAA.png"
+	"assets/ui/title/clouds/AAA.png.import"
+	"assets/ui/title/clouds/sky_mask.svg"
 	"src/adv/components/adv_dialogue_appearance.gd"
 	"src/adv/preview/adv_settings_preview.gd"
 	"src/adv/preview/adv_settings_preview.tscn"
@@ -340,13 +357,13 @@ require_pattern 'AdvToneCatalog\.load_default' "$project_root/src/adv/adv_stage_
 require_pattern 'cg_presented\.connect' "$project_root/src/adv/adv_screen.gd" "Event CG progress must be wired to the runtime profile."
 require_pattern 'name="ContinueGame".*instance=' "$project_root/src/title/title_screen.tscn" "Title menu buttons must be declared as scene instances."
 require_pattern 'parent="DesignRoot/CharacterLayer"' "$project_root/src/title/title_screen.tscn" "Title character layers must be declared by the scene."
-require_pattern '^@tool' "$project_root/src/title/title_menu_button.gd" "Scene-owned Title buttons must preview their serialized artwork in the editor."
+require_pattern '^@tool' "$project_root/src/title/title_menu_button.gd" "Scene-owned Title buttons must preview their native drawing in the editor."
 require_pattern 'name="CardList"' "$project_root/src/title/content/title_album_page.tscn" "Album fixed layout must be declared by its scene."
 require_pattern 'name="TrackList"' "$project_root/src/title/content/title_music_page.tscn" "Music fixed layout must be declared by its scene."
 require_pattern 'name="MemoryList"' "$project_root/src/title/content/title_memories_page.tscn" "Memories fixed layout must be declared by its scene."
 require_pattern 'name="FavoriteList"' "$project_root/src/title/content/title_voice_page.tscn" "Voice fixed layout must be declared by its scene."
-require_pattern 'name="Slot01".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load slot cards must remain scene-owned instances."
-require_pattern 'name="Slot12".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must serialize the complete 4x3 slot page."
+require_pattern 'name="SlotList".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must own its reusable scrolling list scene."
+require_pattern 'extends ScrollContainer' "$project_root/src/save_load/save_slot_list.gd" "Save/Load must use native scrolling with a bounded card pool."
 require_pattern 'confirmation_overlay\.tscn' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must use the shared confirmation overlay."
 require_pattern 'confirmation_overlay\.tscn' "$project_root/src/title/title_screen.gd" "Title must use the shared confirmation overlay."
 require_pattern '_save_service\.autosave_path\(\)' "$project_root/src/title/title_screen.gd" "Title Continue must respect configured SaveService storage."
@@ -401,7 +418,7 @@ require_pattern 'SettingsFooterButton/base_type' "$project_root/assets/themes/yo
 require_pattern 'ConfirmationOverlayPanel/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Shared confirmation-panel Theme variation is missing."
 require_pattern 'SaveLoadSlotButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Save/Load slot Theme variation is missing."
 require_pattern 'theme_type_variation = &"SaveLoadPreviewFrame"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load preview styling must come from the centralized Theme."
-require_pattern 'theme_type_variation = &"SaveLoadPreviewFrame"' "$project_root/src/save_load/save_slot_card.tscn" "Save slot preview styling must come from the centralized Theme."
+require_pattern 'theme_type_variation = &"SaveLoadSlotPreviewFrame"' "$project_root/src/save_load/save_slot_card.tscn" "Save slot preview styling must come from the centralized Theme."
 require_pattern 'assets/themes/ui/action_button/hover\.tres' "$project_root/assets/themes/yosuga_theme.tres" "Shared action-button hover style must remain an external centralized Theme resource."
 require_pattern 'SettingsFooterButton/styles/hover = ExtResource\("5_empty_style"\)' "$project_root/assets/themes/yosuga_theme.tres" "Text-only footer buttons must not render a hover frame."
 require_pattern 'hint_screen_texture' "$project_root/assets/shaders/ui/settings_modal_blur.gdshader" "Settings modal blur must read the captured screen texture."
@@ -452,6 +469,16 @@ if rg -q 'key_popup\.png|reset_seetting\.png|reset_text\.png|settings/key\.png|s
 	exit 1
 fi
 
+require_pattern '^extends Button$' "$project_root/src/title/title_menu_button.gd" "Title menu entries must use native Buttons, not baked texture states."
+require_pattern 'repeat_enable' "$project_root/assets/shaders/title/title_perspective_clouds.gdshader" "Title clouds must repeat the whole texture."
+require_pattern 'AAA\.png' "$project_root/assets/shaders/title/title_perspective_clouds_material.tres" "Title clouds must use the supplied AAA texture."
+require_pattern 'mipmaps/generate=true' "$project_root/assets/ui/title/clouds/AAA.png.import" "Radial cloud minification requires persistent mipmap import settings."
+if rg -q 'cloud_strip|cycle_seconds|for \(int (lane|bank)|\bTIME\b' "$project_root/assets/shaders/title/title_perspective_clouds.gdshader"; then
+	echo "Title clouds must not regress to individual ribbon instances or the global shader clock." >&2
+	exit 1
+fi
+require_pattern 'TitleMenuButton/fonts/font = ExtResource\("1_xiaolai"\)' "$project_root/assets/themes/yosuga_theme.tres" "Title menu typography must use Xiaolai through the project Theme."
+
 if ! command -v "$godot_executable" >/dev/null 2>&1 && [[ ! -x "$godot_executable" ]]; then
 	echo "Godot executable not found; static project checks passed. Set GODOT_EXECUTABLE to run runtime tests."
 	exit 0
@@ -468,9 +495,13 @@ check_runtime_log() {
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
 check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/title_cloud_field_test.gd
+check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_settings_preview_test.gd
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/save_load_contract_test.gd
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/title_migration_contract_test.gd
 check_runtime_log
@@ -480,3 +511,15 @@ check_runtime_log
 check_runtime_log
 "$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_migration_contract_test.gd
 check_runtime_log
+
+require_pattern 'name="PageLayout" type="VBoxContainer"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must retain its container-owned page layout."
+require_pattern 'res://assets/themes/ui/frame.tres' "$project_root/assets/themes/yosuga_theme.tres" "Save/Load must reuse the shared Settings outer frame."
+require_pattern 'res://src/ui/page_tab_button.gd' "$project_root/src/save_load/save_load_page.tscn" "Save/Load tabs must reuse neutral page-tab behavior."
+
+require_pattern 'settings_background_blur_material.tres' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must share Settings live background blur."
+require_pattern 'clip_children = 1' "$project_root/src/save_load/save_slot_card.tscn" "Slot thumbnails must retain rounded masking."
+
+require_pattern 'name="PreviewAspect" type="AspectRatioContainer"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load left preview must keep a native 16:9 aspect container."
+require_pattern 'type="SubViewport"' "$project_root/src/adv/components/adv_background_preview.tscn" "Save thumbnails must render background-only in a dedicated viewport."
+
+require_pattern 'SAVE_LOAD_SCENE.instantiate' "$project_root/src/app/startup_flow.gd" "Title Load must be composed as a live overlay by StartupFlow."

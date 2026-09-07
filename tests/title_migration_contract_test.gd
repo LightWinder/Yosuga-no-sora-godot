@@ -410,7 +410,18 @@ func _test_title_state() -> void:
 	var title_logo := title.get_node("DesignRoot/Logo") as TextureRect
 	_expect(title.is_subscreen_departed() and title_bottom_chrome.position.y > 0.0, "Title child-screen API must slide the complete bottom chrome below the viewport.")
 	_expect(is_zero_approx(title_logo.modulate.a), "Title child-screen API must fade out the logo.")
+	var return_visuals_observed: Array[bool] = [false]
+	var inspect_return_visuals: Callable = func() -> void:
+		return_visuals_observed[0] = true
+		var highlighted_count := 0
+		for button in title.get_menu_buttons():
+			_expect(button.disabled and not button.is_visually_disabled(), "Title buttons must stay fully opaque but non-interactive during the return animation.")
+			if button.is_visually_highlighted():
+				highlighted_count += 1
+		_expect(highlighted_count > 0, "The previously selected Title button must retain its highlight during the return animation.")
+	process_frame.connect(inspect_return_visuals, CONNECT_ONE_SHOT)
 	await title.play_subscreen_return()
+	_expect(return_visuals_observed[0], "Title return contract must inspect the menu while its animation is active.")
 	_expect(not title.is_subscreen_departed() and is_zero_approx(title_bottom_chrome.position.y), "Title child-screen return API must restore the same bottom chrome instance.")
 	_expect(is_equal_approx(title_logo.modulate.a, 1.0), "Title child-screen return API must restore the logo.")
 	title.free()
@@ -436,48 +447,43 @@ func _test_title_state() -> void:
 	_expect(load_list.get_child_count() == 1, "Load route must own one reusable save/load page scene.")
 	var load_page := feature.load_page()
 	_expect(load_page != null and load_page.scene_file_path.ends_with("save_load_page.tscn"), "Load content must be a dedicated static TSCN page.")
-	_expect(load_page.slot_cards().size() == 12, "Load page must keep one static 4×3 slot-card page in the scene tree.")
-	_expect(load_page.size.is_equal_approx(load_list.size), "Embedded save/load content must expand to the complete feature-page viewport.")
+	_expect(load_page.slot_cards().size() == 12, "Load must initially show a 4×3 viewport with a bounded virtual pool.")
+	_expect(load_page.size.is_equal_approx(load_list.size), "Embedded Save/Load fills its host.")
 	var load_select := load_page.slot_cards()[0]
-	load_select.pressed.emit()
-	await process_frame
-	var page_primary := load_page.get_node("VisualCanvas/Footer/Primary") as Button
-	_expect(not page_primary.disabled, "Selecting a valid save must enable the page-owned continue action.")
-	var manual_select := load_page.slot_cards()[1]
-	manual_select.pressed.emit()
-	var page_delete := load_page.get_node("VisualCanvas/Footer/Delete") as Button
+	_expect(load_select.slot_id == 0 and load_select.button_pressed, "Manual slot 001 must be selected initially.")
+	load_select.load_requested.emit(0, false)
+	_expect(feature_requests.size() == 1, "The thumbnail action must emit a typed load route.")
+	var page_primary := load_page.get_node("%Primary") as Button
+	_expect(not page_primary.visible, "Load must not duplicate its thumbnail action in the footer.")
+	var page_delete := load_page.get_node("%Delete") as Button
 	page_delete.pressed.emit()
 	await process_frame
 	_expect(feature.is_delete_confirmation_visible(), "Deleting a manual slot must ask for confirmation.")
-	_expect(load_page.get_node("VisualCanvas/ConfirmationOverlay").scene_file_path.ends_with("confirmation_overlay.tscn"), "Save deletion must reuse the shared scene-owned confirmation component.")
-	_expect(service.has_slot(0), "Cancel is not allowed to delete a manual slot.")
 	feature.cancel_delete_confirmation()
-	_expect(service.has_slot(0), "Canceled manual-slot deletion must preserve the file.")
+	_expect(service.has_slot(0), "Cancel must preserve the manual slot.")
 	page_delete.pressed.emit()
-	await process_frame
 	feature.confirm_delete_confirmation()
 	await process_frame
-	_expect(not service.has_slot(0), "Confirmed manual-slot deletion must refresh and remove the file.")
-	_expect_no_generated_node_names(feature, "Load scene after list refresh")
-	load_select.pressed.emit()
-	page_delete.pressed.emit()
+	_expect(not service.has_slot(0), "Confirmed deletion removes the selected manual slot.")
+	load_page.scroll_to_entry(899)
 	await process_frame
-	_expect(feature.is_delete_confirmation_visible(), "Deleting autosave must ask for confirmation.")
+	_expect(load_page.selected_slot_id() == 899, "Continuous scrolling must reach manual slot 900.")
+	load_page.scroll_to_entry(909)
+	await process_frame
+	_expect(load_page.selected_is_autosave(), "Autosave is after manual slots and nine quick entries.")
+	page_delete.pressed.emit()
 	feature.cancel_delete_confirmation()
-	_expect(service.has_autosave(), "Canceled autosave deletion must preserve the autosave.")
+	_expect(service.has_autosave(), "Cancel must preserve autosave.")
 	page_delete.pressed.emit()
-	await process_frame
 	feature.confirm_delete_confirmation()
 	await process_frame
-	_expect(not service.has_autosave(), "Confirmed autosave deletion must remove the autosave.")
-	var next_save_page := load_page.get_node("VisualCanvas/Main/PageNavigation/NextPage") as Button
-	next_save_page.pressed.emit()
+	_expect(not service.has_autosave(), "Confirmed autosave deletion removes its file.")
+	load_page.scroll_to_entry(0)
 	await process_frame
-	_expect(load_page.slot_cards()[0].slot_id == 11, "Second save page must start at manual slot 12.")
-	_expect(load_page.slot_cards()[8].slot_id == 19, "Second save page must expose manual slot 20.")
-	_expect(load_page.slot_cards()[9].disabled, "Unused cells on the final save page must stay disabled.")
+	_expect(load_page.slot_cards()[0].slot_id == 0, "Scrolling back restores the first manual row.")
+	_expect_no_generated_node_names(feature, "Virtual Save/Load list")
 	load_select = null
-	var feature_back := load_page.get_node("VisualCanvas/Footer/Back") as Button
+	var feature_back := load_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Back") as Button
 	feature_back.pressed.emit()
 	_expect(back_events.size() == 1, "Feature Back button must emit its typed route signal.")
 	feature.free()
@@ -491,12 +497,12 @@ func _test_title_state() -> void:
 	save_page.configure(SaveLoadPage.Mode.SAVE, service, save_payload)
 	root.add_child(save_page)
 	await process_frame
-	_expect(save_page.slot_cards()[0].disabled, "Save mode must reserve the autosave entry for the runtime autosave flow.")
-	_expect(root.gui_get_focus_owner() == save_page.slot_cards()[1], "Save mode must focus the first enabled manual slot instead of disabled autosave.")
-	_expect((save_page.get_node("VisualCanvas/Footer/Back") as Button).text == "返回游戏", "An in-game save/load page must expose the correct return destination.")
-	var save_target := save_page.slot_cards()[1]
+	_expect(not save_page.slot_cards()[0].disabled, "Save mode starts with manual slot 001.")
+	_expect(root.gui_get_focus_owner() == save_page.slot_cards()[0], "Save mode must focus the first enabled manual slot instead of disabled autosave.")
+	_expect((save_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Back") as Button).text == "返回游戏", "An in-game save/load page must expose the correct return destination.")
+	var save_target := save_page.slot_cards()[0]
 	save_target.pressed.emit()
-	var save_primary := save_page.get_node("VisualCanvas/Footer/Primary") as Button
+	var save_primary := save_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Primary") as Button
 	_expect(not save_primary.disabled, "Selecting an empty manual slot must enable the save action.")
 	save_primary.pressed.emit()
 	await process_frame
@@ -508,12 +514,12 @@ func _test_title_state() -> void:
 	save_page.cancel_delete_confirmation()
 	await process_frame
 	_expect(root.gui_get_focus_owner() == save_target, "Closing a save confirmation must restore keyboard/controller focus to its invoking slot.")
-	var load_mode_button := save_page.get_node("VisualCanvas/ModeTabs/LoadMode") as Button
+	var load_mode_button := save_page.get_node("VisualCanvas/PageLayout/Header/ModeTabs/LoadSlot/LoadMode") as Button
 	_expect(not load_mode_button.disabled, "An in-game save page must allow switching to read mode.")
 	load_mode_button.pressed.emit()
 	await process_frame
 	_expect(save_page.mode == SaveLoadPage.Mode.LOAD, "The reusable save page must switch to read mode without rebuilding its scene tree.")
-	var save_mode_button := save_page.get_node("VisualCanvas/ModeTabs/SaveMode") as Button
+	var save_mode_button := save_page.get_node("VisualCanvas/PageLayout/Header/ModeTabs/SaveSlot/SaveMode") as Button
 	_expect(not save_mode_button.disabled, "Read mode must allow returning to save mode while a live SaveData payload exists.")
 	save_mode_button.pressed.emit()
 	await process_frame

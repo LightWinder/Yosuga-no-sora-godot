@@ -2,7 +2,7 @@ class_name SaveData
 extends Resource
 
 
-const CURRENT_SCHEMA_VERSION: int = 4
+const CURRENT_SCHEMA_VERSION: int = 5
 
 @export var schema_version: int = CURRENT_SCHEMA_VERSION
 @export var content_version: String = ""
@@ -25,6 +25,11 @@ const CURRENT_SCHEMA_VERSION: int = 4
 @export var settings: Dictionary = {}
 @export var autosave_meta: Dictionary = {}
 @export var saved_at_unix: int = 0
+@export var thumbnail_webp: String = ""
+@export var locked: bool = false
+@export var comment: String = ""
+## Transient renderer output; only its compressed WebP representation goes on disk.
+var preview_image: Image
 
 
 static func create_empty(content: String = "") -> SaveData:
@@ -63,6 +68,9 @@ func to_dictionary() -> Dictionary:
 		"settings": settings.duplicate(true),
 		"autosave_meta": autosave_meta.duplicate(true),
 		"saved_at_unix": saved_at_unix,
+		"thumbnail_webp": thumbnail_webp,
+		"locked": locked,
+		"comment": comment,
 	}
 
 
@@ -98,6 +106,9 @@ static func from_dictionary(raw: Dictionary) -> SaveData:
 	data.settings = _dictionary_or_empty(migrated.get("settings", {}))
 	data.autosave_meta = _dictionary_or_empty(migrated.get("autosave_meta", {}))
 	data.saved_at_unix = int(migrated.get("saved_at_unix", 0))
+	data.thumbnail_webp = str(migrated.get("thumbnail_webp", ""))
+	data.locked = bool(migrated.get("locked", false))
+	data.comment = str(migrated.get("comment", ""))
 	return data
 
 

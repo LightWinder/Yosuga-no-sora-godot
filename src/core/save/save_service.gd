@@ -7,7 +7,9 @@ signal save_changed(slot_id: int, is_autosave: bool)
 const SAVE_DIRECTORY: String = "user://saves"
 const AUTOSAVE_PATH: String = SAVE_DIRECTORY + "/autosave.json"
 const PROFILE_PATH: String = "user://profile.json"
-const MAX_SLOT_COUNT: int = 20
+const MAX_SLOT_COUNT: int = 900
+const QUICK_SAVE_COUNT: int = 9
+const PREVIEW_SIZE := Vector2i(960, 540)
 
 var last_error: String = ""
 var _ready_for_io := false
@@ -43,6 +45,7 @@ func load_autosave() -> SaveData:
 func save_autosave(data: SaveData) -> bool:
 	if data == null:
 		return _fail("Cannot save a null autosave.")
+	data = _prepare_snapshot(data)
 	data.saved_at_unix = Time.get_unix_time_from_system()
 	data.autosave_meta["valid"] = true
 	data.autosave_meta["saved_at_unix"] = data.saved_at_unix
@@ -63,6 +66,9 @@ func load_path(path: String) -> SaveData:
 	for slot_id in MAX_SLOT_COUNT:
 		if path == _slot_path(slot_id):
 			return load_slot(slot_id)
+	for quick_index in QUICK_SAVE_COUNT:
+		if path == _quick_file_path(quick_index):
+			return _load_data(path)
 	_fail("Save path is outside the configured storage: %s" % path)
 	return null
 
@@ -72,7 +78,11 @@ func save_slot(slot_id: int, data: SaveData) -> bool:
 		return _fail("Invalid save slot: %d" % slot_id)
 	if data == null:
 		return _fail("Cannot save a null slot.")
+	data = _prepare_snapshot(data)
 	data.saved_at_unix = Time.get_unix_time_from_system()
+	var existing := load_slot(slot_id)
+	if existing != null and existing.locked:
+		return _fail("This save slot is locked.")
 	return _save_data(_slot_path(slot_id), data) and _emit_save_changed(slot_id, false)
 
 
@@ -176,6 +186,9 @@ func clear_autosave() -> bool:
 
 
 func clear_slot(slot_id: int) -> bool:
+	var existing := load_slot(slot_id)
+	if existing != null and existing.locked:
+		return _fail("This save slot is locked.")
 	if not _is_valid_slot(slot_id):
 		return _fail("Invalid save slot: %d" % slot_id)
 	var path := _slot_path(slot_id)
@@ -274,3 +287,105 @@ func _fail(message: String) -> bool:
 	last_error = message
 	push_error(message)
 	return false
+
+
+## Nine independent atomic records. Sequence numbers order the ring without a
+## separate index file that could disagree after an interrupted write.
+func save_quick(data: SaveData) -> bool:
+	if data == null:
+		return _fail("Cannot quick-save a null snapshot.")
+	var records := _quick_records()
+	var destination := records.size()
+	var sequence := 1
+	if not records.is_empty():
+		sequence = int(records[0]["sequence"]) + 1
+	if records.size() == QUICK_SAVE_COUNT:
+		destination = int(records.back()["index"])
+	else:
+		for candidate in QUICK_SAVE_COUNT:
+			if not FileAccess.file_exists(_quick_file_path(candidate)) or _load_data(_quick_file_path(candidate)) == null:
+				destination = candidate
+				break
+	var snapshot := _prepare_snapshot(data)
+	snapshot.saved_at_unix = int(Time.get_unix_time_from_system())
+	snapshot.autosave_meta["quick_sequence"] = sequence
+	return _save_data(_quick_file_path(destination), snapshot) and _emit_save_changed(-3, false)
+
+
+func load_quick(history_index: int = 0) -> SaveData:
+	var path := quick_save_path(history_index)
+	return _load_data(path) if not path.is_empty() else null
+
+
+func quick_save_path(history_index: int = 0) -> String:
+	var records := _quick_records()
+	if history_index < 0 or history_index >= records.size():
+		return ""
+	return _quick_file_path(int(records[history_index]["index"]))
+
+
+func _quick_records() -> Array[Dictionary]:
+	var records: Array[Dictionary] = []
+	for index in QUICK_SAVE_COUNT:
+		var data := _load_data(_quick_file_path(index))
+		if data != null:
+			records.append({"index": index, "sequence": int(data.autosave_meta.get("quick_sequence", 0))})
+	records.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["sequence"]) > int(b["sequence"]))
+	return records
+
+
+func _quick_file_path(index: int) -> String:
+	return "%s/quick_%02d.json" % [_storage_root, index]
+
+
+## Copy preserves timestamp, replay state and thumbnail, and never aliases the
+## source Resource. The destination is unlocked, as in the source game.
+func copy_to_slot(source: SaveData, destination: int) -> bool:
+	if source == null or not _is_valid_slot(destination):
+		return _fail("Invalid copy source or destination.")
+	var existing := load_slot(destination)
+	if existing != null and existing.locked:
+		return _fail("The destination is locked.")
+	var snapshot := _prepare_snapshot(source)
+	snapshot.locked = false
+	return _save_data(_slot_path(destination), snapshot) and _emit_save_changed(destination, false)
+
+
+func copy_slot(source: int, destination: int) -> bool:
+	if source == destination:
+		return _fail("Choose a different destination.")
+	return copy_to_slot(load_slot(source), destination)
+
+
+func move_slot(source: int, destination: int) -> bool:
+	var data := load_slot(source)
+	if data == null or data.locked or source == destination:
+		return _fail("The source cannot be moved.")
+	# Commit the destination first: interruption may leave a duplicate, never
+	# destroy the only copy of the player's progress.
+	return copy_to_slot(data, destination) and clear_slot(source)
+
+
+func set_slot_locked(slot_id: int, locked: bool) -> bool:
+	var data := load_slot(slot_id)
+	if data == null:
+		return _fail("The slot is empty.")
+	data.locked = locked
+	return _save_data(_slot_path(slot_id), data) and _emit_save_changed(slot_id, false)
+
+
+func set_slot_comment(slot_id: int, comment: String) -> bool:
+	var data := load_slot(slot_id)
+	if data == null or data.locked:
+		return _fail("The slot is empty or locked.")
+	data.comment = comment.strip_edges().left(120)
+	return _save_data(_slot_path(slot_id), data) and _emit_save_changed(slot_id, false)
+
+
+func _prepare_snapshot(data: SaveData) -> SaveData:
+	var snapshot := SaveData.from_dictionary(data.to_dictionary())
+	if data.preview_image != null and not data.preview_image.is_empty():
+		var preview := data.preview_image.duplicate() as Image
+		preview.resize(PREVIEW_SIZE.x, PREVIEW_SIZE.y, Image.INTERPOLATE_LANCZOS)
+		snapshot.thumbnail_webp = Marshalls.raw_to_base64(preview.save_webp_to_buffer(true, 0.85))
+	return snapshot

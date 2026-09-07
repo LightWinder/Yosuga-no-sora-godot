@@ -6,6 +6,7 @@ signal title_requested
 signal settings_requested
 signal scenario_finished
 
+const BACKGROUND_PREVIEW_SCENE: PackedScene = preload("res://src/adv/components/adv_background_preview.tscn")
 const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const CHOICE_BUTTON_SCENE: PackedScene = preload("res://src/adv/components/adv_choice_button.tscn")
 const SPEAKER_NAME_MANIFEST := "res://assets/content/adv/ui/speaker_name_manifest.csv"
@@ -116,6 +117,10 @@ var _preserve_skip_after_choice := false
 var _preserve_auto_after_choice := false
 var _route_guide_enabled := true
 var _speaker_name_textures: Dictionary = {}
+var _autosave_capture_generation := 0
+var _pending_autosave_snapshot: SaveData
+var _save_capture_busy := false
+var _save_capture_sequence := 0
 var _system_menu_locked := true
 var _system_menu_pointer_inside := false
 var _system_menu_slide_tween: Tween
@@ -177,6 +182,9 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if _pending_autosave_snapshot != null and is_instance_valid(_save_service):
+		_save_service.save_autosave(_pending_autosave_snapshot)
+		_pending_autosave_snapshot = null
 	_kill_effect_tween()
 	_kill_tween(_menu_visibility_tween)
 	_kill_tween(_eye_catch_tween)
@@ -201,6 +209,9 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _save_capture_busy:
+		get_viewport().set_input_as_handled()
+		return
 	if _route_exiting:
 		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
 			get_viewport().set_input_as_handled()
@@ -1608,10 +1619,13 @@ func _close_history() -> void:
 
 
 func _open_save_load(mode: SaveLoadPage.Mode) -> void:
-	if is_instance_valid(_active_save_load):
+	if is_instance_valid(_active_save_load) or _save_capture_busy:
 		return
-	_enter_player_chrome_overlay()
 	var payload := _build_save_snapshot()
+	_save_capture_busy = true
+	_enter_player_chrome_overlay()
+	payload.preview_image = await _capture_save_preview()
+	_save_capture_busy = false
 	_active_save_load = SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
 	_active_save_load.name = "InGameSaveLoadPage"
 	_active_save_load.configure(mode, _save_service, payload)
@@ -1623,16 +1637,23 @@ func _open_save_load(mode: SaveLoadPage.Mode) -> void:
 
 
 func _quick_save() -> void:
-	_write_autosave()
+	if _launch_request.is_recollection() or _save_capture_busy:
+		return
+	_save_capture_busy = true
+	var snapshot := _build_save_snapshot()
+	snapshot.preview_image = await _capture_save_preview()
+	_save_capture_busy = false
+	_status.text = "已快速存档" if _save_service.save_quick(snapshot) else "快速存档失败：%s" % _save_service.last_error
+	_status.visible = true
 
 
 func _quick_load() -> void:
-	var data := _save_service.load_autosave()
+	var data := _save_service.load_quick()
 	if data == null:
 		_status.text = "没有可读取的快速存档"
 		_status.visible = true
 		return
-	_load_from_save_page(data, _save_service.autosave_path())
+	_load_from_save_page(data, _save_service.quick_save_path())
 
 
 func _close_save_load() -> void:
@@ -1903,7 +1924,10 @@ func _restore_presentation(presentation: Dictionary) -> void:
 func _write_autosave() -> void:
 	if _launch_request.is_recollection():
 		return
-	_save_service.save_autosave(_build_save_snapshot())
+	_autosave_capture_generation += 1
+	var snapshot := _build_save_snapshot()
+	_pending_autosave_snapshot = snapshot
+	_attach_autosave_preview(snapshot, _autosave_capture_generation)
 	var profile := _save_service.load_profile()
 	if profile == null:
 		profile = ProfileData.create_empty()
@@ -2190,3 +2214,24 @@ func _on_playback_finished() -> void:
 func _report_missing(kind: String, resource_id: String) -> void:
 	_status.text = "%s资源未导入：%s" % [kind, resource_id]
 	_status.visible = true
+
+
+func _attach_autosave_preview(snapshot: SaveData, generation: int) -> void:
+	snapshot.preview_image = await _capture_save_preview()
+	if generation != _autosave_capture_generation or not is_inside_tree():
+		return
+	_save_service.save_autosave(snapshot)
+	_pending_autosave_snapshot = null
+
+
+func _capture_save_preview() -> Image:
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return null
+	_save_capture_sequence += 1
+	var renderer := BACKGROUND_PREVIEW_SCENE.instantiate() as AdvBackgroundPreview
+	renderer.name = "SaveBackgroundCapture%04d" % _save_capture_sequence
+	add_child(renderer)
+	var preview := await _stage_director.capture_background_preview(renderer)
+	remove_child(renderer)
+	renderer.queue_free()
+	return preview
