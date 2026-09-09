@@ -11,7 +11,7 @@ signal catalog_requested(catalog_id: StringName)
 		current_catalog = value
 		_sync_selection()
 
-@onready var _back_to_title: TitleSpriteButton = %BackToTitle
+@onready var _back_to_title: Button = %BackToTitle
 @onready var _catalog_buttons: Dictionary = {
 	TitleCatalog.ALBUM: %Album,
 	TitleCatalog.MEMORIES: %Memories,
@@ -21,12 +21,11 @@ signal catalog_requested(catalog_id: StringName)
 
 
 func _ready() -> void:
-	_back_to_title.configure_sprite("res://assets/content/appreciation/backtotitle.png", 2, 16.0)
 	_back_to_title.pressed.connect(back_requested.emit)
-	_configure_catalog_button(%Album, TitleCatalog.ALBUM, "res://assets/content/appreciation/CG.png")
-	_configure_catalog_button(%Memories, TitleCatalog.MEMORIES, "res://assets/content/appreciation/scene.png")
-	_configure_catalog_button(%Music, TitleCatalog.MUSIC, "res://assets/content/appreciation/ost.png")
-	_configure_catalog_button(%Voice, TitleCatalog.VOICE, "res://assets/content/appreciation/fav.voices.png")
+	_configure_catalog_button(%Album, TitleCatalog.ALBUM)
+	_configure_catalog_button(%Memories, TitleCatalog.MEMORIES)
+	_configure_catalog_button(%Music, TitleCatalog.MUSIC)
+	_configure_catalog_button(%Voice, TitleCatalog.VOICE)
 	_sync_selection()
 
 
@@ -35,8 +34,7 @@ func grab_initial_focus() -> void:
 		_back_to_title.grab_focus()
 
 
-func _configure_catalog_button(button: TitleSpriteButton, catalog_id: StringName, texture_path: String) -> void:
-	button.configure_sprite(texture_path, 3, 16.0)
+func _configure_catalog_button(button: Button, catalog_id: StringName) -> void:
 	button.pressed.connect(catalog_requested.emit.bind(catalog_id))
 
 
@@ -44,7 +42,6 @@ func _sync_selection() -> void:
 	if not is_node_ready():
 		return
 	for catalog_id: StringName in _catalog_buttons:
-		var button := _catalog_buttons[catalog_id] as TitleSpriteButton
+		var button := _catalog_buttons[catalog_id] as Button
 		var selected := StringName(current_catalog) == catalog_id
-		button.disabled = selected
-		button.modulate.a = 1.0 if selected else 190.0 / 255.0
+		button.button_pressed = selected

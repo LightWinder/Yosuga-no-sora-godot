@@ -104,12 +104,12 @@ func hide_modal() -> void:
 	_stop_motion()
 
 	_motion_tween = create_tween().set_parallel(true)
-	_motion_tween.tween_property(
-		_blur_layer,
-		"modulate:a",
-		0.0,
-		close_duration
-	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	#_motion_tween.tween_property(
+		#_blur_layer,
+		#"modulate:a",
+		#0.0,
+		#close_duration
+	#).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	_motion_tween.tween_property(
 		_shade,
 		"modulate:a",

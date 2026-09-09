@@ -24,6 +24,9 @@ var feature_id: StringName = &""
 var _save_service: SaveService
 var _voice_service: VoiceCollectionService
 var _content_page: Control
+var _closing := false
+var _transition_tween: Tween
+var _content_rest_position := Vector2.ZERO
 
 
 func configure(route: StringName, save_service: SaveService) -> void:
@@ -40,6 +43,9 @@ func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	_populate()
 	_back_button.grab_focus()
+	_content_rest_position = $Content.position
+	if _is_appreciation_route():
+		_play_open_transition()
 
 
 func _input(event: InputEvent) -> void:
@@ -55,7 +61,10 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			return
 	if StartupInput.is_cancel_event(event):
-		back_requested.emit()
+		if _is_appreciation_route():
+			_on_appreciation_back_requested()
+		else:
+			_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
 
@@ -106,16 +115,55 @@ func _populate() -> void:
 
 
 func _on_back_pressed() -> void:
-	if feature_id in [&"album", &"music", &"memories", &"voice"]:
+	if _closing:
+		return
+	if _is_appreciation_route():
+		await play_close_transition()
 		bonus_back_requested.emit()
 	else:
 		back_requested.emit()
 
 
+func _on_appreciation_back_requested() -> void:
+	if _closing:
+		return
+	await play_close_transition()
+	back_requested.emit()
+
+
+func _is_appreciation_route() -> bool:
+	return feature_id in [&"album", &"music", &"memories", &"voice"]
+
+
+func play_close_transition() -> void:
+	if _closing:
+		return
+	_closing = true
+	if _transition_tween != null and _transition_tween.is_valid():
+		_transition_tween.kill()
+	get_viewport().gui_release_focus()
+	set_process_input(false)
+	_transition_tween = create_tween().set_parallel(true)
+	_transition_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(self, "modulate:a", 0.0, 0.24)
+	_transition_tween.tween_property($Content, "position", _content_rest_position + Vector2(0.0, 18.0), 0.24)
+	await _transition_tween.finished
+	_transition_tween = null
+
+
+func _play_open_transition() -> void:
+	modulate.a = 0.0
+	$Content.position = _content_rest_position + Vector2(0.0, 18.0)
+	_transition_tween = create_tween().set_parallel(true)
+	_transition_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(self, "modulate:a", 1.0, 0.30)
+	_transition_tween.tween_property($Content, "position", _content_rest_position, 0.30)
+
+
 func _background_path() -> String:
 	if feature_id == &"load_game":
 		return "res://assets/ui/title/QD-13-BG.png"
-	return "res://assets/content/appreciation/appreciation_landscape.png"
+	return "res://assets/ui/title/QD-13-BG.png"
 
 
 func _populate_load_page() -> void:
@@ -171,7 +219,7 @@ func _attach_content_page(page: Control) -> void:
 	_entry_list.add_child(page)
 	var navigation := page.get_node_or_null("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
 	if navigation != null:
-		navigation.back_requested.connect(back_requested.emit)
+		navigation.back_requested.connect(_on_appreciation_back_requested)
 		navigation.catalog_requested.connect(_switch_catalog)
 		navigation.call_deferred("grab_initial_focus")
 
@@ -221,11 +269,11 @@ func _catalog_title(catalog_id: StringName) -> String:
 func _catalog_description(catalog_id: StringName) -> String:
 	match catalog_id:
 		TitleCatalog.ALBUM:
-			return "源 HD 前六组角色页，4×2 卡片网格；差分可在全屏 viewer 中切换。"
+			return "源 HD 前六组角色页，4×3 卡片网格；差分可在全屏 viewer 中切换。"
 		TitleCatalog.MUSIC:
 			return "21 首真实 BGM，3×7 曲目布局；按源 .sli 设置循环点。"
 		TitleCatalog.MEMORIES:
-			return "6 个角色页、4×2 网格；视频与 18 条剧情回想均可直接播放。"
+			return "6 个角色页、4×3 网格；视频与 18 条剧情回想均可直接播放。"
 		TitleCatalog.VOICE:
 			return "用户收藏模型；由 ADV 运行层添加并独立持久化。"
 		_:

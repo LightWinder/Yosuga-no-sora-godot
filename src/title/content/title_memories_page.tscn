@@ -1,10 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/title/content/title_memories_page.gd" id="1_page"]
-[ext_resource type="Script" path="res://src/title/ui/title_sprite_button.gd" id="2_sprite_button"]
 [ext_resource type="PackedScene" path="res://src/ui/page_title.tscn" id="3_page_title"]
-[ext_resource type="Script" path="res://src/title/ui/appreciation_page_button.gd" id="4_page_button"]
 [ext_resource type="PackedScene" path="res://src/title/content/appreciation_navigation.tscn" id="5_navigation"]
+
+[ext_resource type="PackedScene" path="res://src/title/ui/appreciation_gallery.tscn" id="8_gallery"]
 
 [node name="MemoriesPage" type="Control"]
 layout_mode = 3
@@ -24,118 +24,19 @@ mouse_filter = 1
 
 [node name="PageTitle" parent="VisualCanvas" instance=ExtResource("3_page_title")]
 layout_mode = 0
-offset_top = 106.0
+offset_top = 24.0
 offset_right = 566.0
-offset_bottom = 222.0
+offset_bottom = 140.0
 title = "鉴赏"
 subtitle = "GALLERY."
 
-[node name="MemoriesContent" type="Control" parent="VisualCanvas"]
-layout_mode = 0
-offset_right = 1920.0
-offset_bottom = 1080.0
-mouse_filter = 1
+[node name="GalleryContent" parent="VisualCanvas" instance=ExtResource("8_gallery")]
 
-[node name="Group01" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
+[node name="AppreciationNavigation" parent="VisualCanvas" instance=ExtResource("5_navigation")]
 layout_mode = 0
-offset_left = 82.0
-offset_top = 295.0
-offset_right = 224.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
+current_catalog = "memories"
 
-[node name="Group02" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 233.0
-offset_top = 295.0
-offset_right = 375.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
-
-[node name="Group03" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 384.0
-offset_top = 295.0
-offset_right = 526.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
-
-[node name="Group04" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 535.0
-offset_top = 295.0
-offset_right = 677.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
-
-[node name="Group05" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 686.0
-offset_top = 295.0
-offset_right = 828.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
-
-[node name="Group06" type="TextureButton" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 837.0
-offset_top = 295.0
-offset_right = 979.0
-offset_bottom = 353.0
-script = ExtResource("2_sprite_button")
-
-[node name="MemoryList" type="GridContainer" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 82.0
-offset_top = 373.0
-offset_right = 1838.0
-offset_bottom = 885.0
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
-columns = 4
-
-[node name="PreviousPage" type="Button" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 12.0
-offset_top = 596.0
-offset_right = 57.0
-offset_bottom = 662.0
-direction = -1
-script = ExtResource("4_page_button")
-
-[node name="NextPage" type="Button" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 1863.0
-offset_top = 596.0
-offset_right = 1908.0
-offset_bottom = 662.0
-direction = 1
-script = ExtResource("4_page_button")
-
-[node name="PageNumber" type="Label" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_right = 1.0
-offset_bottom = 1.0
-
-[node name="Status" type="Label" parent="VisualCanvas/MemoriesContent"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_right = 1.0
-offset_bottom = 1.0
-
-[node name="MemoryVideoPlayer" type="VideoStreamPlayer" parent="VisualCanvas/MemoriesContent"]
+[node name="MemoryVideoPlayer" type="VideoStreamPlayer" parent="VisualCanvas"]
 unique_name_in_owner = true
 visible = false
 z_index = 60
@@ -144,7 +45,7 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 expand = true
 
-[node name="StopVideo" type="Button" parent="VisualCanvas/MemoriesContent"]
+[node name="StopVideo" type="Button" parent="VisualCanvas"]
 unique_name_in_owner = true
 visible = false
 z_index = 61
@@ -155,7 +56,3 @@ offset_right = 1110.0
 offset_bottom = 1042.0
 theme_type_variation = &"SaveLoadActionButton"
 text = "返回鉴赏"
-
-[node name="AppreciationNavigation" parent="VisualCanvas" instance=ExtResource("5_navigation")]
-layout_mode = 0
-current_catalog = "memories"

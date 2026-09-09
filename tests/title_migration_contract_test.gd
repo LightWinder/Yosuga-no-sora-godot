@@ -1123,13 +1123,47 @@ func _test_title_state() -> void:
 	root.add_child(locked_album)
 	await process_frame
 	var locked_album_page := locked_album.get_node("Content/EntryList/AlbumPage") as TitleAlbumPage
-	var locked_card := locked_album_page.get_node("VisualCanvas/AlbumContent/CardList").get_child(0) as TitleVisualCard
+	var locked_card := locked_album_page.get_node("VisualCanvas/GalleryContent/ContentPanel/ContentInset/CardList").get_child(0) as TitleVisualCard
 	var shared_title := locked_album_page.get_node("VisualCanvas/PageTitle") as PageTitle
 	_expect(locked_card != null and locked_card.is_locked(), "A missing source CgFlag must render the Album slot as locked.")
 	_expect(locked_card != null and not locked_card.has_visible_thumbnail(), "Locked Album slots must never load or display their real CG thumbnail.")
 	_expect(locked_card != null and locked_card.disabled and locked_card.focus_mode == Control.FOCUS_NONE, "Locked Album slots must be absent from pointer and focus activation.")
-	_expect(locked_card != null and locked_card.size.is_equal_approx(Vector2(430.0, 250.0)), "Album cards must preserve the source 430x250 frame geometry.")
+	_expect(locked_card != null and locked_card.size.is_equal_approx(Vector2(396.0, 222.75)), "Album cards must keep a 16:9 frame in the three-row gallery layout.")
 	_expect(shared_title != null and shared_title.scene_file_path.ends_with("src/ui/page_title.tscn"), "Appreciation must reuse the same neutral PageTitle scene as Settings.")
+	var grid := locked_album_page.get_node("VisualCanvas/GalleryContent/%CardList") as GridContainer
+	_expect(grid.get_child_count() == 12, "CG first page must show twelve cards.")
+	var gallery := locked_album_page.get_node("VisualCanvas/GalleryContent") as AppreciationGallery
+	var previous_arrow := gallery.get_node("%PreviousPage") as BaseButton
+	var next_arrow := gallery.get_node("%NextPage") as BaseButton
+	gallery.set_process(false)
+	_expect(is_equal_approx(gallery.position.y + gallery.size.y * 0.5, 540.0), "Gallery tabs and content must be centered together on the design canvas.")
+	gallery.update_hover(Vector2(960, 30), 0.2)
+	_expect(is_zero_approx(previous_arrow.modulate.a), "First page must never reveal a previous arrow.")
+	gallery.update_hover(Vector2(960, 336), 0.08)
+	_expect(next_arrow.modulate.a > 0.0 and next_arrow.modulate.a < 1.0, "Available hover arrow must fade in rather than appear instantly.")
+	gallery.update_hover(Vector2(960, 336), 0.08)
+	_expect(is_equal_approx(next_arrow.modulate.a, 1.0), "Hovering anywhere over content must reveal the next arrow.")
+	next_arrow.pressed.emit()
+	_expect(grid.get_child_count() == 4, "CG second page must show the remaining four cards.")
+	gallery.update_hover(Vector2(960, 336), 0.08)
+	_expect(next_arrow.modulate.a > 0.0 and next_arrow.modulate.a < 1.0, "Arriving at the last page must fade out the next arrow even while hovered.")
+	_expect(next_arrow.mouse_filter == Control.MOUSE_FILTER_IGNORE, "An unavailable arrow must stop intercepting input during its fade.")
+	gallery.update_hover(Vector2(960, 336), 0.08)
+	_expect(is_zero_approx(next_arrow.modulate.a), "The clicked last-page arrow must not remain visible after leaving its edge.")
+	gallery.update_hover(Vector2(960, 336), 0.16)
+	_expect(is_equal_approx(previous_arrow.modulate.a, 1.0), "Second page must reveal the available previous arrow.")
+	gallery.update_hover(Vector2(960, 30), 0.08)
+	_expect(previous_arrow.modulate.a > 0.0 and previous_arrow.modulate.a < 1.0, "Leaving the edge must fade out its arrow.")
+
+	_expect(next_arrow.disabled, "Last CG page must disable next page.")
+	(locked_album_page.get_node("VisualCanvas/GalleryContent/%Group02") as Button).pressed.emit()
+	_expect(previous_arrow.disabled, "Switching CG category must reset pagination.")
+	_expect(locked_album_page.get_node_or_null("%FooterPrevious") == null and locked_album_page.get_node_or_null("%FooterNext") == null, "Gallery footer must not duplicate the hover paging controls.")
+	var navigation := locked_album_page.get_node("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
+	var footer_status := navigation.get_node("%CollectionStatus") as Label
+	var footer_page := navigation.get_node("%PageNumber") as Label
+	var footer_back := navigation.get_node("%BackToTitle") as Button
+	_expect(footer_status.position.x < footer_page.position.x and footer_page.position.x < footer_back.position.x, "Collection status and page number must sit immediately left of Return to Title.")
 	locked_album.free()
 	locked_service.free()
 	await process_frame
@@ -1207,6 +1241,12 @@ func _test_title_state() -> void:
 	_expect(memories_page.scene_file_path.ends_with("title_memories_page.tscn"), "Memories route must instantiate its dedicated page scene.")
 	_expect(memories.get_node_or_null("VoiceCollectionService") == null, "Memories route must not allocate the voice catalog service.")
 	_expect(memories_page.entry_count() == 24 and memories_page.adv_count() == 18 and memories_page.video_count() == 6, "Memories page must separate 18 ADV seams and six videos.")
+	var memory_gallery := memories_page.get_node("VisualCanvas/GalleryContent") as AppreciationGallery
+	_expect(memory_gallery.scene_file_path.ends_with("appreciation_gallery.tscn"), "CG and Memories must share the same gallery scene.")
+	var memory_grid := memory_gallery.get_node("%CardList") as GridContainer
+	var memory_card := memory_grid.get_child(0) as TitleVisualCard
+	_expect(memory_card.size.is_equal_approx(Vector2(396, 222.75)), "Memories must use the same 16:9 cards as the three-row CG gallery.")
+	_expect(memory_card.get_node("Panel/EmptyBackground") != null, "Memories must retain each card's rounded background.")
 	memories.free()
 	await process_frame
 

@@ -6,4 +6,4 @@
 resource_local_to_scene = true
 shader = ExtResource("1_shader")
 shader_parameter/blur_lod = 0.0
-shader_parameter/tint_color = Color(0.02, 0.08, 0.12, 0.08)
+shader_parameter/tint_color = Color(0.02, 0.08, 0.12, 0.0)

@@ -1,22 +1,21 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://dhsrvtyjdadnn"]
 
-[ext_resource type="Script" path="res://src/save_load/save_slot_card.gd" id="1_card"]
-
+[ext_resource type="Script" uid="uid://bp6cvn62ts5by" path="res://src/save_load/save_slot_card.gd" id="1_card"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_mask.tres" id="2_mask"]
+[ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="3_1lb0l"]
 
-[node name="SaveSlotCard" type="Button"]
+[node name="SaveSlotCard" type="Button" unique_id=308624236]
 custom_minimum_size = Vector2(252, 242)
-size_flags_horizontal = 3
-size_flags_vertical = 3
 offset_right = 252.0
 offset_bottom = 242.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_default_cursor_shape = 2
-focus_mode = 2
 theme_type_variation = &"SaveLoadSlotButton"
 toggle_mode = true
 script = ExtResource("1_card")
 
-[node name="Content" type="MarginContainer" parent="."]
+[node name="Content" type="MarginContainer" parent="." unique_id=152340137]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -29,27 +28,26 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 11
 theme_override_constants/margin_bottom = 12
 
-[node name="Column" type="VBoxContainer" parent="Content"]
+[node name="Column" type="VBoxContainer" parent="Content" unique_id=1493867012]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="Header" type="HBoxContainer" parent="Content/Column"]
+[node name="Header" type="HBoxContainer" parent="Content/Column" unique_id=1103464233]
 custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="SlotNumber" type="Label" parent="Content/Column/Header"]
+[node name="SlotNumber" type="Label" parent="Content/Column/Header" unique_id=1224244577]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 theme_type_variation = &"SaveLoadSlotNumber"
 text = "01"
 vertical_alignment = 1
 
-[node name="LockButton" type="Button" parent="Content/Column/Header"]
+[node name="LockButton" type="Button" parent="Content/Column/Header" unique_id=118555562]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(38, 30)
@@ -58,97 +56,94 @@ mouse_default_cursor_shape = 2
 theme_type_variation = &"SaveLoadCardLockButton"
 icon_alignment = 1
 
-[node name="KindBadge" type="Label" parent="Content/Column/Header"]
+[node name="KindBadge" type="Label" parent="Content/Column/Header" unique_id=1557977024]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(54, 0)
 layout_mode = 2
-mouse_filter = 2
 theme_type_variation = &"SaveLoadSlotDate"
 text = "自动"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="PreviewFrame" type="PanelContainer" parent="Content/Column"]
+[node name="PreviewFrame" type="PanelContainer" parent="Content/Column" unique_id=1183213876]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(230, 122)
-size_flags_vertical = 3
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 1
 theme_type_variation = &"SaveLoadSlotPreviewFrame"
 
-[node name="RoundedClip" type="PanelContainer" parent="Content/Column/PreviewFrame"]
+[node name="RoundedClip" type="PanelContainer" parent="Content/Column/PreviewFrame" unique_id=735110086]
 clip_children = 1
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("2_mask")
 
-[node name="Thumbnail" type="TextureRect" parent="Content/Column/PreviewFrame/RoundedClip"]
+[node name="Thumbnail" type="TextureRect" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=83039734]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="EmptyPreview" type="CenterContainer" parent="Content/Column/PreviewFrame/RoundedClip"]
+[node name="EmptyPreview" type="CenterContainer" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=1109810836]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Watermark" type="VBoxContainer" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview"]
+[node name="Watermark" type="VBoxContainer" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview" unique_id=153227616]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = -4
 
-[node name="Name" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark"]
+[node name="Name" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark" unique_id=961864880]
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.55)
 theme_override_font_sizes/font_size = 22
 text = "ヨスガノソラ"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark"]
+[node name="Caption" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark" unique_id=1695768606]
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.45)
 theme_override_font_sizes/font_size = 11
 text = "YOSUGA NO SORA"
 horizontal_alignment = 1
 
-[node name="MetadataMargin" type="MarginContainer" parent="Content/Column"]
+[node name="LoadButton" type="Button" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=1062354049]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+tooltip_text = "读取此存档"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SaveLoadThumbnailButton"
+icon = ExtResource("3_1lb0l")
+icon_alignment = 1
+
+[node name="MetadataMargin" type="MarginContainer" parent="Content/Column" unique_id=1913144169]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_top = 8
 
-[node name="Metadata" type="VBoxContainer" parent="Content/Column/MetadataMargin"]
+[node name="Metadata" type="VBoxContainer" parent="Content/Column/MetadataMargin" unique_id=702228093]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="Comment" type="Label" parent="Content/Column/MetadataMargin/Metadata"]
+[node name="Comment" type="Label" parent="Content/Column/MetadataMargin/Metadata" unique_id=2068198383]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
-mouse_filter = 2
 theme_type_variation = &"SaveLoadSlotComment"
 text = "空存档"
 text_overrun_behavior = 3
 
-[node name="Date" type="Label" parent="Content/Column/MetadataMargin/Metadata"]
+[node name="Date" type="Label" parent="Content/Column/MetadataMargin/Metadata" unique_id=171092452]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_type_variation = &"SaveLoadSlotDate"
 text = "---- / -- / --   --:--"
 text_overrun_behavior = 3
-
-[node name="LoadButton" type="Button" parent="Content/Column/PreviewFrame/RoundedClip"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-focus_mode = 0
-mouse_default_cursor_shape = 2
-theme_type_variation = &"SaveLoadThumbnailButton"
-tooltip_text = "读取此存档"
-icon_alignment = 1

@@ -42,14 +42,13 @@
 [ext_resource type="StyleBox" uid="uid://cj881vyw7wahr" path="res://assets/themes/save_load/page_arrow_focus.tres" id="57_arrow"]
 [ext_resource type="Texture2D" uid="uid://c0cescc7sjxgo" path="res://assets/themes/save_load/page_chevron_down.svg" id="arrow_down"]
 [ext_resource type="Texture2D" uid="uid://blp2iuyeltw3v" path="res://assets/themes/save_load/page_chevron_up.svg" id="arrow_up"]
+[ext_resource type="Texture2D" uid="uid://dg3n3x5t8og2a" path="res://assets/themes/save_load/lock_closed.svg" id="save_lock_closed"]
+[ext_resource type="Texture2D" uid="uid://c1f0pn3drl0b1" path="res://assets/themes/save_load/lock_open.svg" id="save_lock_open"]
 [ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="save_play"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/thumbnail_action.tres" id="save_play_style"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_focus.tres" id="slot_focus"]
 [ext_resource type="StyleBox" uid="uid://cxgyxicgxb1wj" path="res://assets/themes/title/menu_glow.tres" id="title_glow"]
 [ext_resource type="StyleBox" uid="uid://opr2wrmj2j26" path="res://assets/themes/title/menu_glow_hover.tres" id="title_glow_hover"]
-
-[ext_resource type="Texture2D" path="res://assets/themes/save_load/lock_closed.svg" id="save_lock_closed"]
-[ext_resource type="Texture2D" path="res://assets/themes/save_load/lock_open.svg" id="save_lock_open"]
 
 [resource]
 default_font = ExtResource("1_xiaolai")
@@ -96,17 +95,22 @@ AdvSpeakerLabel/font_sizes/font_size = 40
 AdvSpeakerLabel/fonts/font = ExtResource("2_choice_font")
 AdvStatusLabel/base_type = &"SharedStatusLabel"
 AdvStatusLabel/font_sizes/font_size = 20
+ConfirmationOverlayMessage/base_type = &"Label"
+ConfirmationOverlayMessage/colors/font_color = Color(1, 1, 1, 1)
+ConfirmationOverlayMessage/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
+ConfirmationOverlayMessage/constants/outline_size = 6
+ConfirmationOverlayMessage/font_sizes/font_size = 50
 SaveLoadActionButton/base_type = &"SettingsFooterButton"
 SaveLoadCardLockButton/base_type = &"SettingsFooterButton"
+SaveLoadCardLockButton/colors/icon_disabled_color = Color(1, 1, 1, 0.4)
+SaveLoadCardLockButton/colors/icon_focus_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_hover_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_normal_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_pressed_color = Color(1, 1, 1, 1)
 SaveLoadCardLockButton/font_sizes/font_size = 16
-SaveLoadCardLockButton/styles/focus = ExtResource("7_footer_focus")
 SaveLoadCardLockButton/icons/locked = ExtResource("save_lock_closed")
 SaveLoadCardLockButton/icons/unlocked = ExtResource("save_lock_open")
-SaveLoadCardLockButton/colors/icon_normal_color = Color(1, 1, 1, 1)
-SaveLoadCardLockButton/colors/icon_hover_color = Color(1, 1, 1, 1)
-SaveLoadCardLockButton/colors/icon_pressed_color = Color(1, 1, 1, 1)
-SaveLoadCardLockButton/colors/icon_focus_color = Color(1, 1, 1, 1)
-SaveLoadCardLockButton/colors/icon_disabled_color = Color(1, 1, 1, 0.4)
+SaveLoadCardLockButton/styles/focus = ExtResource("7_footer_focus")
 SaveLoadCardLockButton/styles/hover = ExtResource("8_footer_hover")
 SaveLoadCommentEdit/base_type = &"LineEdit"
 SaveLoadCommentEdit/colors/font_color = Color(0.07, 0.32, 0.43, 1)
@@ -244,11 +248,6 @@ SettingsChoiceButtonToggle/base_type = &"SettingsChoiceButton"
 SettingsChoiceButtonToggle/font_sizes/font_size = 36
 SettingsChoiceButtonVoice/base_type = &"SettingsChoiceButton"
 SettingsChoiceButtonVoice/font_sizes/font_size = 30
-ConfirmationOverlayMessage/base_type = &"Label"
-ConfirmationOverlayMessage/colors/font_color = Color(1, 1, 1, 1)
-ConfirmationOverlayMessage/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
-ConfirmationOverlayMessage/constants/outline_size = 6
-ConfirmationOverlayMessage/font_sizes/font_size = 50
 SettingsFooterButton/base_type = &"SharedActionButton"
 SettingsFooterButton/colors/font_color = Color(0.96, 0.99, 1, 1)
 SettingsFooterButton/colors/font_disabled_color = Color(0.78, 0.88, 0.93, 0.58)

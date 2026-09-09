@@ -8,6 +8,11 @@
 
 [ext_resource type="Script" path="res://src/ui/design_canvas_page.gd" id="6_layout"]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_dialog_body"]
+atlas = ExtResource("2_background")
+region = Rect2(0, 377, 1920, 313)
+filter_clip = true
+
 [node name="ConfirmationOverlay" type="Control"]
 visible = false
 layout_mode = 1
@@ -20,12 +25,35 @@ mouse_filter = 0
 script = ExtResource("1_dialog")
 initial_scale = 0.97
 target_blur_lod = 3.0
-blur_layer_path = NodePath("Layout/VisualCanvas/BlurLayer")
+blur_layer_path = NodePath("BlurLayout/VisualCanvas/BlurLayer")
 backdrop_path = NodePath("Layout/VisualCanvas/BackdropArtwork")
 motion_target_path = NodePath("Layout/VisualCanvas/DialogContent")
 
 [node name="BackBufferCopy" type="BackBufferCopy" parent="."]
 copy_mode = 2
+
+[node name="BlurLayout" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("6_layout")
+
+[node name="VisualCanvas" type="Control" parent="BlurLayout"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="BlurLayer" type="ColorRect" parent="BlurLayout/VisualCanvas"]
+material = ExtResource("5_blur_material")
+layout_mode = 0
+offset_top = 377.0
+offset_right = 1920.0
+offset_bottom = 690.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
 
 [node name="Shade" type="ColorRect" parent="."]
 layout_mode = 1
@@ -35,7 +63,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.015, 0.055, 0.08, 0.22)
+color = Color(0.09453815, 0.21506706, 0.29971077, 0.32130824)
 
 [node name="Layout" type="Control" parent="."]
 layout_mode = 1
@@ -51,27 +79,16 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 2
 
-[node name="BlurLayer" type="ColorRect" parent="Layout/VisualCanvas"]
-material = ExtResource("5_blur_material")
+[node name="BackdropArtwork" type="TextureRect" parent="Layout/VisualCanvas"]
+modulate = Color(1, 1, 1, 0.72)
 layout_mode = 0
 offset_top = 377.0
 offset_right = 1920.0
-offset_bottom = 691.0
+offset_bottom = 690.0
 mouse_filter = 2
-color = Color(1, 1, 1, 1)
-
-[node name="BackdropArtwork" type="TextureRect" parent="Layout/VisualCanvas"]
-modulate = Color(1, 1, 1, 0.72)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("2_background")
+texture = SubResource("AtlasTexture_dialog_body")
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 0
 
 [node name="DialogContent" type="Control" parent="Layout/VisualCanvas"]
 layout_mode = 1

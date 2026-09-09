@@ -6,6 +6,9 @@ signal content_requested(request: TitleContentRequest)
 signal scenario_requested(request: ScenarioLaunchRequest)
 signal status_changed(message: String)
 
+const CARD_SCENE := preload("res://src/title/ui/album_grid_card.tscn")
+const PAGE_SIZE := 12
+
 const ADV_PENDING_MESSAGE := "正在进入剧情回想。"
 
 var _manifest: TitleContentManifest
@@ -15,19 +18,21 @@ var _group_index := 0
 var _page_index := 0
 var _page_tween: Tween
 
-@onready var _entry_list: GridContainer = %MemoryList
+@onready var _gallery: AppreciationGallery = $VisualCanvas/GalleryContent
+@onready var _navigation: AppreciationNavigation = $VisualCanvas/AppreciationNavigation
+@onready var _entry_list: GridContainer = _gallery.get_node("%CardList")
 @onready var _group_buttons: Array[BaseButton] = [
-	%Group01,
-	%Group02,
-	%Group03,
-	%Group04,
-	%Group05,
-	%Group06,
+	_gallery.get_node("%Group01"),
+	_gallery.get_node("%Group02"),
+	_gallery.get_node("%Group03"),
+	_gallery.get_node("%Group04"),
+	_gallery.get_node("%Group05"),
+	_gallery.get_node("%Group06"),
 ]
-@onready var _page_label: Label = %PageNumber
-@onready var _previous_page: AppreciationPageButton = %PreviousPage
-@onready var _next_page: AppreciationPageButton = %NextPage
-@onready var _status: Label = %Status
+@onready var _page_label: Label = _navigation.get_node("%PageNumber")
+@onready var _previous_page: AppreciationPageButton = _gallery.get_node("%PreviousPage")
+@onready var _next_page: AppreciationPageButton = _gallery.get_node("%NextPage")
+@onready var _status: Label = _navigation.get_node("%CollectionStatus")
 @onready var _video_player: VideoStreamPlayer = %MemoryVideoPlayer
 @onready var _video_stop: Button = %StopVideo
 
@@ -42,8 +47,7 @@ func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
 func _ready() -> void:
 	super._ready()
 	for index in _group_buttons.size():
-		var tab := _group_buttons[index] as TitleSpriteButton
-		tab.configure_sprite(_group_texture(index), 3, 18.0)
+		var tab := _group_buttons[index] as Button
 		tab.tooltip_text = _group_keys[index]
 		tab.pressed.connect(_select_group.bind(index))
 	_previous_page.pressed.connect(_change_page.bind(-1))
@@ -70,15 +74,8 @@ func video_count() -> int:
 	return entry_count() - adv_count()
 
 
-func _group_texture(index: int) -> String:
-	return [
-		"res://assets/content/appreciation/sora.png",
-		"res://assets/content/appreciation/nao.png",
-		"res://assets/content/appreciation/akira.png",
-		"res://assets/content/appreciation/kazuha.png",
-		"res://assets/content/appreciation/motoka.png",
-		"res://assets/content/appreciation/others.png",
-	][index]
+func _process(_delta: float) -> void:
+	_gallery.interaction_blocked = _video_player.visible
 
 
 func _refresh() -> void:
@@ -107,8 +104,7 @@ func _update_group_buttons() -> void:
 	for index in _group_buttons.size():
 		var button := _group_buttons[index]
 		var selected := index == _group_index
-		button.disabled = selected
-		button.modulate.a = 1.0 if selected else 190.0 / 255.0
+		(button as Button).button_pressed = selected
 
 
 func _entries_for_group(index: int) -> Array[TitleMemoryEntry]:
@@ -124,41 +120,43 @@ func _refresh_entries(animate := false, direction := 0) -> void:
 		_entry_list.remove_child(child)
 		child.queue_free()
 	var selected := _entries_for_group(_group_index)
-	var page_count := maxi(1, ceili(float(selected.size()) / 8.0))
+	var page_count := maxi(1, ceili(float(selected.size()) / float(PAGE_SIZE)))
 	_page_index = clampi(_page_index, 0, page_count - 1)
-	for memory_index in range(_page_index * 8, mini(selected.size(), _page_index * 8 + 8)):
-		_add_memory_card(selected[memory_index])
-	_page_label.text = ""
-	_previous_page.visible = page_count > 1
-	_next_page.visible = page_count > 1
+	for memory_index in range(_page_index * PAGE_SIZE, mini(selected.size(), _page_index * PAGE_SIZE + PAGE_SIZE)):
+		_add_memory_card(selected[memory_index], memory_index + 1)
+	_page_label.text = "%d / %d" % [_page_index + 1, page_count]
+	_previous_page.visible = true
+	_next_page.visible = true
 	_previous_page.disabled = _page_index <= 0
 	_next_page.disabled = _page_index >= page_count - 1
-	_status.text = ""
+	var collected := 0
+	for memory in selected:
+		if memory.unlocked(_profile):
+			collected += 1
+	_status.text = "已收集：%d / %d" % [collected, selected.size()]
+	if _page_tween != null and _page_tween.is_valid():
+		_page_tween.kill()
 	if animate:
-		if _page_tween != null and _page_tween.is_valid():
-			_page_tween.kill()
-		_entry_list.position.x = 82.0 + float(direction) * 320.0
-		_page_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_page_tween.tween_property(_entry_list, "position:x", 82.0, 0.24)
+		_gallery.play_page_transition(_entry_list, direction)
 
 
 func _change_page(delta: int) -> void:
 	if _manifest == null:
 		return
 	var selected := _entries_for_group(_group_index)
-	var page_count := maxi(1, ceili(float(selected.size()) / 8.0))
+	var page_count := maxi(1, ceili(float(selected.size()) / float(PAGE_SIZE)))
 	var target_page := clampi(_page_index + delta, 0, page_count - 1)
 	if target_page == _page_index:
 		return
 	_page_index = target_page
-	_refresh_entries(true, signi(delta))
+	_refresh_entries(true, delta)
 
 
-func _add_memory_card(memory: TitleMemoryEntry) -> void:
+func _add_memory_card(memory: TitleMemoryEntry, number: int) -> void:
 	var unlocked := memory.unlocked(_profile)
-	var card := TitleVisualCard.new()
+	var card := CARD_SCENE.instantiate() as TitleVisualCard
 	card.name = "Memory_%s" % str(memory.entry_id).validate_node_name()
-	card.configure(memory.entry_id, memory.title, "res://assets/content/appreciation/cg_preview.png", unlocked)
+	card.configure(memory.entry_id, "%03d" % number, "res://assets/content/appreciation/cg_preview.png", unlocked)
 	if unlocked and ResourceLoader.exists(memory.thumbnail_path):
 		card.set_thumbnail(load(memory.thumbnail_path) as Texture2D)
 	card.tooltip_text = memory.title if unlocked else "未解锁"

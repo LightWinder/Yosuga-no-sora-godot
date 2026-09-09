@@ -5,25 +5,30 @@ extends DesignCanvasPage
 signal content_requested(request: TitleContentRequest)
 signal status_changed(message: String)
 
+const PAGE_SIZE := 12
+const CARD_SCENE := preload("res://src/title/ui/album_grid_card.tscn")
+
 var _manifest: TitleContentManifest
 var _profile: ProfileData
 var _group_index := 0
 var _page_index := 0
 var _page_tween: Tween
 
+@onready var _gallery: AppreciationGallery = $VisualCanvas/GalleryContent
+@onready var _navigation: AppreciationNavigation = $VisualCanvas/AppreciationNavigation
 @onready var _group_buttons: Array[BaseButton] = [
-	%Group01,
-	%Group02,
-	%Group03,
-	%Group04,
-	%Group05,
-	%Group06,
+	_gallery.get_node("%Group01"),
+	_gallery.get_node("%Group02"),
+	_gallery.get_node("%Group03"),
+	_gallery.get_node("%Group04"),
+	_gallery.get_node("%Group05"),
+	_gallery.get_node("%Group06"),
 ]
-@onready var _card_list: GridContainer = %CardList
-@onready var _page_label: Label = %PageNumber
-@onready var _previous_page: AppreciationPageButton = %PreviousPage
-@onready var _next_page: AppreciationPageButton = %NextPage
-@onready var _status: Label = %Status
+@onready var _card_list: GridContainer = _gallery.get_node("%CardList")
+@onready var _page_label: Label = _navigation.get_node("%PageNumber")
+@onready var _previous_page: AppreciationPageButton = _gallery.get_node("%PreviousPage")
+@onready var _next_page: AppreciationPageButton = _gallery.get_node("%NextPage")
+@onready var _status: Label = _navigation.get_node("%CollectionStatus")
 @onready var _viewer: TitleAlbumViewer = %AlbumViewer
 
 
@@ -37,13 +42,16 @@ func configure(manifest: TitleContentManifest, profile: ProfileData) -> void:
 func _ready() -> void:
 	super._ready()
 	for index in _group_buttons.size():
-		var button := _group_buttons[index] as TitleSpriteButton
-		button.configure_sprite(_group_texture(index), 3, 18.0)
+		var button := _group_buttons[index] as Button
 		button.pressed.connect(_select_group.bind(index))
 	_previous_page.pressed.connect(_change_page.bind(-1))
 	_next_page.pressed.connect(_change_page.bind(1))
 	_viewer.closed.connect(func() -> void: status_changed.emit("已返回相册列表。"))
 	_refresh_groups()
+
+
+func _process(_delta: float) -> void:
+	_gallery.interaction_blocked = _viewer.visible
 
 
 func group_count() -> int:
@@ -72,17 +80,6 @@ func open_card_for_test(group_index: int = 0, card_index: int = 0) -> bool:
 	return _viewer.visible
 
 
-func _group_texture(index: int) -> String:
-	return [
-		"res://assets/content/appreciation/sora.png",
-		"res://assets/content/appreciation/nao.png",
-		"res://assets/content/appreciation/akira.png",
-		"res://assets/content/appreciation/kazuha.png",
-		"res://assets/content/appreciation/motoka.png",
-		"res://assets/content/appreciation/others.png",
-	][index]
-
-
 func _refresh_groups() -> void:
 	if _manifest == null or _card_list == null:
 		return
@@ -94,8 +91,7 @@ func _refresh_groups() -> void:
 		var group := _manifest.album_groups[index]
 		button.visible = true
 		button.tooltip_text = "%s (%d/%d)" % [group.title, group.unlocked_card_count(_profile), group.cards.size()]
-		button.disabled = index == _group_index
-		button.modulate.a = 1.0 if index == _group_index else 190.0 / 255.0
+		(button as Button).button_pressed = index == _group_index
 	if _group_index >= _manifest.album_groups.size():
 		_group_index = 0
 	_select_group(_group_index)
@@ -114,8 +110,7 @@ func _update_group_buttons() -> void:
 	for index in _group_buttons.size():
 		var button := _group_buttons[index]
 		var selected := index == _group_index
-		button.disabled = selected
-		button.modulate.a = 1.0 if selected else 190.0 / 255.0
+		(button as Button).button_pressed = selected
 
 
 func _refresh_cards(animate := false, direction := 0) -> void:
@@ -125,44 +120,43 @@ func _refresh_cards(animate := false, direction := 0) -> void:
 		_card_list.remove_child(child)
 		child.queue_free()
 	var group := _manifest.album_groups[_group_index]
-	var page_count := maxi(1, ceili(float(group.cards.size()) / 8.0))
+	var page_count := maxi(1, ceili(float(group.cards.size()) / float(PAGE_SIZE)))
 	_page_index = clampi(_page_index, 0, page_count - 1)
-	var first_card := _page_index * 8
-	var end_card := mini(group.cards.size(), first_card + 8)
+	var first_card := _page_index * PAGE_SIZE
+	var end_card := mini(group.cards.size(), first_card + PAGE_SIZE)
 	for card_index in range(first_card, end_card):
-		_add_card_card(group, group.cards[card_index])
-	_page_label.text = ""
-	_previous_page.visible = page_count > 1
-	_next_page.visible = page_count > 1
+		_add_card_card(group, group.cards[card_index], card_index + 1)
+	_page_label.text = "%d / %d" % [_page_index + 1, page_count]
+	_previous_page.visible = true
+	_next_page.visible = true
 	_previous_page.disabled = _page_index <= 0
 	_next_page.disabled = _page_index >= page_count - 1
-	_status.text = ""
+	_status.text = "已收集：%d / %d" % [group.unlocked_card_count(_profile), group.cards.size()]
+	if _page_tween != null and _page_tween.is_valid():
+		_page_tween.kill()
 	if animate:
-		if _page_tween != null and _page_tween.is_valid():
-			_page_tween.kill()
-		_card_list.position.x = 82.0 + float(direction) * 320.0
-		_page_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_page_tween.tween_property(_card_list, "position:x", 82.0, 0.24)
+		_gallery.play_page_transition(_card_list, direction)
 
 
 func _change_page(delta: int) -> void:
 	if _manifest == null or _group_index >= _manifest.album_groups.size():
 		return
 	var group := _manifest.album_groups[_group_index]
-	var page_count := maxi(1, ceili(float(group.cards.size()) / 8.0))
+	var page_count := maxi(1, ceili(float(group.cards.size()) / float(PAGE_SIZE)))
 	var target_page := clampi(_page_index + delta, 0, page_count - 1)
 	if target_page == _page_index:
 		return
 	_page_index = target_page
-	_refresh_cards(true, signi(delta))
+	_refresh_cards(true, delta)
 
 
-func _add_card_card(group: TitleAlbumGroup, card: TitleAlbumCard) -> void:
+func _add_card_card(group: TitleAlbumGroup, card: TitleAlbumCard, number: int) -> void:
 	var unlocked := card.unlocked(_profile)
-	var card_button := TitleVisualCard.new()
+	var card_button := CARD_SCENE.instantiate() as TitleVisualCard
 	card_button.name = "Card_%s" % card.card_id.validate_node_name()
-	card_button.configure(StringName(card.card_id), card.card_id, "res://assets/content/appreciation/cg_preview.png", unlocked)
-	var first := card.first_variant()
+	card_button.configure(StringName(card.card_id), "%03d" % number, "res://assets/content/appreciation/cg_preview.png", unlocked)
+	var unlocked_variants := card.unlocked_variants(_profile)
+	var first: TitleAlbumVariant = unlocked_variants[0] if not unlocked_variants.is_empty() else null
 	if unlocked and first != null:
 		card_button.set_thumbnail(load(first.texture_path) as Texture2D)
 	var available_variants := card.unlocked_variants(_profile).size()
