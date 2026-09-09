@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bqct58f8gw621" path="res://src/app/startup_flow.gd" id="1_flow"]
 [ext_resource type="Script" uid="uid://beyhbqat5bvfu" path="res://src/core/audio/startup_audio.gd" id="2_audio"]
 [ext_resource type="Script" uid="uid://x7ap2qkw0spi" path="res://src/core/save/save_service.gd" id="3_save"]
-[ext_resource type="Texture2D" uid="uid://kr1g5ge3ixnn" path="res://assets/ui/intro/FRM_0501.png" id="4_route_base"]
+[ext_resource type="Texture2D" uid="uid://b2njgj3obn4b2" path="res://assets/ui/intro/FRM_0501.png" id="4_route_base"]
 
 [node name="StartupFlow" type="Node" unique_id=1271856247]
 script = ExtResource("1_flow")

@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_section_title.tscn" id="3_title"]
 [ext_resource type="Script" uid="uid://ctsqr1osembgp" path="res://src/settings/ui/settings_choice_button.gd" id="4_choice"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="5_slider"]
-[ext_resource type="Texture2D" uid="uid://t601octbyigq" path="res://assets/content/event_1920/EA01E.png" id="6_preview"]
+[ext_resource type="Texture2D" uid="uid://c0y4ofivgr5m5" path="res://assets/content/event_1920/EA01E.png" id="6_preview"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/section/frame.tres" id="7_frame"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/section/preview_panel.tres" id="8_preview_panel"]
 

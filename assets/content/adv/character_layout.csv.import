@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://j6ekd5wbtb3x"
+
+[deps]
+
+files=["res://assets/content/adv/character_layout.guidex.translation", "res://assets/content/adv/character_layout.guidey.translation"]
+
+source_file="res://assets/content/adv/character_layout.csv"
+dest_files=["res://assets/content/adv/character_layout.guidex.translation", "res://assets/content/adv/character_layout.guidey.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

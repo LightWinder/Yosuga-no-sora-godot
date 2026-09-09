@@ -321,7 +321,11 @@ func _test_save_service_round_trip() -> void:
 	if corrupt_file != null:
 		corrupt_file.store_string("{not valid json")
 		corrupt_file.close()
-	_expect(service.load_autosave() == null, "Corrupt JSON must be rejected without crashing.")
+	var previous_print_errors := Engine.print_error_messages
+	Engine.print_error_messages = false
+	var corrupt_autosave := service.load_autosave()
+	Engine.print_error_messages = previous_print_errors
+	_expect(corrupt_autosave == null, "Corrupt JSON must be rejected without crashing.")
 	_expect(not service.last_error.is_empty(), "Corrupt JSON must expose a recoverable error.")
 	data.instruction_anchor = "hitret:recovered"
 	_expect(service.save_autosave(data), "A corrupt save must be replaceable atomically.")
@@ -1228,8 +1232,13 @@ func _test_title_state() -> void:
 	corrupt.store_string("{broken")
 	corrupt.close()
 	var voice_reload := VoiceCollectionService.new()
+	var previous_print_errors := Engine.print_error_messages
+	Engine.print_error_messages = false
 	voice_reload.configure_storage(voice_path)
-	root.add_child(voice_reload)
+	Engine.print_error_messages = previous_print_errors
+	Engine.print_error_messages = false
+	root.add_child(voice_reload) # _ready() also reads the intentionally malformed JSON.
+	Engine.print_error_messages = previous_print_errors
 	await process_frame
 	_expect(voice_reload.count() == 0, "Corrupt voice JSON must be rejected without inventing entries.")
 	_expect(FileAccess.get_file_as_string(voice_path) == "{broken", "Corrupt voice JSON must not be overwritten on read.")

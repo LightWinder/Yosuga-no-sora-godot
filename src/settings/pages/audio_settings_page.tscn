@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_section_title.tscn" id="4_title"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_voice_choice_button.tscn" id="5_voice_choice"]
 [ext_resource type="PackedScene" path="res://src/settings/ui/settings_knob_slider.tscn" id="6_slider"]
-[ext_resource type="Texture2D" uid="uid://bl7yu2ty8e42l" path="res://assets/content/settings/voices/portraits/sora.png" id="8_sora_portrait"]
+[ext_resource type="Texture2D" uid="uid://cvy1pudmw5yw8" path="res://assets/content/settings/voices/portraits/sora.png" id="8_sora_portrait"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/section/frame.tres" id="9_frame"]
 
 [node name="AudioSettingsPage" type="Control" unique_id=644159893]

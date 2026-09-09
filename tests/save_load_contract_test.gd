@@ -32,10 +32,23 @@ func _run() -> void:
 	var copied := service.load_slot(0)
 	_expect(copied.saved_at_unix == saved.saved_at_unix and copied.thumbnail_webp == saved.thumbnail_webp and copied.choice_history == saved.choice_history, "Copy preserves time, screenshot and replay state.")
 	_expect(service.set_slot_locked(0, true), "Occupied manual slots can be locked.")
-	_expect(not service.save_slot(0, source), "Lock prevents overwrite.")
-	_expect(not service.copy_slot(899, 0), "Lock prevents copy overwrite.")
-	_expect(not service.clear_slot(0), "Lock prevents deletion.")
-	_expect(not service.move_slot(0, 1), "Lock prevents moving its source.")
+	var previous_print_errors := Engine.print_error_messages
+	Engine.print_error_messages = false
+	var locked_save := service.save_slot(0, source)
+	Engine.print_error_messages = previous_print_errors
+	_expect(not locked_save, "Lock prevents overwrite.")
+	Engine.print_error_messages = false
+	var locked_copy := service.copy_slot(899, 0)
+	Engine.print_error_messages = previous_print_errors
+	_expect(not locked_copy, "Lock prevents copy overwrite.")
+	Engine.print_error_messages = false
+	var locked_clear := service.clear_slot(0)
+	Engine.print_error_messages = previous_print_errors
+	_expect(not locked_clear, "Lock prevents deletion.")
+	Engine.print_error_messages = false
+	var locked_move := service.move_slot(0, 1)
+	Engine.print_error_messages = previous_print_errors
+	_expect(not locked_move, "Lock prevents moving its source.")
 	_expect(service.set_slot_locked(0, false), "Unlock restores management.")
 	_expect(service.set_slot_comment(0, "我的备注"), "Manual comments persist.")
 	_expect(service.load_slot(0).comment_edit, "Manual comment replacement sets the source-compatible edit marker.")

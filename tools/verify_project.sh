@@ -3,8 +3,8 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 godot_executable="${GODOT_EXECUTABLE:-godot}"
-verification_log="$(mktemp -t yosuga-godot-verify.XXXXXX.log)"
-trap 'rm -f "$verification_log"' EXIT
+verification_log_dir=""
+trap 'if [[ -n "$verification_log_dir" ]]; then rm -rf "$verification_log_dir"; fi' EXIT
 
 required_files=(
 	".gitattributes"
@@ -506,41 +506,6 @@ if rg -q '\bTIME\b' "$project_root/assets/shaders/title/title_tree_sway.gdshader
 fi
 require_pattern 'TitleMenuButton/fonts/font = ExtResource\("1_xiaolai"\)' "$project_root/assets/themes/yosuga_theme.tres" "Title menu typography must use Xiaolai through the project Theme."
 
-if ! command -v "$godot_executable" >/dev/null 2>&1 && [[ ! -x "$godot_executable" ]]; then
-	echo "Godot executable not found; static project checks passed. Set GODOT_EXECUTABLE to run runtime tests."
-	exit 0
-fi
-
-check_runtime_log() {
-	if rg -n -i 'parse error|parser error|script error|objectdb[[:space:]]+leaked|resources still in use' "$verification_log"; then
-		echo "Godot verification log contains a fatal parser/runtime/leak marker." >&2
-		return 1
-	fi
-}
-
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --editor --quit --log-file "$verification_log" --path "$project_root"
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_cloud_field_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_tree_sway_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_settings_preview_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/save_load_contract_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_migration_contract_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/krkr_scenario_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_asset_coverage_test.gd
-check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_migration_contract_test.gd
-check_runtime_log
-
 require_pattern 'name="PageLayout" type="VBoxContainer"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must retain its container-owned page layout."
 require_pattern 'res://assets/themes/ui/frame.tres' "$project_root/assets/themes/yosuga_theme.tres" "Save/Load must reuse the shared Settings outer frame."
 require_pattern 'res://src/ui/page_tab_button.gd' "$project_root/src/save_load/save_load_page.tscn" "Save/Load tabs must reuse neutral page-tab behavior."
@@ -552,3 +517,65 @@ require_pattern 'name="PreviewAspect" type="AspectRatioContainer"' "$project_roo
 require_pattern 'type="SubViewport"' "$project_root/src/adv/components/adv_background_preview.tscn" "Save thumbnails must render background-only in a dedicated viewport."
 
 require_pattern 'SAVE_LOAD_SCENE.instantiate' "$project_root/src/app/startup_flow.gd" "Title Load must be composed as a live overlay by StartupFlow."
+
+echo "[PASS] Static project checks"
+
+if ! command -v "$godot_executable" >/dev/null 2>&1 && [[ ! -x "$godot_executable" ]]; then
+	echo "Godot executable not found; static project checks passed. Set GODOT_EXECUTABLE to run runtime tests."
+	exit 0
+fi
+
+check_runtime_log() {
+	local log_file="$1"
+	if rg -q -i 'parse error|parser error|script error|objectdb[[:space:]]+leaked|resources still in use' "$log_file"; then
+		echo "Godot verification log contains a fatal parser/runtime/leak marker." >&2
+		return 1
+	fi
+}
+
+run_godot() {
+	local test_name="$1"
+	shift
+	verification_log_dir="$(mktemp -d -t yosuga-godot-verify.XXXXXX)"
+	local engine_log="$verification_log_dir/engine.log"
+	local console_log="$verification_log_dir/console.log"
+	local status=0
+	"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile \
+		--quiet --no-header --log-file "$engine_log" --path "$project_root" "$@" \
+		>"$console_log" 2>&1 || status=$?
+	if [[ -f "$engine_log" ]]; then
+		check_runtime_log "$engine_log" || status=1
+	fi
+	check_runtime_log "$console_log" || status=1
+	if [[ "$status" -ne 0 ]]; then
+		echo "[FAIL] $test_name (exit $status)" >&2
+		cat "$console_log" >&2
+		if [[ -f "$engine_log" ]]; then
+			echo "--- Godot engine log ---" >&2
+			cat "$engine_log" >&2
+		fi
+	else
+		echo "[PASS] $test_name"
+	fi
+	rm -rf "$verification_log_dir"
+	verification_log_dir=""
+	return "$status"
+}
+
+run_godot_test() {
+	run_godot "$1" --script "$2"
+}
+
+run_godot "Godot import" --import
+run_godot_test "ADV dialogue" res://tests/adv_dialogue_view_test.gd
+run_godot_test "Title clouds" res://tests/title_cloud_field_test.gd
+run_godot_test "Title tree sway" res://tests/title_tree_sway_test.gd
+run_godot_test "Settings preview" res://tests/adv_settings_preview_test.gd
+run_godot_test "Startup flow" res://tests/startup_flow_smoke_test.gd
+run_godot_test "Save/Load contracts" res://tests/save_load_contract_test.gd
+run_godot_test "Title contracts" res://tests/title_migration_contract_test.gd
+run_godot_test "KRKR runtime" res://tests/krkr_scenario_test.gd
+run_godot_test "ADV asset coverage" res://tests/adv_asset_coverage_test.gd
+run_godot_test "ADV contracts" res://tests/adv_migration_contract_test.gd
+
+echo "Verification passed."
