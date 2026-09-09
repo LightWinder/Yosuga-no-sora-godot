@@ -131,17 +131,17 @@ func report_error(message: String) -> void:
 
 
 func request_reset_settings() -> void:
-	if not _confirmation_enabled("default"):
+	if not _confirmation_enabled("default") and not Input.is_key_pressed(KEY_SHIFT):
 		_run_reset_settings()
 		return
-	_chrome.open_confirmation(RESET_SETTINGS_ACTION, "要初始化设定吗？", true)
+	_chrome.open_confirmation(RESET_SETTINGS_ACTION, "要初始化设定吗？", _confirmation_enabled("default"))
 
 
 func request_reset_read() -> void:
-	if not _confirmation_enabled("clear_read"):
+	if not _confirmation_enabled("clear_read") and not Input.is_key_pressed(KEY_SHIFT):
 		_run_reset_read()
 		return
-	_chrome.open_confirmation(RESET_READ_ACTION, "要初始化已读情报吗？", true)
+	_chrome.open_confirmation(RESET_READ_ACTION, "要初始化已读情报吗？", _confirmation_enabled("clear_read"))
 
 
 func confirm_pending_action() -> void:
@@ -261,7 +261,7 @@ func _run_reset_settings() -> void:
 
 func _run_reset_read() -> void:
 	read_flags_reset_requested.emit()
-	_set_status("已读情报初始化请求已发出（正文运行层待迁移）。")
+	_set_status("已读情报初始化请求已发出。")
 
 
 func _set_status(message: String) -> void:

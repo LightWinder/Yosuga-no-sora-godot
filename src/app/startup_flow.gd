@@ -104,7 +104,7 @@ func _replace_screen(scene: PackedScene) -> Control:
 
 	_current_screen = scene.instantiate() as Control
 	if _current_screen is TitleScreen:
-		(_current_screen as TitleScreen).configure(_save_service)
+		(_current_screen as TitleScreen).configure(_save_service, _settings_repository)
 	elif _current_screen is TitleFeatureScreen:
 		(_current_screen as TitleFeatureScreen).configure(last_selected_option, _save_service)
 	elif _current_screen is SettingsScreen:
@@ -421,7 +421,7 @@ func _open_title_load_overlay() -> void:
 	_set_current_screen_input_enabled(false)
 	_title_load_overlay = SAVE_LOAD_SCENE.instantiate() as SaveLoadPage
 	_title_load_overlay.name = "TitleLoadOverlay"
-	_title_load_overlay.configure(SaveLoadPage.Mode.LOAD, _save_service)
+	_title_load_overlay.configure(SaveLoadPage.Mode.LOAD, _save_service, null, _settings_repository)
 	_title_load_overlay.back_requested.connect(_close_title_load_overlay)
 	_title_load_overlay.load_requested.connect(_load_from_title_overlay)
 	_overlay_host.add_child(_title_load_overlay)

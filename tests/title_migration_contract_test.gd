@@ -77,6 +77,7 @@ func _run() -> void:
 	_test_export_presets()
 	await _test_display_preview_layout()
 	await _test_title_state()
+	await _test_exit_preference()
 
 	if _failures.is_empty():
 		print("Title migration contract test passed.")
@@ -504,7 +505,7 @@ func _test_title_state() -> void:
 	_expect(title.is_exit_confirmation_visible(), "Exit must open its confirmation scene.")
 	var exit_dialog := title.get_node_or_null("ExitConfirmationOverlay") as ConfirmationOverlay
 	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("confirmation_overlay.tscn"), "Exit confirmation must use the shared scene-owned overlay.")
-	_expect(not (exit_dialog.get_node("Layout/VisualCanvas/DialogContent/AlwaysAsk") as Control).visible, "Ordinary confirmations must hide the settings preference toggle.")
+	_expect((exit_dialog.get_node("Layout/VisualCanvas/DialogContent/AlwaysAsk") as Control).visible, "Source confirmations expose the persisted always-ask preference.")
 	_expect(root.gui_get_focus_owner() == exit_dialog.get_node("Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Cancel"), "Shared confirmations must initially focus the cancel action.")
 	var exit_escape := InputEventKey.new()
 	exit_escape.pressed = true
@@ -566,6 +567,8 @@ func _test_title_state() -> void:
 	var load_select := load_page.slot_cards()[0]
 	_expect(load_select.slot_id == 0 and load_select.button_pressed, "Manual slot 001 must be selected initially.")
 	load_select.load_requested.emit(0, false)
+	_expect(load_page.is_confirmation_visible() and feature_requests.is_empty(), "Load must wait for confirmation before routing.")
+	load_page.confirm_delete_confirmation()
 	_expect(feature_requests.size() == 1, "The thumbnail action must emit a typed load route.")
 	var page_primary := load_page.get_node("%Primary") as Button
 	_expect(not page_primary.visible, "Load must not duplicate its thumbnail action in the footer.")
@@ -1267,3 +1270,42 @@ func _expect_no_generated_node_names(scene_root: Node, context: String) -> void:
 		_expect(not String(current.name).begins_with("@"), "%s contains an auto-generated node name: %s" % [context, current.name])
 		for child in current.get_children():
 			pending.append(child)
+
+
+func _test_exit_preference() -> void:
+	var settings := SettingsRepository.new()
+	settings.configure_storage("/tmp/yosuga-exit-confirm-%d/settings.json" % Time.get_ticks_usec())
+	var service := MemorySaveService.new()
+	root.add_child(service)
+	var title := TITLE_SCENE.instantiate() as TitleScreen
+	title.configure(service, settings)
+	root.add_child(title)
+	await process_frame
+	var exits: Array[bool] = []
+	title.exit_requested.connect(func() -> void: exits.append(true))
+	title._show_exit_confirmation()
+	var dialog := title.get_node("ExitConfirmationOverlay") as ConfirmationOverlay
+	_expect(dialog.is_open() and exits.is_empty(), "Enabled exit waits for confirmation")
+	dialog.always_toggled.emit(false)
+	dialog.canceled.emit()
+	_expect(exits.is_empty() and not settings.confirmation_enabled("end"), "Cancel exit preserves the game and saves preference")
+	await create_timer(0.35).timeout
+	title._show_exit_confirmation()
+	_expect(exits.size() == 1 and not dialog.is_open(), "Disabled exit requests exit directly")
+	var shift := InputEventKey.new()
+	shift.keycode = KEY_SHIFT
+	shift.physical_keycode = KEY_SHIFT
+	shift.pressed = true
+	Input.parse_input_event(shift)
+	Input.flush_buffered_events()
+	title._show_exit_confirmation()
+	_expect(dialog.is_open() and not dialog.always_checked and exits.size() == 1, "Shift forces one confirmation without enabling the preference")
+	shift = shift.duplicate() as InputEventKey
+	shift.pressed = false
+	Input.parse_input_event(shift)
+	Input.flush_buffered_events()
+	dialog.confirmed.emit()
+	_expect(exits.size() == 2, "Accepted exit emits once")
+	title.free()
+	service.free()
+	await process_frame

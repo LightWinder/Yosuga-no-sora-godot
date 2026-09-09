@@ -49,6 +49,7 @@ const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmati
 @onready var _blur_warmup: Control = $BlurWarmup
 @onready var _white_cover: ColorRect = $WhiteCover
 
+var _settings_repository: SettingsRepository
 var _save_service: SaveService
 var _main_buttons: Array[TitleMenuButton] = []
 var _bonus_buttons: Array[TitleMenuButton] = []
@@ -63,11 +64,14 @@ var _subscreen_departed := false
 var _bottom_chrome_rest_position := Vector2.ZERO
 
 
-func configure(save_service: SaveService) -> void:
+func configure(save_service: SaveService, settings_repository: SettingsRepository = null) -> void:
+	_settings_repository = settings_repository
 	_save_service = save_service
 
 
 func _ready() -> void:
+	if _settings_repository == null:
+		_settings_repository = SettingsRepository.new()
 	InputActions.ensure_actions()
 	if _save_service == null:
 		_save_service = SaveService.new()
@@ -354,15 +358,22 @@ func _ensure_exit_confirmation() -> void:
 	_exit_confirmation.name = "ExitConfirmationOverlay"
 	_exit_confirmation.confirmed.connect(_confirm_exit)
 	_exit_confirmation.canceled.connect(_hide_exit_confirmation)
+	_exit_confirmation.always_toggled.connect(func(enabled: bool) -> void:
+		if not _settings_repository.set_confirmation_enabled("end", enabled):
+			push_error(_settings_repository.last_error)
+	)
 	add_child(_exit_confirmation)
 
 
 func _show_exit_confirmation() -> void:
 	if DesignViewportLayout.is_mobile_platform():
 		return
+	if not _settings_repository.confirmation_enabled("end") and not Input.is_key_pressed(KEY_SHIFT):
+		exit_requested.emit()
+		return
 	_ensure_exit_confirmation()
 	_exit_confirmation_visible = true
-	_exit_confirmation.open()
+	_exit_confirmation.open("要结束游戏吗？", "结束游戏", "取消", true, _settings_repository.confirmation_enabled("end"))
 	exit_confirmation_changed.emit(true)
 
 

@@ -15,6 +15,7 @@ func _initialize() -> void:
 func _run() -> void:
 	await _test_runtime_progress_contract()
 	await _test_scene_and_animation_contract()
+	await _test_confirmation_navigation()
 	if _failures.is_empty():
 		print("ADV migration contract test passed.")
 		quit(0)
@@ -985,3 +986,83 @@ func _wait_until(predicate: Callable, timeout_seconds: float) -> void:
 func _expect(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
+
+
+func _test_confirmation_navigation() -> void:
+	var directory := "/tmp/yosuga-confirmation-adv-%d" % Time.get_ticks_usec()
+	var service := SaveService.new()
+	service.configure_storage(directory)
+	root.add_child(service)
+	var settings := SettingsRepository.new()
+	settings.configure_storage(directory + "/settings.json")
+	var screen := ADV_SCENE.instantiate() as AdvScreen
+	screen.configure(ScenarioLaunchRequest.new_game(), service, settings)
+	root.add_child(screen)
+	await process_frame
+	screen.runtime().configure(FIXTURE_DIRECTORY)
+	screen.runtime().start_scenario("choice_navigation")
+	await create_timer(0.35).timeout
+	var dialog := screen.get_node("%TitleConfirmation") as ConfirmationOverlay
+	var initial := screen.current_message()
+	var history_index := screen._history_entries.size() - 1
+	(screen.get_node("%NextChoiceButton") as BaseButton).pressed.emit()
+	_expect(dialog.is_open() and not screen._jumping_to_next_choice, "Next-choice UI waits for confirmation")
+	dialog.canceled.emit()
+	_expect(screen.current_message() == initial, "Cancel next-choice preserves dialogue")
+	await create_timer(0.35).timeout
+	(screen.get_node("%NextChoiceButton") as BaseButton).pressed.emit()
+	dialog.confirmed.emit()
+	await _wait_until(func() -> bool: return screen.runtime().is_waiting_for_choice(), 1.0)
+	_expect(screen.runtime().is_waiting_for_choice(), "Accepted next-choice reaches choice")
+	screen._open_history()
+	await create_timer(0.35).timeout
+	(screen.get_node("%HistoryText") as RichTextLabel).meta_clicked.emit(history_index)
+	_expect(dialog.is_open(), "History entry requests log-jump confirmation")
+	dialog.canceled.emit()
+	_expect(screen.runtime().is_waiting_for_choice() and screen._history_overlay.visible, "Cancel log jump preserves runtime and history")
+	await create_timer(0.35).timeout
+	screen._request_history_jump(history_index)
+	dialog.confirmed.emit()
+	_expect(screen.current_message() == initial and screen.runtime().is_waiting_for_dialogue(), "Accepted history jump restores exact dialogue")
+	_expect(not screen._history_overlay.visible and screen._player_chrome_overlay_depth == 0, "History confirmation unwinds modal state")
+	settings.set_confirmation_enabled("log_jump", false)
+	screen._open_history()
+	await create_timer(0.35).timeout
+	screen._request_history_jump(history_index)
+	_expect(not dialog.is_open() and not screen._history_overlay.visible, "Disabled history confirmation jumps directly")
+	settings.set_confirmation_enabled("select_jump", false)
+	screen._request_next_choice()
+	await _wait_until(func() -> bool: return screen.runtime().is_waiting_for_choice(), 1.0)
+	_expect(not dialog.is_open() and screen.runtime().is_waiting_for_choice(), "Disabled next-choice confirmation jumps directly")
+	# Select the first enabled option, then exercise the previous-choice UI.
+	await screen._select_choice(0)
+	await _wait_until(func() -> bool: return screen.runtime().is_waiting_for_dialogue(), 1.0)
+	settings.set_confirmation_enabled("select_jump", true)
+	screen._request_previous_choice()
+	_expect(dialog.is_open(), "Previous-choice uses the same preference")
+	dialog.canceled.emit()
+	await create_timer(0.35).timeout
+	settings.set_confirmation_enabled("select_jump", false)
+	screen._request_previous_choice()
+	_expect(screen.runtime().is_waiting_for_choice() and not dialog.is_open(), "Disabled previous-choice returns directly")
+	var title_requests: Array[bool] = []
+	screen.title_requested.connect(func() -> void: title_requests.append(true))
+	screen._request_title()
+	_expect(dialog.is_open() and title_requests.is_empty(), "Title waits for confirmation")
+	dialog.always_toggled.emit(false)
+	dialog.canceled.emit()
+	await create_timer(0.35).timeout
+	screen._request_title()
+	_expect(title_requests.size() == 1 and not dialog.is_open(), "Disabled title confirmation emits once")
+	var saved := screen._build_save_snapshot()
+	service.save_quick(saved)
+	screen._quick_load()
+	_expect(dialog.is_open(), "Quick load honors load confirmation")
+	dialog.canceled.emit()
+	await create_timer(0.35).timeout
+	settings.set_confirmation_enabled("load", false)
+	screen._quick_load()
+	_expect(not dialog.is_open() and screen.runtime().current_scenario_id == saved.scenario_id, "Disabled quick load restores saved scenario")
+	screen.free()
+	service.free()
+	await create_timer(0.3).timeout

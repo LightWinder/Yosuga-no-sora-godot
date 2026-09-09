@@ -90,6 +90,9 @@ var _auto_enabled := false
 var _skip_enabled := false
 var _auto_generation := 0
 var _history_entries: Array[String] = []
+var _history_checkpoints: Array[Dictionary] = []
+var _pending_confirmation: Callable
+var _pending_confirmation_key := ""
 var _active_save_load: SaveLoadPage
 var _effect_tween: Tween
 var _effect_finish_action: Callable
@@ -236,7 +239,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if _history_overlay.visible:
-		if StartupInput.is_cancel_event(event) or StartupInput.is_advance_event(event):
+		if StartupInput.is_cancel_event(event):
 			_close_history()
 			get_viewport().set_input_as_handled()
 		return
@@ -320,8 +323,8 @@ func set_route_overlay_active(active: bool) -> void:
 
 
 func _connect_controls() -> void:
-	_previous_choice_button.pressed.connect(_jump_to_previous_choice)
-	_next_choice_button.pressed.connect(_jump_to_next_choice)
+	_previous_choice_button.pressed.connect(_request_previous_choice)
+	_next_choice_button.pressed.connect(_request_next_choice)
 	_save_button.pressed.connect(_open_save_load.bind(SaveLoadPage.Mode.SAVE))
 	_load_button.pressed.connect(_open_save_load.bind(SaveLoadPage.Mode.LOAD))
 	_quick_save_button.pressed.connect(_quick_save)
@@ -342,7 +345,9 @@ func _connect_controls() -> void:
 	_system_menu_auto_hide_timer.timeout.connect(_hide_system_menu)
 	_auto_indicator_timer.timeout.connect(_advance_auto_indicator)
 	_history_close.pressed.connect(_close_history)
-	_title_confirmation.confirmed.connect(_confirm_title)
+	_title_confirmation.confirmed.connect(_accept_game_confirmation)
+	_title_confirmation.always_toggled.connect(_on_game_confirmation_preference)
+	_history_text.meta_clicked.connect(_request_history_jump)
 	_title_confirmation.canceled.connect(_cancel_title_confirmation)
 	_movie_player.finished.connect(_finish_movie)
 	_movie_skip.pressed.connect(_finish_movie)
@@ -1596,9 +1601,73 @@ func _finish_movie() -> void:
 func _append_history(speaker: String, message: String) -> void:
 	var entry := message if speaker.is_empty() or speaker == "心の声" else "%s\n%s" % [speaker, message]
 	_history_entries.append(entry)
+	var checkpoint: Dictionary = {}
+	if _runtime.is_waiting_for_dialogue():
+		var runtime_checkpoint := _runtime.build_navigation_checkpoint()
+		runtime_checkpoint.erase("read_text_ids")
+		checkpoint = {
+			"runtime": runtime_checkpoint,
+			"presentation": _capture_presentation(),
+			"choices": _choice_checkpoints.duplicate(true),
+			"choice_position": _choice_history_position,
+		}
+	_history_checkpoints.append(checkpoint)
 	if _history_entries.size() > 200:
 		_history_entries.pop_front()
-	_history_text.text = "\n\n".join(_history_entries)
+		_history_checkpoints.pop_front()
+	_refresh_history_text()
+
+
+func _refresh_history_text() -> void:
+	_history_text.clear()
+	for index in _history_entries.size():
+		if index > 0:
+			_history_text.add_text("\n\n")
+		if not _history_checkpoints[index].is_empty():
+			_history_text.push_meta(index)
+			_history_text.add_text("[跳转到这里]")
+			_history_text.pop()
+			_history_text.add_text("\n")
+		# add_text keeps scenario text literal, including brackets and BBCode.
+		_history_text.add_text(_history_entries[index])
+
+
+func _request_history_jump(meta: Variant) -> void:
+	if not _history_overlay.visible or not (meta is int):
+		return
+	var index := int(meta)
+	if index < 0 or index >= _history_checkpoints.size() or _history_checkpoints[index].is_empty():
+		return
+	_request_game_confirmation("log_jump", "要跳转到这里吗？", _restore_history_checkpoint.bind(index))
+
+
+func _restore_history_checkpoint(index: int) -> void:
+	if index < 0 or index >= _history_checkpoints.size():
+		return
+	var checkpoint := _history_checkpoints[index]
+	_close_history()
+	_cancel_choice_jump()
+	_stop_player_chrome_automation()
+	_stop_voice()
+	_dialogue_view.cancel_reveal()
+	_kill_tween(_choice_tween)
+	_choice_tween = null
+	_clear_choice_buttons()
+	_choice_overlay.visible = false
+	_stage_director.clear()
+	_restore_presentation(checkpoint["presentation"])
+	_choice_checkpoints.assign(checkpoint["choices"])
+	_choice_history_position = int(checkpoint["choice_position"])
+	_restoring_navigation_checkpoint = true
+	if _runtime.restore_navigation_checkpoint(checkpoint["runtime"]):
+		_history_entries.resize(index + 1)
+		_history_checkpoints.resize(index + 1)
+		_refresh_history_text()
+		_write_autosave()
+	else:
+		_restoring_navigation_checkpoint = false
+		_status.text = "无法恢复文本履历位置"
+		_status.visible = true
 
 
 func _open_history() -> void:
@@ -1628,7 +1697,7 @@ func _open_save_load(mode: SaveLoadPage.Mode) -> void:
 	_save_capture_busy = false
 	_active_save_load = SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
 	_active_save_load.name = "InGameSaveLoadPage"
-	_active_save_load.configure(mode, _save_service, payload)
+	_active_save_load.configure(mode, _save_service, payload, _settings_repository)
 	_active_save_load.back_requested.connect(_close_save_load)
 	_active_save_load.load_requested.connect(_load_from_save_page)
 	_active_save_load.save_completed.connect(func(_slot: int) -> void: _close_save_load())
@@ -1653,7 +1722,7 @@ func _quick_load() -> void:
 		_status.text = "没有可读取的快速存档"
 		_status.visible = true
 		return
-	_load_from_save_page(data, _save_service.quick_save_path())
+	_request_game_confirmation("load", "快速读取确认", _load_from_save_page.bind(data, _save_service.quick_save_path()))
 
 
 func _close_save_load() -> void:
@@ -1790,6 +1859,7 @@ func _load_from_save_page(data: SaveData, _path: String) -> void:
 	_choice_overlay.modulate.a = 1.0
 	_stage_director.clear()
 	_history_entries.clear()
+	_history_checkpoints.clear()
 	_history_text.text = ""
 	_start_request()
 
@@ -2183,23 +2253,59 @@ func _kill_tween(tween: Tween) -> void:
 
 
 func _request_title() -> void:
-	if _title_confirmation.visible:
-		return
-	_enter_player_chrome_overlay()
-	_title_confirmation.open("确定返回标题吗？\n当前进度已写入自动存档。", "返回标题", "继续游戏")
+	_request_game_confirmation("title", "确定返回标题吗？\n当前进度已写入自动存档。", _confirm_title)
 
 
 func _confirm_title() -> void:
-	_title_confirmation.close()
-	_leave_player_chrome_overlay()
 	title_requested.emit()
 
 
-func _cancel_title_confirmation() -> void:
-	if not _title_confirmation.visible:
+func _request_previous_choice() -> void:
+	if _previous_choice_button.disabled:
 		return
+	_request_game_confirmation("select_jump", "要回到前一选项吗？", _jump_to_previous_choice)
+
+
+func _request_next_choice() -> void:
+	if _next_choice_button.disabled:
+		return
+	_request_game_confirmation("select_jump", "要跳转下一选项吗？", _jump_to_next_choice)
+
+
+func _request_game_confirmation(key: String, message: String, action: Callable) -> void:
+	if _title_confirmation.is_active() or _route_exiting:
+		return
+	if not _settings_repository.confirmation_enabled(key) and not Input.is_key_pressed(KEY_SHIFT):
+		action.call()
+		return
+	_pending_confirmation = action
+	_pending_confirmation_key = key
+	_enter_player_chrome_overlay()
+	_title_confirmation.open(message, "确定", "取消", true, _settings_repository.confirmation_enabled(key))
+
+
+func _accept_game_confirmation() -> void:
+	if not _title_confirmation.is_open():
+		return
+	var action := _pending_confirmation
+	_cancel_title_confirmation()
+	if action.is_valid():
+		action.call()
+
+
+func _cancel_title_confirmation() -> void:
+	if not _title_confirmation.is_open():
+		return
+	_pending_confirmation = Callable()
+	_pending_confirmation_key = ""
 	_title_confirmation.close()
 	_leave_player_chrome_overlay()
+
+
+func _on_game_confirmation_preference(enabled: bool) -> void:
+	if not _settings_repository.set_confirmation_enabled(_pending_confirmation_key, enabled):
+		_status.text = "确认设置保存失败：%s" % _settings_repository.last_error
+		_status.visible = true
 
 
 func _on_runtime_error(message: String) -> void:

@@ -10,7 +10,7 @@ signal status_changed(message: String)
 signal mode_changed(mode: Mode)
 
 enum Mode { LOAD, SAVE }
-enum PendingAction { NONE, DELETE, OVERWRITE, COPY, MOVE }
+enum PendingAction { NONE, DELETE, OVERWRITE, COPY, MOVE, LOAD }
 
 @export var mode := Mode.LOAD:
 	set(value):
@@ -23,6 +23,7 @@ var _close_tween: Tween
 var _open_tween: Tween
 var _canvas_rest_position := Vector2.ZERO
 
+var _settings_repository: SettingsRepository
 var _save_service: SaveService
 var _save_payload: SaveData
 var _selected_slot_id := 0
@@ -53,7 +54,8 @@ var _transfer_is_move := false
 @onready var _confirmation: ConfirmationOverlay = %ConfirmationOverlay
 
 
-func configure(page_mode: Mode, service: SaveService, current_save: SaveData = null) -> void:
+func configure(page_mode: Mode, service: SaveService, current_save: SaveData = null, settings_repository: SettingsRepository = null) -> void:
+	_settings_repository = settings_repository
 	_save_service = service
 	_save_payload = current_save
 	mode = page_mode
@@ -61,6 +63,9 @@ func configure(page_mode: Mode, service: SaveService, current_save: SaveData = n
 
 func _ready() -> void:
 	super._ready()
+	if _settings_repository == null:
+		_settings_repository = SettingsRepository.new()
+	_confirmation.always_toggled.connect(_on_confirmation_preference_changed)
 	_slot_list.slot_selected.connect(_on_slot_pressed)
 	_slot_list.load_requested.connect(_on_slot_load_requested)
 	_slot_list.lock_requested.connect(_toggle_slot_lock)
@@ -206,6 +211,12 @@ func _on_slot_load_requested(id: int, auto: bool) -> void:
 		return
 	if _selected_data == null:
 		return
+	_open_confirmation(PendingAction.LOAD, "要读取%s吗？" % _selected_name(), "读取")
+
+
+func _load_selected_slot() -> void:
+	var id := _selected_slot_id
+	var auto := _selected_is_autosave
 	var path := _save_service.slot_path(id)
 	if auto:
 		path = _save_service.autosave_path()
@@ -345,17 +356,27 @@ func _save_comment(comment: String) -> void:
 
 func _open_confirmation(action: PendingAction, message: String, confirm_text: String) -> void:
 	_pending_action = action
-	_confirmation.open(message, confirm_text, "取消")
+	if not _settings_repository.confirmation_enabled(_confirmation_key(action)) and not Input.is_key_pressed(KEY_SHIFT):
+		_execute_pending_action()
+		return
+	_confirmation.open(message, confirm_text, "取消", true, _settings_repository.confirmation_enabled(_confirmation_key(action)))
 	_slot_list.set_modal_blocked(true)
 
 
 func _confirm_pending_action() -> void:
 	if not is_confirmation_visible():
 		return
+	_execute_pending_action()
+
+
+func _execute_pending_action() -> void:
 	var action := _pending_action
 	_pending_action = PendingAction.NONE
 	_confirmation.close()
 	_slot_list.set_modal_blocked(false)
+	if action == PendingAction.LOAD:
+		_load_selected_slot()
+		return
 	if action == PendingAction.OVERWRITE:
 		_save_selected_slot()
 		return
@@ -449,3 +470,13 @@ func _play_open_transition() -> void:
 	await tween.finished
 	if _open_tween == tween:
 		_open_tween = null
+
+
+func _confirmation_key(action: PendingAction) -> String:
+	return {PendingAction.LOAD: "load", PendingAction.OVERWRITE: "overwrite",
+		PendingAction.DELETE: "delete", PendingAction.COPY: "copy", PendingAction.MOVE: "move"}.get(action, "")
+
+
+func _on_confirmation_preference_changed(enabled: bool) -> void:
+	if not _settings_repository.set_confirmation_enabled(_confirmation_key(_pending_action), enabled):
+		_set_status("确认设置保存失败：%s" % _settings_repository.last_error)

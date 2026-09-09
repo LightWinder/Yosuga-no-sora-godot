@@ -89,6 +89,7 @@ func _run() -> void:
 		"Old dialogue labels migrate into the single editable comment field."
 	)
 	await _test_page(service)
+	await _test_confirmation_preferences(service)
 	service.free()
 	_remove_tree(ProjectSettings.globalize_path(_test_root))
 	if _failures.is_empty():
@@ -169,6 +170,8 @@ func _test_page(service: SaveService) -> void:
 			card.set_selected(true)
 			_expect(play.visible and not play.disabled, "Selection reveals and enables the image load action.")
 			play.pressed.emit()
+	_expect(page.is_confirmation_visible() and requests.is_empty(), "Read waits for confirmation.")
+	page.confirm_delete_confirmation()
 	_expect(requests == [service.slot_path(3)], "The image action loads its own slot without a footer action.")
 	page.scroll_to_entry(450)
 	await process_frame
@@ -205,3 +208,56 @@ func _remove_tree(path: String) -> void:
 	for directory in DirAccess.get_directories_at(path):
 		_remove_tree(path.path_join(directory))
 	DirAccess.remove_absolute(path)
+
+
+func _test_confirmation_preferences(service: SaveService) -> void:
+	var settings := SettingsRepository.new()
+	settings.configure_storage(_test_root + "/confirmations.json")
+	var payload := SaveData.create_empty("confirmation-test")
+	payload.scenario_id = "00_z001"
+	payload.comment = "new"
+	var page := load("res://src/save_load/save_load_page.tscn").instantiate() as SaveLoadPage
+	page.configure(SaveLoadPage.Mode.SAVE, service, payload, settings)
+	root.add_child(page)
+	await process_frame
+	var dialog := page.get_node("%ConfirmationOverlay") as ConfirmationOverlay
+	for key in ["overwrite", "delete", "copy", "move", "load"]:
+		var old := SaveData.create_empty("old")
+		old.scenario_id = "00_z001"
+		old.comment = "old"
+		service.save_slot(10, old)
+		service.clear_slot(11)
+		page.mode = SaveLoadPage.Mode.LOAD if key == "load" else SaveLoadPage.Mode.SAVE
+		page._on_slot_pressed(10, false)
+		var loaded: Array[String] = []
+		var listener := func(_data: SaveData, path: String) -> void: loaded.append(path)
+		page.load_requested.connect(listener)
+		var request: Callable
+		match key:
+			"overwrite": request = page._on_primary_pressed
+			"delete": request = page._request_delete
+			"copy", "move":
+				page._begin_transfer(key == "move")
+				request = page._choose_transfer_destination.bind(11, false)
+			"load": request = page._on_slot_load_requested.bind(10, false)
+		request.call()
+		_expect(dialog.is_open(), key + " opens confirmation when enabled")
+		_expect(service.has_slot(10) and not service.has_slot(11) and loaded.is_empty(), key + " must not execute before acceptance")
+		page.cancel_delete_confirmation()
+		_expect(service.load_slot(10).comment == "old" and loaded.is_empty(), key + " cancel preserves source")
+		request.call()
+		dialog.always_toggled.emit(false)
+		page.cancel_delete_confirmation()
+		var reopened := SettingsRepository.new()
+		reopened.configure_storage(_test_root + "/confirmations.json")
+		_expect(not reopened.confirmation_enabled(key), key + " always-ask persists even on cancel")
+		request.call()
+		_expect(not dialog.is_open(), key + " disabled runs without a dialog")
+		match key:
+			"overwrite": _expect(service.load_slot(10).comment == "new", "Disabled overwrite writes payload")
+			"delete": _expect(not service.has_slot(10), "Disabled delete removes source")
+			"copy": _expect(service.has_slot(10) and service.has_slot(11), "Disabled copy preserves source")
+			"move": _expect(not service.has_slot(10) and service.has_slot(11), "Disabled move removes source")
+			"load": _expect(loaded == [service.slot_path(10)], "Disabled load emits once")
+		page.load_requested.disconnect(listener)
+	page.free()

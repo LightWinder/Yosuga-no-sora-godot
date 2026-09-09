@@ -88,3 +88,13 @@ func _write_dictionary_atomic(path: String, payload: Dictionary) -> bool:
 	var ok := _store.write_dictionary_atomic(path, payload)
 	last_error = _store.last_error
 	return ok
+
+
+func confirmation_enabled(key: String) -> bool:
+	return bool(read_settings().get("confirmations", {}).get(key, true))
+
+
+func set_confirmation_enabled(key: String, enabled: bool) -> bool:
+	if not SettingsModel.CONFIRMATION_KEYS.has(key):
+		return false
+	return write_settings(SettingsModel.apply_patch(read_settings(), {"confirmations": {key: enabled}}))
