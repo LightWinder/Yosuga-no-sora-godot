@@ -1,4 +1,4 @@
-class_name SettingsCheckButton
+class_name ImageCheckButton
 extends Button
 
 

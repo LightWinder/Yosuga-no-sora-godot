@@ -1,8 +1,8 @@
-class_name SettingsModal
+class_name ModalOverlay
 extends Control
 
 
-## Shared modal presentation for the settings overlays. Concrete dialogs
+## Shared modal presentation. Concrete dialogs
 ## keep their own buttons and signals; this base owns only screen blur, shade
 ## and the opening/closing motion.
 signal closed
@@ -12,6 +12,8 @@ signal closed
 @export_range(0.8, 1.0, 0.01) var initial_scale := 0.94
 @export_range(0.8, 1.0, 0.01) var closing_scale := 0.97
 @export_range(0.0, 5.0, 0.1) var target_blur_lod := 2.4
+@export var blur_layer_path: NodePath = ^"BlurLayer"
+@export var backdrop_path: NodePath = ^"BackdropArtwork"
 @export var motion_target_path: NodePath = ^"DialogContent"
 
 var _motion_tween: Tween
@@ -21,7 +23,7 @@ var _backdrop_artwork_alpha := 1.0
 var _current_blur_lod := 0.0
 var _is_open := false
 
-@onready var _blur_layer: ColorRect = $BlurLayer
+@onready var _blur_layer: ColorRect = get_node(blur_layer_path) as ColorRect
 @onready var _shade: ColorRect = $Shade
 @onready var _dialog_content: Control = get_node(motion_target_path) as Control
 
@@ -35,7 +37,7 @@ func _ready() -> void:
 	# transparent until its first valid back-buffer copy has been drawn so an
 	# uninitialized texture can never flash black when the modal appears.
 	_blur_layer.modulate.a = 0.0
-	_backdrop_artwork = get_node_or_null("BackdropArtwork") as CanvasItem
+	_backdrop_artwork = get_node_or_null(backdrop_path) as CanvasItem
 	if _backdrop_artwork != null:
 		_backdrop_artwork_alpha = _backdrop_artwork.modulate.a
 	visible = false

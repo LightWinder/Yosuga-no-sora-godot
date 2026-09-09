@@ -126,7 +126,7 @@ func selected_is_autosave() -> bool:
 
 
 func is_confirmation_visible() -> bool:
-	return _confirmation != null and _confirmation.visible
+	return _confirmation != null and _confirmation.is_open()
 
 
 func is_delete_confirmation_visible() -> bool:

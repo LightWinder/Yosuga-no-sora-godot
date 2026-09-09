@@ -1,10 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/ui/confirmation_overlay.gd" id="1_dialog"]
+[ext_resource type="Texture2D" uid="uid://doayg1l7fu2d" path="res://assets/content/confirm/bg.png" id="2_background"]
+[ext_resource type="Script" path="res://src/ui/text_action_button.gd" id="3_button"]
+[ext_resource type="Script" uid="uid://cbypqijsa3jxq" path="res://src/ui/image_check_button.gd" id="4_check"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_modal_blur_material.tres" id="5_blur_material"]
+
+[ext_resource type="Script" path="res://src/ui/design_canvas_page.gd" id="6_layout"]
 
 [node name="ConfirmationOverlay" type="Control"]
 visible = false
-layout_mode = 3
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -12,6 +18,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("1_dialog")
+initial_scale = 0.97
+target_blur_lod = 3.0
+blur_layer_path = NodePath("Layout/VisualCanvas/BlurLayer")
+backdrop_path = NodePath("Layout/VisualCanvas/BackdropArtwork")
+motion_target_path = NodePath("Layout/VisualCanvas/DialogContent")
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="."]
+copy_mode = 2
 
 [node name="Shade" type="ColorRect" parent="."]
 layout_mode = 1
@@ -21,63 +35,92 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0, 0, 0, 0.72)
+color = Color(0.015, 0.055, 0.08, 0.22)
 
-[node name="Dialog" type="PanelContainer" parent="."]
+[node name="Layout" type="Control" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -155.0
-offset_right = 350.0
-offset_bottom = 155.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("6_layout")
+
+[node name="VisualCanvas" type="Control" parent="Layout"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="BlurLayer" type="ColorRect" parent="Layout/VisualCanvas"]
+material = ExtResource("5_blur_material")
+layout_mode = 0
+offset_top = 377.0
+offset_right = 1920.0
+offset_bottom = 691.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="BackdropArtwork" type="TextureRect" parent="Layout/VisualCanvas"]
+modulate = Color(1, 1, 1, 0.72)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"ConfirmationOverlayPanel"
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Margin" type="MarginContainer" parent="Dialog"]
-layout_mode = 2
-theme_override_constants/margin_left = 36
-theme_override_constants/margin_top = 36
-theme_override_constants/margin_right = 36
-theme_override_constants/margin_bottom = 36
+[node name="DialogContent" type="Control" parent="Layout/VisualCanvas"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="Content" type="VBoxContainer" parent="Dialog/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 24
+[node name="Center" type="CenterContainer" parent="Layout/VisualCanvas/DialogContent"]
+layout_mode = 0
+offset_top = 450.0
+offset_right = 1920.0
+offset_bottom = 600.0
 
-[node name="Message" type="Label" parent="Dialog/Margin/Content"]
-custom_minimum_size = Vector2(0, 100)
+[node name="Main" type="VBoxContainer" parent="Layout/VisualCanvas/DialogContent/Center"]
 layout_mode = 2
-text = "要结束游戏吗？"
+theme_override_constants/separation = 100
+
+[node name="Message" type="Label" parent="Layout/VisualCanvas/DialogContent/Center/Main"]
+custom_minimum_size = Vector2(900, 60)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ConfirmationOverlayMessage"
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_type_variation = &"ConfirmationOverlayMessage"
+autowrap_mode = 2
 
-[node name="Actions" type="HBoxContainer" parent="Dialog/Margin/Content"]
+[node name="Buttons" type="HBoxContainer" parent="Layout/VisualCanvas/DialogContent/Center/Main"]
 layout_mode = 2
-theme_override_constants/separation = 28
+theme_override_constants/separation = 160
 alignment = 1
 
-[node name="Confirm" type="Button" parent="Dialog/Margin/Content/Actions"]
-custom_minimum_size = Vector2(220, 72)
+[node name="Confirm" type="Button" parent="Layout/VisualCanvas/DialogContent/Center/Main/Buttons"]
+custom_minimum_size = Vector2(220, 60)
 layout_mode = 2
-focus_neighbor_left = NodePath("../Cancel")
-focus_neighbor_right = NodePath("../Cancel")
-focus_next = NodePath("../Cancel")
-focus_previous = NodePath("../Cancel")
-text = "结束游戏"
-theme_type_variation = &"ConfirmationOverlayPrimaryButton"
+text="确认"
+script = ExtResource("3_button")
 
-[node name="Cancel" type="Button" parent="Dialog/Margin/Content/Actions"]
-custom_minimum_size = Vector2(220, 72)
+[node name="Cancel" type="Button" parent="Layout/VisualCanvas/DialogContent/Center/Main/Buttons"]
+custom_minimum_size = Vector2(220, 60)
 layout_mode = 2
-focus_neighbor_left = NodePath("../Confirm")
-focus_neighbor_right = NodePath("../Confirm")
-focus_next = NodePath("../Confirm")
-focus_previous = NodePath("../Confirm")
-text = "取消"
-theme_type_variation = &"ConfirmationOverlayActionButton"
+text="取消"
+script = ExtResource("3_button")
+
+
+[node name="AlwaysAsk" type="Button" parent="Layout/VisualCanvas/DialogContent"]
+layout_mode = 0
+offset_left = 1723.0
+offset_top = 657.0
+script = ExtResource("4_check")

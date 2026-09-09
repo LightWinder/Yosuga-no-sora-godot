@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cg4aau2i3e0av" path="res://src/settings/settings_chrome.gd" id="1_chrome"]
 [ext_resource type="Script" uid="uid://bqypdgjm6vhqd" path="res://src/settings/ui/settings_text_button.gd" id="2_text_button"]
-[ext_resource type="PackedScene" path="res://src/settings/settings_confirm_dialog.tscn" id="3_confirm"]
+[ext_resource type="PackedScene" path="res://src/ui/confirmation_overlay.tscn" id="3_confirm"]
 [ext_resource type="PackedScene" path="res://src/settings/settings_key_popup.tscn" id="4_key_popup"]
 [ext_resource type="Script" uid="uid://c2cgp816n2ute" path="res://src/settings/ui/settings_tab_button.gd" id="5_tab_button"]
 

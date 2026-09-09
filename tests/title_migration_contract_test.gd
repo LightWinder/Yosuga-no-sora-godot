@@ -383,7 +383,7 @@ func _test_theme_font() -> void:
 	_expect(theme.get_type_variation_base(&"SettingsFooterButton") == &"SharedActionButton", "Settings footer styles must derive from the neutral action-button Theme variation.")
 	_expect(theme.get_type_variation_base(&"SettingsKnobSlider") == &"HSlider", "Slider styles must extend Godot's native HSlider Theme type.")
 	_expect(theme.get_type_variation_base(&"SettingsSectionTitle") == &"Control", "Section-title drawing tokens must be exposed as a Control Theme variation.")
-	_expect(theme.get_type_variation_base(&"ConfirmationOverlayPanel") == &"SharedGlassPanel", "Shared confirmation chrome must use a neutral Theme variation.")
+	_expect(theme.get_type_variation_base(&"ConfirmationOverlayMessage") == &"Label", "Shared confirmation chrome must use a neutral Theme variation.")
 	_expect(theme.get_type_variation_base(&"SaveLoadSlotButton") == &"Button", "Save/Load slot visuals must be exposed as a Button Theme variation.")
 	var glyphs: Array[String] = ["环", "境", "设", "定", "删", "除", "存", "档"]
 	for glyph in glyphs:
@@ -504,6 +504,8 @@ func _test_title_state() -> void:
 	_expect(title.is_exit_confirmation_visible(), "Exit must open its confirmation scene.")
 	var exit_dialog := title.get_node_or_null("ExitConfirmationOverlay") as ConfirmationOverlay
 	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("confirmation_overlay.tscn"), "Exit confirmation must use the shared scene-owned overlay.")
+	_expect(not (exit_dialog.get_node("Layout/VisualCanvas/DialogContent/AlwaysAsk") as Control).visible, "Ordinary confirmations must hide the settings preference toggle.")
+	_expect(root.gui_get_focus_owner() == exit_dialog.get_node("Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Cancel"), "Shared confirmations must initially focus the cancel action.")
 	var exit_escape := InputEventKey.new()
 	exit_escape.pressed = true
 	exit_escape.keycode = KEY_ESCAPE
@@ -871,7 +873,7 @@ func _test_title_state() -> void:
 	_expect(display_tab.button_group == system_tab.button_group and system_tab.button_group == audio_tab.button_group, "Settings tabs must use one native exclusive ButtonGroup.")
 	var key_popup := chrome.get_node("KeyPopup") as SettingsKeyPopup
 	_expect(key_popup != null and key_popup.shortcut_count() == 11, "Shortcut popup must expose the eleven source keyboard actions as live text.")
-	_expect(key_popup is SettingsModal, "Settings overlays must share the reusable modal motion implementation.")
+	_expect(key_popup is ModalOverlay, "Settings overlays must share the reusable modal motion implementation.")
 	_expect(key_popup.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Shortcut popup must capture the page behind it before applying blur.")
 	var popup_blur := key_popup.get_node_or_null("BlurLayer") as ColorRect
 	_expect(popup_blur != null and popup_blur.material is ShaderMaterial, "Shortcut popup must render its blurred backdrop with a screen-reading ShaderMaterial.")
@@ -879,9 +881,10 @@ func _test_title_state() -> void:
 	_expect(popup_panel.theme_type_variation == &"SettingsPopupPanel", "Shortcut popup chrome must come from its Theme variation.")
 	_expect(key_popup.get_node_or_null("Center/PopupPanel/Margin/Content/ShortcutRows") is GridContainer, "Shortcut popup layout must be owned by its reusable scene.")
 	_expect(key_popup.find_child("KeyPopupImage", true, false) == null, "Shortcut popup must not regress to the baked key_popup texture.")
-	var confirm_dialog := chrome.get_node("SettingsConfirm") as SettingsConfirmDialog
-	_expect(confirm_dialog is SettingsModal and confirm_dialog.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Settings confirmation must reuse the same blurred modal presentation.")
-	_expect(confirm_dialog.get_node_or_null("DialogContent/Center/Main/Message") is Label, "Settings confirmation hierarchy must be declared by its reusable scene.")
+	var confirm_dialog := chrome.get_node("SettingsConfirm") as ConfirmationOverlay
+	_expect(confirm_dialog.scene_file_path == "res://src/ui/confirmation_overlay.tscn", "Settings must use the same confirmation scene as other features.")
+	_expect(confirm_dialog is ModalOverlay and confirm_dialog.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Settings confirmation must reuse the same blurred modal presentation.")
+	_expect(confirm_dialog.get_node_or_null("Layout/VisualCanvas/DialogContent/Center/Main/Message") is Label, "Settings confirmation hierarchy must be declared by its reusable scene.")
 	_expect_no_generated_node_names(settings, "Settings scene")
 	_expect(settings_page.find_setting_slider("message_speed") != null, "Settings must expose message speed.")
 	_expect(settings_page.find_setting_slider("auto_speed") != null, "Settings must expose auto speed.")

@@ -35,7 +35,7 @@ var _confirmation_return_focus: Control
 @onready var _status_label: Label = $SettingsStatus
 @onready var _status_clear_timer: Timer = $StatusClearTimer
 @onready var _key_popup: SettingsKeyPopup = $KeyPopup
-@onready var _confirm_dialog: SettingsConfirmDialog = $SettingsConfirm
+@onready var _confirm_dialog: ConfirmationOverlay = $SettingsConfirm
 
 
 func _ready() -> void:
@@ -94,7 +94,7 @@ func is_key_popup_active() -> bool:
 func open_confirmation(action: StringName, message: String, always_enabled: bool) -> void:
 	_confirmation_action = action
 	_confirmation_return_focus = _reset_settings_button if action == &"reset_settings" else _reset_read_button
-	_confirm_dialog.open(message, always_enabled)
+	_confirm_dialog.open(message, "确认", "取消", true, always_enabled)
 
 
 func accept_confirmation() -> void:

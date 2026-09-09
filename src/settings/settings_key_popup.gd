@@ -1,5 +1,5 @@
 class_name SettingsKeyPopup
-extends SettingsModal
+extends ModalOverlay
 
 
 ## Code-rendered shortcut reference. The rows are data, while the stable
