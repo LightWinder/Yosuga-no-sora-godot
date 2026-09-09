@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bn1ahk8h8cbm8"
-path="res://.godot/imported/AAA.png-f56812c3aefd2f0dd3ad8b5f29b7e9d6.ctex"
+path="res://.godot/imported/title_cloud_radial_atlas.png-fe957c7635040631e6aabc785be7690d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/title/clouds/AAA.png"
-dest_files=["res://.godot/imported/AAA.png-f56812c3aefd2f0dd3ad8b5f29b7e9d6.ctex"]
+source_file="res://assets/ui/title/clouds/title_cloud_radial_atlas.png"
+dest_files=["res://.godot/imported/title_cloud_radial_atlas.png-fe957c7635040631e6aabc785be7690d.ctex"]
 
 [params]
 

@@ -1,0 +1,56 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/title/content/appreciation_navigation.gd" id="1_navigation"]
+[ext_resource type="Script" path="res://src/title/ui/title_sprite_button.gd" id="2_sprite_button"]
+
+[node name="AppreciationNavigation" type="Control"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+script = ExtResource("1_navigation")
+
+[node name="BackToTitle" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 56.0
+offset_top = 1005.0
+offset_right = 250.0
+offset_bottom = 1054.0
+script = ExtResource("2_sprite_button")
+
+[node name="Album" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1380.0
+offset_top = 1004.0
+offset_right = 1485.0
+offset_bottom = 1055.0
+script = ExtResource("2_sprite_button")
+
+[node name="Memories" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1497.0
+offset_top = 1001.0
+offset_right = 1615.0
+offset_bottom = 1059.0
+script = ExtResource("2_sprite_button")
+
+[node name="Music" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1627.0
+offset_top = 1000.0
+offset_right = 1743.0
+offset_bottom = 1059.0
+script = ExtResource("2_sprite_button")
+
+[node name="Voice" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1755.0
+offset_top = 1000.0
+offset_right = 1880.0
+offset_bottom = 1060.0
+script = ExtResource("2_sprite_button")

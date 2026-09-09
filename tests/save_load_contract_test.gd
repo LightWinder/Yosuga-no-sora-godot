@@ -17,6 +17,7 @@ func _run() -> void:
 	source.scenario_id = "00_z001"
 	source.instruction_anchor = "hitret:1"
 	source.choice_history = [1, 2]
+	source.comment = SaveData.default_comment("穹", "当前对话")
 	source.preview_image = Image.create(1920, 1080, false, Image.FORMAT_RGB8)
 	source.preview_image.fill(Color.CORNFLOWER_BLUE)
 	_expect(SaveService.MAX_SLOT_COUNT == 900, "Original manual capacity is 900.")
@@ -37,6 +38,7 @@ func _run() -> void:
 	_expect(not service.move_slot(0, 1), "Lock prevents moving its source.")
 	_expect(service.set_slot_locked(0, false), "Unlock restores management.")
 	_expect(service.set_slot_comment(0, "我的备注"), "Manual comments persist.")
+	_expect(service.load_slot(0).comment_edit, "Manual comment replacement sets the source-compatible edit marker.")
 	_expect(service.move_slot(0, 1), "Move commits destination then removes source.")
 	_expect(service.load_slot(0) == null and service.load_slot(1).comment == "我的备注", "Move preserves annotation and removes original.")
 	source.instruction_anchor = "hitret:2"
@@ -60,8 +62,19 @@ func _run() -> void:
 	service.configure_storage(_test_root)
 	root.add_child(service)
 	_expect(service.load_quick().instruction_anchor == "quick:11", "Quick ordering survives service restart.")
-	var legacy := SaveData.from_dictionary({"schema_version": 4, "scenario_id": "legacy", "instruction_anchor": "hitret:1"})
+	var legacy := SaveData.from_dictionary({
+		"schema_version": 4,
+		"scenario_id": "legacy",
+		"instruction_anchor": "hitret:1",
+		"autosave_meta": {"label": "旧版对话"},
+	})
 	_expect(legacy != null and not legacy.locked and legacy.thumbnail_webp.is_empty(), "Old saves migrate with optional defaults.")
+	_expect(
+		legacy.comment == "旧版对话"
+		and not legacy.comment_edit
+		and not legacy.autosave_meta.has("label"),
+		"Old dialogue labels migrate into the single editable comment field."
+	)
 	await _test_page(service)
 	service.free()
 	_remove_tree(ProjectSettings.globalize_path(_test_root))
@@ -79,10 +92,36 @@ func _test_page(service: SaveService) -> void:
 	await process_frame
 	var preview := page.get_node("VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame") as Control
 	var details := page.get_node("VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin") as Control
+	var move_button := page.get_node("%Move") as Button
+	var copy_button := page.get_node("%Copy") as Button
 	_expect(absf(preview.size.x / preview.size.y - 16.0 / 9.0) < 0.01, "Left preview stays 16:9.")
 	_expect(details.global_position.y >= preview.global_position.y + preview.size.y * preview.get_global_transform().get_scale().y, "Aspect preview must reserve vertical space before its metadata.")
+	_expect(
+		move_button.get_parent() == copy_button.get_parent()
+		and page.get_node_or_null("%Lock") == null,
+		"Move belongs with copy/delete in the footer, while locking is no longer a preview-panel action."
+	)
+	var comment_edit := page.get_node("%CommentEdit") as LineEdit
+	_expect(
+		comment_edit.text.is_empty()
+		and comment_edit.max_length == SaveData.COMMENT_MAX_LENGTH,
+		"The preview exposes one source-compatible editable save-comment field."
+	)
 	page.scroll_to_entry(899)
 	await process_frame
+	_expect(
+		comment_edit.text == service.load_slot(899).comment,
+		"Selecting a save loads its dialogue comment into that same field."
+	)
+	for card in page.slot_cards():
+		if card.slot_id == 899:
+			var lock_button := card.get_node("%LockButton") as Button
+			var slot_number := card.get_node("%SlotNumber") as Label
+			_expect(
+				lock_button.visible
+				and lock_button.global_position.x > slot_number.global_position.x,
+				"Occupied manual cards expose their lock action at the upper right."
+			)
 	(page.get_node("%Copy") as Button).pressed.emit()
 	page.scroll_to_entry(2)
 	for card in page.slot_cards():
@@ -129,6 +168,14 @@ func _test_page(service: SaveService) -> void:
 	_expect(page.selected_slot_id() == 451, "Keyboard movement selects the next logical slot across a virtual list.")
 	var list := page.get_node("%SlotList") as SaveSlotList
 	_expect(list.get_node("%Items").get_child_count() == 20, "900 slots must use a bounded 20-card pool.")
+	page.scroll_to_entry(SaveService.MAX_SLOT_COUNT)
+	await process_frame
+	for card in page.slot_cards():
+		if card.is_quick_save():
+			_expect(
+				not (card.get_node("%LockButton") as Button).visible,
+				"Quick-save cards must not expose the manual-slot lock action."
+			)
 	page.free()
 	await process_frame
 

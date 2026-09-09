@@ -78,7 +78,7 @@ src/ui/                      不含业务语义的共享 UI/layout
 - 保留新项目视觉和固定场景，VBoxContainer 分配标题/页脚留白，内容高 811，页脚下边距 12。两侧共用 `assets/themes/ui/frame.tres` 和 25 px 内边距，外边距/面板间距 18。
 - `SaveSlotList` 是场景拥有的原生 ScrollContainer，四列、三行可视区、14 px 滚动条间隔。仅实例化五行卡片作为虚拟池，滚动时重新绑定业务索引；只为可见/缓冲槽位加载存档和缩略图，方向键导航能跨越池边界。
 - `SaveService` 提供 900 手动槽、9 个按序号轮换的快存文件及独立自动存档，来源是原项目 Status.tjs 的 10×10×9 与九条快存。UI 按手动、快速、自动顺序展示，存档模式仅展示手动槽。序号和剧情同文件原子写入，避免独立索引与数据失步。
-- SaveData schema 5 增加可选的锁定、备注和 base64 WebP；960×540 缩略图由 ADV 的请求级 `AdvBackgroundPreview` 场景离屏渲染背景相机快照（含滚动背景，不含 GUI／独立角色层），SaveService 压缩并与剧情一次写入 AtomicJsonStore。复制保留时间、状态和图像；目标解锁；移动提交目标后才删除来源。锁定保护覆盖/移动/删除，旧版数据和 `.bak` 恢复继续可用。
+- SaveData schema 6 将原版字段 `comment` 作为唯一显示及编辑的存档文本，并用 `comment_edit` 标记手动替换；ADV 以“可见角色名＋当前对话”初始化，编辑上限 128 字。schema 5 的 `autosave_meta.label` 迁移到 `comment`，原有非空备注优先保留并标为已编辑。960×540 缩略图由 ADV 的请求级 `AdvBackgroundPreview` 场景离屏渲染背景相机快照（含滚动背景，不含 GUI／独立角色层），SaveService 压缩并与剧情一次写入 AtomicJsonStore。复制保留时间、状态和图像；目标解锁；移动提交目标后才删除来源。锁定保护覆盖/移动/删除，旧版数据和 `.bak` 恢复继续可用。复制、移动、删除属于页脚级管理操作；锁定入口只存在于非空手动存档卡片右上角。
 - 读取操作位于卡片图片中央，仅选中的非空槽位显示且可点击，键盘使用 vn_confirm。复制和移动先保存独立来源快照，再选手动目标，由共享 ConfirmationOverlay 确认；恢复焦点时不会误提交传输。
 - Settings 与 Save/Load 共用中立 `src/ui/page_tab_button.gd`、`text_action_button.gd`、背景模糊和蒙层。缩略图铺满图框，左侧用 AspectRatioContainer 保持 16:9；图片与空预览使用相同 10 px 圆角遮罩；Theme/外部 StyleBox 定义外观。
 - `tests/save_load_contract_test.gd` 覆盖容量、快存排序/轮换、图片与备份一致性、复制/移动及锁定，集成在项目验证脚本中。
@@ -88,8 +88,17 @@ src/ui/                      不含业务语义的共享 UI/layout
 - SaveLoadPage 入场复用设置页的 0.30 秒三次缓出淡入及 18 px 上移；提前关闭会取消入场 Tween，再从当前状态退场。
 - 设置与读档入口调用 TitleScreen.hide_for_subscreen 立即隐藏标题菜单／Logo；play_subscreen_exit 保留，鉴赏等其他路由仍可使用原动画。返回继续调用 play_subscreen_return。
 
+- Album、Memories、Music、Voice 各自仍是 `DesignCanvasPage` 场景，但固定鉴赏 chrome 统一实例化 `src/ui/page_title.tscn` 与 `src/title/content/appreciation_navigation.tscn`。`TitleFeatureScreen` 只负责装配 manifest/profile/service 和在四个目录页之间切换；底部导航不复制到控制脚本中。背景使用不含烘焙标题的 `appreciation_landscape.png`，左上标题完全由与 Settings 共用的 PageTitle 持有。
+- Album 与 Memories 按源 HD 坐标使用单排六个 142×58 角色标签、4×2 个 430×250 卡片和 12 px 间距。锁定项保留格位与第三帧锁定外观，但运行时不加载缩略图、不创建内容标题、不可获取焦点；页数仍由完整 manifest 决定。翻页 Tween 只移动卡片 Grid，角色标签、两侧箭头和底部导航保持不动。
+- Music 以原版顺序按列从上到下填充三列七行，并按 `bgm_hitbox.png` 的 hover／idle／selected 状态顺序渲染；再次选择当前曲目会停止播放。Voice 保留左侧预览、右侧四列三行的空槽与收藏数据模型，未写入收藏时不制造示例内容。
+
+- 桌面与移动目标统一使用 Godot Mobile 渲染器；验证脚本也必须使用 Mobile，避免只在 Compatibility 路径通过测试。
+
 - TitleMenuButton 是场景拥有的原生 Button，通过 Canvas 绘制 Xiaolai 字形、逐字倾斜方块及英文副标题；文案和方块角度在实例中序列化，字体／颜色／尺寸使用 Theme。Title 场景不再引用 QD-01 至 QD-10 菜单贴图或 AtlasTexture，原素材保留。
-- TitleCloudField 位于固定 Background 和 DesignRoot 之间，只拥有一个全屏 ColorRect。材质 `title_perspective_clouds_material.tres` 使用原样保留的 `AAA.png`，按角度和对数半径对整张纹理做放射映射；设计消失点固定默认 (1280, 864)，参数均可在 Inspector 调整。旧云带图集与提取工具保留为历史实验资源，Title 不再引用，也不创建单云实例、重生或透明度生命周期。
-- `title_cloud_field.gd` 是局部相位时钟，按材质 speed 和 uv_scale.y 积分，在完整纹理周期上取模；不读取全局 Shader 时间，因此变速、暂停、长时间运行和独立 Title 实例均不发生全体跳回。静态编辑器预览使用材质 phase；运行中隐藏或 SceneTree 暂停时停止推进。资源设置 local_to_scene，避免共享动画状态。
-- 放射投影与 `sky_mask.svg` 都使用 Background 的 cover 裁切坐标。天空遮罩由 `tools/assets/build_title_sky_mask.py` 从当前无云底图的绘画边界提取成矢量轮廓，排除山树和草地；它是当前背景的近似遮罩，换底图时必须重新生成并检查树梢。AAA 的 mipmap/Alpha 边界导入配置作为唯一 `.import` 例外保留，确保全新导入也有相同的远处缩小过滤。
-- `tests/cloud_test.tscn` 复用 DesignCanvasPage 检查原始垂直循环；`tests/cloud_radial_test.tscn` 复用 TitleCloudField 与背景 cover 检查实际放射效果，不装配菜单或服务。两类 GUI 截图脚本和 `title_cloud_field_test.gd` 分别验证可见结果、循环相位、独立材质与时钟行为。AAA 仍有局部边缘衔接问题，按用户授权记录后继续实现，不作为阶段阻断。详见 `docs/cloud_loop_validation.md`。
+- `src/scenario/route_progress.gd` 是 ADV 与 Title 共用的中立线路进度契约：结局剧本仍负责写入通关 Flag，契约集中描述五条线路对应的 Title 角色、Staff Roll 解锁 Flag 与视频。`ProfileData` 将这些全局解锁按单调进度合并，旧存档可以补回缺失的 profile Flag，读取任何存档都不会撤销其他线路已经获得的 Bonus 内容。
+- 全局帧率使用 Godot 原生 `application/run/max_fps=60`。Title 的树木背景与 TitleCloudField 作为 `title_screen.tscn` 的直接子场景放在主 Viewport 中，随主循环更新；不再使用独立缓存 SubViewport 或 Title 专用刷新率。
+- TitleCloudField 在 Title 主 Viewport 中位于固定 Background 之上，只拥有一个全屏 ColorRect。材质 `title_perspective_clouds_material.tres` 使用 `title_cloud_radial_atlas.png`，按角度和对数半径对整张纹理做放射映射；汇聚位置移至设计坐标 (1280, 950.4)，靠近山脊的路线末段逐渐淡出。参数均可在 Inspector 调整。旧云带图集与提取工具保留为历史实验资源，Title 不再引用，也不创建单云实例或重生。
+- `title_cloud_field.gd` 为主流动和轻微云形扰动分别维护局部相位时钟，在各自完整周期上取模；不读取全局 Shader 时间，因此变速、暂停、长时间运行和独立 Title 实例均不发生全体跳回。静态编辑器预览使用材质 phase；运行中隐藏或 SceneTree 暂停时停止推进。资源设置 local_to_scene，避免共享动画状态。
+- `title_tree_sway_background.tscn` 封装 Title 背景和树木摆动材质。由 PSD 树木层生成的权重遮罩将位移限制在树冠，并沿高度把树根权重降至零；山体、地面和无关天空像素保持静止。`title_tree_sway_background.gd` 使用场景实例局部相位，避免共享状态和全局 Shader 时间回绕。
+- 放射投影与 `sky_mask.svg` 都使用 Background 的 cover 裁切坐标。天空遮罩由 `tools/assets/build_title_sky_mask.py` 从当前无云底图的绘画边界提取成矢量轮廓，使云沿山脊进入遮挡并排除树和草地；Shader 将遮罩边缘向山树内部延伸 6 px，避免过滤后在云和前景之间留下亮色空隙。它是当前背景的近似遮罩，换底图时必须重新生成并检查树梢。放射云图集的 mipmap/Alpha 边界导入配置作为唯一 `.import` 例外保留，确保全新导入也有相同的远处缩小过滤。
+- `tests/cloud_test.tscn` 复用 DesignCanvasPage 检查原始垂直循环；`tests/cloud_radial_test.tscn` 复用 TitleCloudField 与背景 cover 检查实际放射效果，不装配菜单或服务。两类 GUI 截图脚本和 `title_cloud_field_test.gd` 分别验证可见结果、循环相位、独立材质与时钟行为。详见 `docs/cloud_loop_validation.md`。

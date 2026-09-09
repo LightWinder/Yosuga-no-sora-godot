@@ -115,7 +115,7 @@ func _on_back_pressed() -> void:
 func _background_path() -> String:
 	if feature_id == &"load_game":
 		return "res://assets/ui/title/QD-13-BG.png"
-	return "res://assets/content/appreciation/bg.png"
+	return "res://assets/content/appreciation/appreciation_landscape.png"
 
 
 func _populate_load_page() -> void:
@@ -129,6 +129,7 @@ func _populate_load_page() -> void:
 
 
 func _populate_catalog_page() -> void:
+	_back_button.visible = false
 	var manifest := TitleCatalog.load_manifest()
 	var profile := _save_service.load_profile()
 	match feature_id:
@@ -159,7 +160,7 @@ func _populate_catalog_page() -> void:
 			voice.scenario_requested.connect(_on_scenario_request)
 			voice.status_changed.connect(_on_page_status)
 			_attach_content_page(voice)
-	_status_label.text = "manifest：相册 %d 卡/%d 差分，音乐 %d 首，回忆 %d 条。" % [manifest.album_card_count(), manifest.album_variant_count(), manifest.music_tracks.size(), manifest.memory_entries.size()]
+	_status_label.text = ""
 
 
 func _attach_content_page(page: Control) -> void:
@@ -168,6 +169,18 @@ func _attach_content_page(page: Control) -> void:
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_entry_list.add_child(page)
+	var navigation := page.get_node_or_null("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
+	if navigation != null:
+		navigation.back_requested.connect(back_requested.emit)
+		navigation.catalog_requested.connect(_switch_catalog)
+		navigation.call_deferred("grab_initial_focus")
+
+
+func _switch_catalog(catalog_id: StringName) -> void:
+	if catalog_id == feature_id or catalog_id not in [TitleCatalog.ALBUM, TitleCatalog.MEMORIES, TitleCatalog.MUSIC, TitleCatalog.VOICE]:
+		return
+	feature_id = catalog_id
+	_populate()
 
 
 func _on_content_request(request: TitleContentRequest) -> void:

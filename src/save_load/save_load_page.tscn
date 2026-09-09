@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://c7hk0tgat1b6s" path="res://src/ui/text_action_button.gd" id="6_action"]
 [ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="7_blur"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_mask.tres" id="8_mask"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_panel.tres" id="9_preview_panel"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_modes"]
 
@@ -151,6 +152,7 @@ theme_override_constants/separation = 18
 custom_minimum_size = Vector2(510, 0)
 layout_mode = 2
 theme_type_variation = &"SaveLoadPagePanel"
+theme_override_styles/panel = ExtResource("9_preview_panel")
 
 [node name="PreviewMargin" type="MarginContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel" unique_id=104092446]
 layout_mode = 2
@@ -255,43 +257,16 @@ theme_override_constants/separation = 8
 [node name="CommentHeading" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Comment" unique_id=139754885]
 layout_mode = 2
 theme_type_variation = &"SaveLoadInfoHeading"
-text = "文本注释"
+text = "存档文本"
 
-[node name="PreviewComment" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Comment" unique_id=1678231389]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"SaveLoadInfoLabel"
-text = "这里还没有存档。"
-autowrap_mode = 2
-
-[node name="CommentEdit" type="LineEdit" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=202987181]
+[node name="CommentEdit" type="LineEdit" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/DetailsMargin/Details/Comment" unique_id=202987181]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = &"SaveLoadCommentEdit"
-placeholder_text = "添加备注 · Enter 保存"
-max_length = 120
+placeholder_text = "编辑存档文本 · Enter 保存"
+max_length = 128
 editable = false
-
-[node name="ManageActions" type="HBoxContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=735181353]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="Move" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/ManageActions" unique_id=1705745183]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"SaveLoadSmallAction"
-disabled = true
-text = "移动存档"
-
-[node name="Lock" type="Button" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/ManageActions" unique_id=386050717]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"SaveLoadSmallAction"
-disabled = true
-text = "锁定存档"
 
 [node name="NavigationSpace" type="Control" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1071445110]
 layout_mode = 2
@@ -372,6 +347,15 @@ layout_mode = 2
 theme_type_variation = &"SaveLoadActionButton"
 disabled = true
 text = "复制"
+script = ExtResource("6_action")
+
+[node name="Move" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1705745183]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 73)
+layout_mode = 2
+theme_type_variation = &"SaveLoadActionButton"
+disabled = true
+text = "移动"
 script = ExtResource("6_action")
 
 [node name="Primary" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=2111406521]

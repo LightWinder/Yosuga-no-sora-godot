@@ -14,10 +14,14 @@
 
 Title 的 Bonus 已按源 HD 信息架构重建，而不是一个文字占位列表：
 
-- Album：源 `CgModeList` 前六组，79 张卡片、214 个差分；六个角色页签、每页 4×2 网格、翻页、锁定状态、真实 `event_1920` PNG、全屏查看器和左右差分切换。
+- Album：源 `CgModeList` 前六组，79 张卡片、214 个差分；按原版使用单排六个角色页签和 430×250 的 4×2 分页网格。未解锁格位保留原版锁定框，但不会加载或显示真实 CG、标题与差分信息；解锁后使用真实 `event_1920` PNG、全屏查看器和左右差分切换。
 - Music：源清单 21 首，三列网格；真实 OGG 播放、停止、切歌，BGM03–BGM21 使用 `.sli` 循环点。
-- Memories：24 条（18 条剧情回想、开场视频和 5 条 Staff Roll）；视频使用项目内 OGV，可播放/停止，剧情回想通过统一 ADV 路由进入各剧本的 recollect 标签。
+- Memories：24 条（18 条剧情回想、开场视频和 5 条 Staff Roll），复用相册页的原版 4×2 卡片框架与锁定行为；视频使用项目内 OGV，可播放/停止，剧情回想通过统一 ADV 路由进入各剧本的 recollect 标签。
 - Voice：四列、每页 12 个收藏卡；默认为空，由未来 ADV 通过 `VoiceCollectionService.add_favorite()` 添加，收藏独立持久化、去重、播放、删除，并可发出存档跳转 seam。
+
+四个鉴赏页面共用原版底部导航，并直接复用设置页使用的中立 `PageTitle` 代码绘制组件。鉴赏风景底图不再烘焙标题，标题框、文字和本地化由场景组件持有。相册与回想的翻页箭头用一个 CanvasItem 绘制路径正确采样原素材的不等宽状态；240 ms 翻页过渡只移动 320 px 的卡片网格。
+
+任意线路通关后都会在返回 Title 前写入公共 Bonus Flag 和该线路的标题角色 Flag；开始播放片尾时还会解锁对应的 Memories 视频。这些对应关系集中在 ADV 与 Title 共用的中立 `RouteProgress` 契约中。全局解锁以单调进度合并到 `ProfileData`，因此读取旧存档可以补回缺失进度，也不会撤销其他线路已经获得的内容。
 
 New Game、Continue、Load、剧情回想和语音存档跳转统一使用 ScenarioLaunchRequest。StartupFlow 会把请求路由到场景化 ADV 页面，并恢复存档锚点及演出快照。
 
@@ -49,11 +53,13 @@ ADV 预览在视觉上由 Display 页承载，但设置来自 `SettingsPage` 的
 godot --path .
 ```
 
-项目以 1920×1080 为设计分辨率，当前开发窗口默认以 2560×1440 启动，并按 16:9 等比缩放；Title 背景独立按比例 cover 整个 viewport。云层使用完整透明 `AAA.png`，围绕设计坐标 (1280, 864) 按角度和可调对数半径做放射映射。单个场景化 CanvasItem 完成绘制，不生成或重生独立云体；归一化相位时钟避免全局 Shader 时间每小时回绕，静态天空遮罩保护山树。投影同步背景 cover 裁切。内容根节点会在超宽、4:3 和竖屏窗口中保持比例，桌面端 16:9 不额外缩小，移动端再按系统安全区（不可用时使用保守 fallback）留边。
+桌面与移动目标统一使用 Godot Mobile 渲染器。
+
+项目以 1920×1080 为设计分辨率。Godot 内置的 `application/run/max_fps` 将项目整体锁定在 60 FPS；Title 动态背景和云层直接在主 Viewport 中按该帧率绘制。当前开发窗口默认以 2560×1440 启动，并按 16:9 等比缩放；Title 背景独立按比例 cover 整个 viewport。由 PSD 树木层生成的树冠权重遮罩让树梢以约 9 px 的幅度进行 10 秒连续摆动，树根保持固定，山体和地面不参与变形。云层将完整透明 `title_cloud_radial_atlas.png` 围绕设计坐标 (1280, 950.4) 做放射映射，左、中、右云在保持原有形状的同时分别向右下、正下和左下移动。云在路线末段逐渐降低透明度，并进入山脊遮挡；独立的缓慢 1.4 px UV 扰动让云形内部轻微变化，不改变既定路线。单个场景化 CanvasItem 完成绘制，不生成或重生独立云体；场景局部归一化相位时钟避免全局 Shader 时间每小时回绕，原画空间天空遮罩负责山树遮挡。投影同步背景 cover 裁切。内容根节点会在超宽、4:3 和竖屏窗口中保持比例，桌面端 16:9 不额外缩小，移动端再按系统安全区（不可用时使用保守 fallback）留边。
 
 ## 验证
 
-Title 已接入整张纹理的放射云实现。`tests/cloud_test.tscn` 保留普通垂直循环检查，`tests/cloud_radial_test.tscn` 直接预览 Title 使用的同一云层；两者都使用提供的 `AAA.png`。按最新要求，纹理边缘缺陷记录为后续素材修复项，不再阻挡推进。详见[云循环验证与调参记录](docs/cloud_loop_validation.md)。
+Title 已接入整张纹理的放射云实现。`tests/cloud_test.tscn` 保留普通垂直循环检查，`tests/cloud_radial_test.tscn` 直接预览 Title 使用的同一云层；两者都使用 `title_cloud_radial_atlas.png`。详见[云循环验证与调参记录](docs/cloud_loop_validation.md)。
 
 ```bash
 GODOT_EXECUTABLE=/path/to/godot ./tools/verify_project.sh
@@ -83,7 +89,7 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 
 - `src/app/`：负责启动状态流转及路由级合成；设置作为覆盖层保留当前页面，并通过 `BackBufferCopy + SCREEN_TEXTURE` 直接实时模糊其后方画面。Title 的离场/返回动画和设置 UI 都在同一个主 Viewport 中运行。
 - `src/intro/`：品牌视频和警告页，各自管理输入与时序。
-- `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 固定持有背景、投影云层、角色差分、主菜单/鉴赏菜单按钮和底部 chrome。云层是单个场景化全屏 Control，由 CanvasItem shader 按角度和对数半径映射单张循环云纹理，并应用静态天空遮罩；局部控制器只推进归一化纹理相位；Title 控制脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
+- `src/title/`：Title 路由和可复用菜单组件；`title_screen.tscn` 在主 Viewport 中直接持有动画树木背景和投影云层，其后是角色差分、主菜单/鉴赏菜单按钮和底部 chrome。两层动画均随 60 FPS 主循环更新；云层仍是单个场景化全屏 Control，由 CanvasItem Shader 按角度和对数半径映射单张循环云纹理，并应用静态天空遮罩。Title 控制脚本只按存档状态同步显隐、焦点、信号与过渡；读取页使用轻量通用 host，Title 只通过 `settings` 路由请求独立设置模块。
 - `src/adv/`：场景化 ADV 路由、大小写不敏感的媒体解析、履历、选项、自动/快进、影片/音频播放，以及对共享存读档和设置的游戏内适配。`components/adv_dialogue_view` 持有原样的对话布局、外观、打字与框体动画，仅接收已解析的贴图和数值，不依赖剧情或设置模块。永久坐标、框型及恢复 API 同步静止状态，临时下滑偏移不会成为保存的静止坐标。`preview/adv_settings_preview` 复用该组件，负责独立循环的设置演示。
 - `src/save_load/`：与 Title 解耦的存读档功能；页面场景拥有预览、操作区、共享确认层及原生 ScrollContainer。有限数量的复用卡片场景仅渲染 900 槽位列表的可见行。Title 配置 Load，ADV 提供当前快照复用 Save/Load。
 - `src/title/content/`：manifest、Album/Music/Memories/Voice 各自拥有独立 `.tscn` 页面边界；分页卡片属于运行时数据列表，全屏 Album viewer、提示层等固定结构是可复用场景。
@@ -124,7 +130,7 @@ godot --path . --script res://tests/visual_capture.gd -- save /tmp/yosuga-save-o
 
 原项目容量为 10 本 × 10 页 × 9 个手动槽，共 900 个，其后为按新到旧排序的 9 条快存。移植版将独立的“继续”自动存档列在快存之后；既有 `slot_00.json` 文件名兼容。快存使用带序号的九个轮换原子文件，与自动存档独立。复制保留剧情、时间和图片；移动先写目标再删除来源。锁定可防止覆盖、删除和移动，支持手动备注；复制/移动及破坏性操作复用确认层。
 
-SaveData schema 5 增加可选的锁定、备注及 WebP 缩略图字段并兼容旧版迁移。ADV 使用离屏 SubViewport 仅渲染背景相机，排除 GUI 和独立角色层，生成 960×540 图片，覆盖 4K 下约 920 px 宽的左侧预览。压缩图片与剧情数据共同原子写入 JSON，复制和 `.bak` 恢复时保持一致。没有截图的旧存档继续显示空预览。默认选中手动槽 001；只有选中的非空槽位才显示并启用图片中央的读取按钮。槽位图片铺满圆角框，左侧预览由原生 AspectRatioContainer 保持 16:9，图片贴合并共用圆角裁切。页脚保留管理和返回操作，仅存档模式显示保存按钮。
+SaveData schema 6 与原版一致，以 `comment` 作为唯一显示的存档文本，以 `comment_edit` 标记是否被手动替换。新快照用可见角色名和当前对话初始化该文本；编辑会直接覆盖它，最多 128 字。schema 5 的 `autosave_meta.label` 会迁移到新字段，已有用户备注优先保留。可选锁定与 base64 WebP 缩略图继续兼容旧存档。ADV 使用离屏 SubViewport 仅渲染背景相机，排除 GUI 和独立角色层，生成 960×540 图片，覆盖 4K 下约 920 px 宽的左侧预览。压缩图片与剧情数据共同原子写入 JSON，复制和 `.bak` 恢复时保持一致。没有截图的旧存档继续显示空预览。默认选中手动槽 001；只有选中的非空槽位才显示并启用图片中央的读取按钮。槽位图片铺满圆角框，左侧预览由原生 AspectRatioContainer 保持 16:9，图片贴合并共用圆角裁切。复制、移动、删除集中在页脚；非空手动槽在卡片右上角提供锁定操作。仅存档模式显示保存按钮。
 
 标题入口的读取页与设置页一样覆盖在原 Title 实例上；返回时用 0.30 秒淡出并向下移动 18 px，再恢复原菜单与焦点，不重播标题音频。返回按钮位于页脚最后，复用 `SettingsFooterPrimaryButton`。
 

@@ -65,7 +65,8 @@ class CaptureSaveService extends SaveService:
 		var data := SaveData.create_empty("visual-capture")
 		data.scenario_id = "00_z%03d" % (age % 1000)
 		data.instruction_anchor = anchor
-		data.autosave_meta = {"valid": true, "label": label}
+		data.autosave_meta = {"valid": true}
+		data.comment = label
 		data.saved_at_unix = Time.get_unix_time_from_system() - age
 		if with_thumbnail:
 			data.presentation = {"thumbnail_path": "res://assets/ui/title/FRM_0511_title_background.png"}
@@ -97,7 +98,7 @@ func _initialize() -> void:
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() < 3 or arguments.size() > 5:
-		push_error("Usage: -- <brand|warning|title|title_press|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [adv_anchor:hitret:N|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
+		push_error("Usage: -- <brand|warning|title|title_press|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|adv_anchor:hitret:N|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
@@ -149,7 +150,8 @@ func _capture() -> void:
 	elif FEATURE_ROUTES.has(screen_name):
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
-		_unlock_capture_content(service.capture_profile)
+		if arguments.size() < 4 or arguments[3] != "locked":
+			_unlock_capture_content(service.capture_profile)
 		root.add_child(service)
 		screen = FEATURE_SCENE.instantiate() as TitleFeatureScreen
 		(screen as TitleFeatureScreen).configure(FEATURE_ROUTES[screen_name], service)

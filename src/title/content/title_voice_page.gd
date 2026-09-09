@@ -13,8 +13,8 @@ var _page_index := 0
 @onready var _entry_list: GridContainer = %FavoriteList
 @onready var _status: Label = %Status
 @onready var _page_label: Label = %PageNumber
-@onready var _previous_page: TitleSpriteButton = %PreviousPage
-@onready var _next_page: TitleSpriteButton = %NextPage
+@onready var _previous_page: AppreciationPageButton = %PreviousPage
+@onready var _next_page: AppreciationPageButton = %NextPage
 
 
 func configure(service: VoiceCollectionService) -> void:
@@ -30,11 +30,7 @@ func _ready() -> void:
 		_service = VoiceCollectionService.new()
 		_service.name = "VoiceCollectionService"
 		add_child(_service)
-	_previous_page.configure_sprite("res://assets/content/save_load_hd/page_previous.png", 1, 18.0)
-	_previous_page.set_design_size(Vector2(72.0, 42.0))
 	_previous_page.pressed.connect(_change_page.bind(-1))
-	_next_page.configure_sprite("res://assets/content/save_load_hd/page_next.png", 1, 18.0)
-	_next_page.set_design_size(Vector2(72.0, 42.0))
 	_next_page.pressed.connect(_change_page.bind(1))
 	_connect_service()
 	_refresh()
@@ -60,29 +56,20 @@ func _refresh() -> void:
 		_entry_list.remove_child(child)
 		child.queue_free()
 	var favorites := _service.list_favorites()
-	if favorites.is_empty():
-		add_design_texture(_entry_list, "res://assets/content/appreciation/preview.png", Rect2(0, 0, 1460, 420))
-		var empty := Label.new()
-		empty.name = "EmptyState"
-		empty.text = "暂无语音收藏\n收藏由 ADV 运行层添加，默认数据保持为空。"
-		empty.position = Vector2(0, 155)
-		empty.size = Vector2(1460, 100)
-		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		empty.add_theme_font_size_override("font_size", 26)
-		_entry_list.add_child(empty)
-		_page_label.text = "1 / 1"
-		_previous_page.disabled = true
-		_next_page.disabled = true
-	else:
-		var page_count := maxi(1, ceili(float(favorites.size()) / 12.0))
-		_page_index = clampi(_page_index, 0, page_count - 1)
-		for favorite_index in range(_page_index * 12, mini(favorites.size(), _page_index * 12 + 12)):
+	var page_count := maxi(1, ceili(float(favorites.size()) / 12.0))
+	_page_index = clampi(_page_index, 0, page_count - 1)
+	for slot in 12:
+		var favorite_index := _page_index * 12 + slot
+		if favorite_index < favorites.size():
 			_add_favorite_card(favorites[favorite_index])
-		_page_label.text = "%d / %d" % [_page_index + 1, page_count]
-		_previous_page.disabled = _page_index <= 0
-		_next_page.disabled = _page_index >= page_count - 1
-	_status.text = "收藏数：%d；数据独立保存，不依赖 autosave。" % favorites.size()
+		else:
+			_add_empty_slot(slot)
+	_page_label.text = ""
+	_previous_page.visible = page_count > 1
+	_next_page.visible = page_count > 1
+	_previous_page.disabled = _page_index <= 0
+	_next_page.disabled = _page_index >= page_count - 1
+	_status.text = ""
 
 
 func _change_page(delta: int) -> void:
@@ -93,11 +80,11 @@ func _change_page(delta: int) -> void:
 func _add_favorite_card(favorite: VoiceFavorite) -> void:
 	var card := Control.new()
 	card.name = "Favorite_%s" % favorite.favorite_id.validate_node_name()
-	card.custom_minimum_size = Vector2(350.0, 170.0)
-	card.size = Vector2(350.0, 170.0)
+	card.custom_minimum_size = Vector2(267.0, 157.0)
+	card.size = Vector2(267.0, 157.0)
 	var plate := TextureRect.new()
 	plate.name = "Background"
-	plate.texture = load("res://assets/content/appreciation/box.png") as Texture2D
+	plate.texture = _box_frame(0)
 	plate.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -105,9 +92,9 @@ func _add_favorite_card(favorite: VoiceFavorite) -> void:
 	card.add_child(plate)
 	var label := Label.new()
 	label.name = "Caption"
-	label.text = favorite.display_name if not favorite.transcript.is_empty() else "未命名语音"
-	label.position = Vector2(18, 14)
-	label.size = Vector2(314, 38)
+	label.text = favorite.display_name if not favorite.display_name.is_empty() else favorite.transcript
+	label.position = Vector2(12, 8)
+	label.size = Vector2(243, 36)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", Color(0.12, 0.30, 0.40, 1.0))
@@ -115,39 +102,63 @@ func _add_favorite_card(favorite: VoiceFavorite) -> void:
 	if not favorite.thumbnail_path.is_empty() and ResourceLoader.exists(favorite.thumbnail_path):
 		var thumb := TextureRect.new()
 		thumb.name = "Thumbnail"
-		thumb.position = Vector2(18, 54)
-		thumb.size = Vector2(314.0, 70.0)
+		thumb.position = Vector2(0, 7)
+		thumb.size = Vector2(200.0, 150.0)
 		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		thumb.texture = load(favorite.thumbnail_path) as Texture2D
+		thumb.modulate.a = 160.0 / 255.0
 		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(thumb)
+		card.move_child(thumb, 1)
 	var row := HBoxContainer.new()
 	row.name = "Actions"
 	row.add_theme_constant_override("separation", 4)
-	row.position = Vector2(18, 125)
-	row.size = Vector2(314, 40)
+	row.position = Vector2(12, 109)
+	row.size = Vector2(243, 38)
 	card.add_child(row)
 	var play := Button.new()
 	play.name = "Play"
 	play.text = "播放"
-	play.custom_minimum_size = Vector2(72.0, 48.0)
+	play.custom_minimum_size = Vector2(58.0, 38.0)
 	play.pressed.connect(_play.bind(favorite))
 	row.add_child(play)
 	if not favorite.save_path.is_empty():
 		var jump := Button.new()
 		jump.name = "JumpToSave"
 		jump.text = "跳转存档"
-		jump.custom_minimum_size = Vector2(90.0, 48.0)
+		jump.custom_minimum_size = Vector2(82.0, 38.0)
 		jump.pressed.connect(_jump.bind(favorite))
 		row.add_child(jump)
 	var delete_button := Button.new()
 	delete_button.name = "Delete"
 	delete_button.text = "删除"
-	delete_button.custom_minimum_size = Vector2(72.0, 48.0)
+	delete_button.custom_minimum_size = Vector2(58.0, 38.0)
 	delete_button.pressed.connect(_delete.bind(favorite.favorite_id))
 	row.add_child(delete_button)
 	_entry_list.add_child(card)
+
+
+func _add_empty_slot(slot: int) -> void:
+	var empty := TextureRect.new()
+	empty.name = "EmptySlot%02d" % (slot + 1)
+	empty.custom_minimum_size = Vector2(267.0, 157.0)
+	empty.size = Vector2(267.0, 157.0)
+	empty.texture = _box_frame(0)
+	empty.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	empty.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_entry_list.add_child(empty)
+
+
+func _box_frame(index: int) -> AtlasTexture:
+	var texture := load("res://assets/content/appreciation/box.png") as Texture2D
+	var frame := AtlasTexture.new()
+	if texture != null:
+		frame.atlas = texture
+		frame.region = Rect2(Vector2(267.0 * index, 0.0), Vector2(267.0, 157.0))
+		frame.filter_clip = true
+	return frame
 
 
 func _play(favorite: VoiceFavorite) -> void:

@@ -5,6 +5,7 @@ extends ScrollContainer
 
 signal slot_selected(slot_id: int, is_autosave: bool)
 signal load_requested(slot_id: int, is_autosave: bool)
+signal lock_requested(slot_id: int)
 signal range_changed(first: int, last: int)
 
 const CARD_SCENE: PackedScene = preload("res://src/save_load/save_slot_card.tscn")
@@ -65,6 +66,7 @@ func set_transfer_mode(enabled: bool) -> void:
 	_transfer_mode = enabled
 	for card in _cards:
 		card.set_load_enabled(_load_mode and not enabled)
+		card.set_transfer_mode(enabled)
 
 
 func set_modal_blocked(blocked: bool) -> void:
@@ -103,6 +105,7 @@ func _layout_cards() -> void:
 		_items.add_child(card)
 		card.slot_pressed.connect(_on_selected)
 		card.load_requested.connect(func(id: int, auto: bool) -> void: load_requested.emit(id, auto))
+		card.lock_requested.connect(func(id: int) -> void: lock_requested.emit(id))
 		card.gui_input.connect(_on_card_input.bind(card))
 		card.focus_entered.connect(_on_card_focused.bind(card))
 		_cards.append(card)
@@ -131,6 +134,7 @@ func _layout_cards() -> void:
 					data = _service.load_slot(entry)
 			card.bind(id, auto, data)
 			card.set_load_enabled(_load_mode and not _transfer_mode)
+			card.set_transfer_mode(_transfer_mode)
 			card.set_selected(id == _selected_id and auto == _selected_auto)
 			card.set_modal_blocked(_blocked)
 	var first := floori(float(scroll_vertical) / (_cell.y + GAP)) * COLUMNS

@@ -39,6 +39,10 @@ func _capture() -> void:
 	for value in PHASES:
 		clouds.set_animation_phase(value)
 		await _save_frame(output.path_join("phase_%04d.png" % roundi(value * 1000.0)))
+	clouds.set_animation_phase(0.0)
+	for value in [0.0, 0.25, 0.5, 0.75, 1.0]:
+		clouds.set_distortion_phase(value)
+		await _save_frame(output.path_join("distortion_%04d.png" % roundi(value * 1000.0)))
 	var duration := maxf(float(args[1]), 0.0) if args.size() > 1 else 0.0
 	if duration > 0.0:
 		clouds.set_animation_phase(0.0)
@@ -60,7 +64,7 @@ func _capture() -> void:
 		var viewport_capture := VIEWPORT_SCENE.instantiate()
 		root.add_child(viewport_capture)
 		var test_viewport := viewport_capture.get_node("TestViewport") as SubViewport
-		var test_clouds := test_viewport.get_node("CloudPerspectiveTest/CloudField") as TitleCloudField
+		var test_clouds := test_viewport.get_node("CloudRadialTest/CloudField") as TitleCloudField
 		test_clouds.set_process(false)
 		test_clouds.set_animation_phase(0.0)
 		for viewport_size in [Vector2i(1440, 1080), Vector2i(2560, 1080), Vector2i(720, 1280)]:

@@ -13,14 +13,6 @@ const DESIGN_SIZE := Vector2(1920.0, 1080.0)
 const SAFE_AREA_PADDING_PIXELS := 24.0
 const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmation_overlay.tscn")
 
-const CHARACTER_NODE_FLAGS := {
-	&"CharacterMotoka": 25,
-	&"CharacterKazuha": 24,
-	&"CharacterNao": 22,
-	&"CharacterSora": 21,
-	&"CharacterAkira": 23,
-}
-
 @export_range(0.0, 3.0, 0.05) var reveal_seconds := 1.0
 @export_range(0.0, 3.0, 0.05) var menu_fade_seconds := 0.5
 @export_range(0.0, 5.0, 0.05) var game_exit_seconds := 3.0
@@ -251,9 +243,10 @@ func is_subscreen_departed() -> bool:
 
 
 func _configure_character_layers() -> void:
-	for layer_name in CHARACTER_NODE_FLAGS:
+	var character_flags := RouteProgress.title_character_flags()
+	for layer_name: StringName in character_flags:
 		var layer := _character_layer.get_node(NodePath(String(layer_name))) as TextureRect
-		layer.visible = _save_service.is_global_flag_set(int(CHARACTER_NODE_FLAGS[layer_name]))
+		layer.visible = _save_service.is_global_flag_set(int(character_flags[layer_name]))
 
 
 func _configure_menu() -> void:
@@ -276,7 +269,7 @@ func _is_main_option_available(option_id: StringName) -> bool:
 		&"continue_game":
 			return _save_service.has_autosave()
 		&"bonus":
-			return _save_service.is_global_flag_set(1)
+			return _save_service.is_global_flag_set(RouteProgress.CLEARED_GAME_FLAG)
 		&"exit_game":
 				return show_exit_button and not DesignViewportLayout.is_mobile_platform()
 	return true
@@ -390,10 +383,10 @@ func _show_autosave_info(button: TitleMenuButton) -> void:
 	if button.option_id != &"continue_game" or not _save_service.has_autosave():
 		return
 	var summary := _save_service.get_autosave_summary()
-	var label := str(summary.get("label", ""))
-	if label.is_empty():
-		label = str(summary.get("scenario_id", "自动存档"))
-	_autosave_info.text = "自动存档：%s" % label
+	var comment := str(summary.get("comment", ""))
+	if comment.is_empty():
+		comment = str(summary.get("scenario_id", "自动存档"))
+	_autosave_info.text = "自动存档：%s" % comment
 	_autosave_info.visible = true
 
 

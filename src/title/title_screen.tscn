@@ -1,17 +1,17 @@
-[gd_scene load_steps=13 format=3 uid="uid://ct03gyirtpcgf"]
+[gd_scene format=3 uid="uid://ct03gyirtpcgf"]
 
 [ext_resource type="Script" uid="uid://bltuxb82cmg66" path="res://src/title/title_screen.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://dcyfhkbde0kvv" path="res://assets/ui/title/QD-13-BG.png" id="2_background"]
-[ext_resource type="Texture2D" uid="uid://buem1f8g68vh3" path="res://assets/ui/title/QD-11.png" id="3_logo"]
-[ext_resource type="Texture2D" uid="uid://dgb851mk3ada" path="res://assets/ui/title/QD-12.png" id="4_panel"]
+[ext_resource type="PackedScene" path="res://src/title/title_tree_sway_background.tscn" id="2_background"]
+[ext_resource type="PackedScene" path="res://src/title/title_cloud_field.tscn" id="2_clouds"]
+[ext_resource type="Texture2D" uid="uid://dm087wfjb0ucm" path="res://assets/ui/title/QD-11.png" id="3_logo"]
+[ext_resource type="Texture2D" uid="uid://dvrcwahqufto8" path="res://assets/ui/title/QD-12.png" id="4_panel"]
 [ext_resource type="PackedScene" path="res://src/title/title_menu_button.tscn" id="5_menu_button"]
-[ext_resource type="Texture2D" uid="uid://uv16872l0reo" path="res://assets/ui/title/QD-13-motoka.png" id="16_motoka"]
-[ext_resource type="Texture2D" uid="uid://bxo3cn16lt6su" path="res://assets/ui/title/QD-13-kazuha.png" id="17_kazuha"]
-[ext_resource type="Texture2D" uid="uid://brlo8qjpovk3j" path="res://assets/ui/title/QD-13-nao.png" id="18_nao"]
-[ext_resource type="Texture2D" uid="uid://diom7xk43osv5" path="res://assets/ui/title/QD-13-sora.png" id="19_sora"]
-[ext_resource type="Texture2D" uid="uid://dpep22rwpdl68" path="res://assets/ui/title/QD-13-akira.png" id="20_akira"]
+[ext_resource type="Texture2D" uid="uid://d1xeqpg1ctpoa" path="res://assets/ui/title/QD-13-motoka.png" id="16_motoka"]
+[ext_resource type="Texture2D" uid="uid://t04sspucm0kx" path="res://assets/ui/title/QD-13-kazuha.png" id="17_kazuha"]
+[ext_resource type="Texture2D" uid="uid://cbxrxm4noxmkh" path="res://assets/ui/title/QD-13-nao.png" id="18_nao"]
+[ext_resource type="Texture2D" uid="uid://ckggorck1rs42" path="res://assets/ui/title/QD-13-sora.png" id="19_sora"]
+[ext_resource type="Texture2D" uid="uid://ibboahs4moo4" path="res://assets/ui/title/QD-13-akira.png" id="20_akira"]
 [ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="21_blur_warmup"]
-[ext_resource type="PackedScene" path="res://src/title/title_cloud_field.tscn" id="22_cloud_field"]
 
 [node name="TitleScreen" type="Control" unique_id=1474346716]
 layout_mode = 3
@@ -23,19 +23,10 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1985492495]
+[node name="Background" parent="." unique_id=1985492495 instance=ExtResource("2_background")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("2_background")
-expand_mode = 1
-stretch_mode = 6
 
-[node name="CloudField" parent="." instance=ExtResource("22_cloud_field")]
+[node name="CloudField" parent="." instance=ExtResource("2_clouds")]
 layout_mode = 1
 
 [node name="DesignRoot" type="Control" parent="." unique_id=624141781]
@@ -138,6 +129,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="BottomPanel" type="TextureRect" parent="DesignRoot/BottomChrome" unique_id=877840918]
+self_modulate = Color(1, 1, 1, 0.78431374)
 layout_mode = 0
 offset_top = 925.0
 offset_right = 1921.0
@@ -173,19 +165,18 @@ custom_minimum_size = Vector2(192, 77)
 layout_mode = 2
 tooltip_text = "继续游戏"
 option_id = &"continue_game"
+display_name = "继续游戏"
 caption = "继续游戏"
 english_caption = "CONTINUE"
-display_name = "继续游戏"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="NewGame" parent="DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow" unique_id=762768795 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(192, 78)
 layout_mode = 2
 tooltip_text = "新的开始"
 option_id = &"new_game"
-caption = "新的开始"
-english_caption = "NEW GAME"
 display_name = "新的开始"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="LoadGame" parent="DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow" unique_id=1049471645 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -193,9 +184,10 @@ custom_minimum_size = Vector2(203.5, 77)
 layout_mode = 2
 tooltip_text = "读取存档"
 option_id = &"load_game"
+display_name = "读取存档"
 caption = "读取存档"
 english_caption = "LOAD"
-display_name = "读取存档"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="Settings" parent="DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow" unique_id=1651242221 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -203,9 +195,10 @@ custom_minimum_size = Vector2(192.5, 77)
 layout_mode = 2
 tooltip_text = "环境设定"
 option_id = &"settings"
+display_name = "环境设定"
 caption = "系统设定"
 english_caption = "CONFIG"
-display_name = "环境设定"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="Bonus" parent="DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow" unique_id=1472556238 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -213,9 +206,10 @@ custom_minimum_size = Vector2(192.5, 77)
 layout_mode = 2
 tooltip_text = "鉴赏"
 option_id = &"bonus"
+display_name = "鉴赏"
 caption = "鉴赏模式"
 english_caption = "APPRECIATION"
-display_name = "鉴赏"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="ExitGame" parent="DesignRoot/BottomChrome/MenuLayer/MainMenuCenter/MainMenuRow" unique_id=984217357 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -223,9 +217,10 @@ custom_minimum_size = Vector2(198.5, 77)
 layout_mode = 2
 tooltip_text = "结束游戏"
 option_id = &"exit_game"
+display_name = "结束游戏"
 caption = "结束游戏"
 english_caption = "EXIT"
-display_name = "结束游戏"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="BonusMenuCenter" type="CenterContainer" parent="DesignRoot/BottomChrome/MenuLayer" unique_id=1042972986]
 visible = false
@@ -246,9 +241,10 @@ custom_minimum_size = Vector2(173.5, 77)
 layout_mode = 2
 tooltip_text = "相册"
 option_id = &"album"
+display_name = "相册"
 caption = "CG鉴赏"
 english_caption = "CG MODE"
-display_name = "相册"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="Music" parent="DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter/BonusMenuRow" unique_id=529248610 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -256,9 +252,10 @@ custom_minimum_size = Vector2(192, 77)
 layout_mode = 2
 tooltip_text = "音乐鉴赏"
 option_id = &"music"
+display_name = "音乐鉴赏"
 caption = "音乐鉴赏"
 english_caption = "MUSIC MODE"
-display_name = "音乐鉴赏"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="Memories" parent="DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter/BonusMenuRow" unique_id=974430913 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -266,9 +263,10 @@ custom_minimum_size = Vector2(194, 77)
 layout_mode = 2
 tooltip_text = "回忆"
 option_id = &"memories"
+display_name = "回忆"
 caption = "场景鉴赏"
 english_caption = "RECOLLECTION MODE"
-display_name = "回忆"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="Voice" parent="DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter/BonusMenuRow" unique_id=1098324567 instance=ExtResource("5_menu_button")]
 unique_name_in_owner = true
@@ -276,9 +274,10 @@ custom_minimum_size = Vector2(192, 77)
 layout_mode = 2
 tooltip_text = "语音鉴赏"
 option_id = &"voice"
+display_name = "语音鉴赏"
 caption = "语音鉴赏"
 english_caption = "VOICE MODE"
-display_name = "语音鉴赏"
+tile_angles = PackedFloat32Array(-2, 2, -1, 2.5)
 
 [node name="BonusBackButton" type="Button" parent="DesignRoot/BottomChrome/MenuLayer" unique_id=257393432]
 unique_name_in_owner = true
@@ -321,7 +320,7 @@ theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BlurWarmup" type="Control" parent="."]
+[node name="BlurWarmup" type="Control" parent="." unique_id=576238212]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -330,16 +329,15 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="BackBufferCopy" type="BackBufferCopy" parent="BlurWarmup"]
+[node name="BackBufferCopy" type="BackBufferCopy" parent="BlurWarmup" unique_id=241457164]
 copy_mode = 2
 
-[node name="ShaderProbe" type="ColorRect" parent="BlurWarmup"]
+[node name="ShaderProbe" type="ColorRect" parent="BlurWarmup" unique_id=2095044100]
 material = ExtResource("21_blur_warmup")
 layout_mode = 0
 offset_right = 2.0
 offset_bottom = 2.0
 mouse_filter = 2
-color = Color(1, 1, 1, 1)
 
 [node name="WhiteCover" type="ColorRect" parent="." unique_id=349179873]
 visible = false

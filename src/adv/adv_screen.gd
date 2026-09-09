@@ -402,10 +402,13 @@ func _start_request() -> void:
 	_restore_choice_navigation(seed)
 	var profile := _save_service.load_profile()
 	if profile != null:
+		var imported_unlocks := profile.merge_global_unlock_flags(seed.global_flags)
 		seed.global_flags = profile.global_flags.duplicate(true)
 		for read_id in profile.read_text_ids:
 			if not seed.read_text_ids.has(read_id):
 				seed.read_text_ids.append(read_id)
+		if imported_unlocks:
+			_save_service.save_profile(profile)
 	_restore_presentation(seed.presentation)
 	var scenario_id := _launch_request.scenario_id
 	if scenario_id.is_empty():
@@ -1568,20 +1571,17 @@ func _play_movie(resource_id: String) -> void:
 
 
 func _play_staff_roll(route_id: String) -> void:
-	var video_ids := {
-		"穹": "staff_roll_sora",
-		"奈緒": "staff_roll_nao",
-		"奈绪": "staff_roll_nao",
-		"瑛": "staff_roll_akira",
-		"一葉": "staff_roll_kazuha",
-		"一叶": "staff_roll_kazuha",
-		"初佳": "staff_roll_motoka",
-	}
-	var video_id := str(video_ids.get(route_id, ""))
+	var route := RouteProgress.route_for_name(route_id)
+	var video_id := str(route.get("staff_roll_video_id", ""))
 	if video_id.is_empty():
 		_report_missing("片尾", route_id)
 		_runtime.resume_external(&"movie")
 		return
+	var staff_roll_flag := int(route.get("staff_roll_flag", 0))
+	if staff_roll_flag > 0:
+		var staff_roll_flags: Array[int] = [staff_roll_flag]
+		_register_content_progress(staff_roll_flags)
+		_write_profile_progress()
 	_play_movie(video_id)
 
 
@@ -1820,7 +1820,8 @@ func _build_save_snapshot() -> SaveData:
 		"file": _environment_asset,
 		"position": _env_player.get_playback_position() if _env_player.playing else 0.0,
 	}
-	data.autosave_meta["label"] = _current_message.left(42)
+	data.comment = SaveData.default_comment(_current_speaker, _current_message)
+	data.comment_edit = false
 	return data
 
 
@@ -1928,12 +1929,20 @@ func _write_autosave() -> void:
 	var snapshot := _build_save_snapshot()
 	_pending_autosave_snapshot = snapshot
 	_attach_autosave_preview(snapshot, _autosave_capture_generation)
+	_write_profile_progress()
+
+
+func _write_profile_progress() -> void:
+	if _launch_request.is_recollection():
+		return
 	var profile := _save_service.load_profile()
 	if profile == null:
 		profile = ProfileData.create_empty()
-	if profile.global_flags != _runtime.global_flags or profile.read_text_ids != _runtime.read_text_ids:
-		profile.global_flags = _runtime.global_flags.duplicate(true)
+	var changed := profile.merge_global_unlock_flags(_runtime.global_flags)
+	if profile.read_text_ids != _runtime.read_text_ids:
 		profile.read_text_ids = _runtime.read_text_ids.duplicate()
+		changed = true
+	if changed:
 		_save_service.save_profile(profile)
 
 

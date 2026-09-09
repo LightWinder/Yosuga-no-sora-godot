@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/title/title_tree_sway.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/background/title_tree_sway_mask.png" id="2_mask"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_shader")
+shader_parameter/sway_mask = ExtResource("2_mask")
+shader_parameter/sway_speed = 0.1
+shader_parameter/sway_strength_px = 7.0
+shader_parameter/detail_strength_px = 2.0
+shader_parameter/spatial_frequency = 1.15
+shader_parameter/design_size = Vector2(1920, 1080)

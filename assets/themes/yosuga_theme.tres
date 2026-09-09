@@ -24,6 +24,7 @@
 [ext_resource type="StyleBox" uid="uid://bgf3jyhag5bq6" path="res://assets/themes/save_load/slot_hover.tres" id="26_save_slot_hover"]
 [ext_resource type="StyleBox" uid="uid://dtaqtknjtxlu5" path="res://assets/themes/save_load/slot_pressed.tres" id="27_save_slot_pressed"]
 [ext_resource type="StyleBox" uid="uid://bshq20dca2nt4" path="res://assets/themes/save_load/slot_disabled.tres" id="28_save_slot_disabled"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_selected.tres" id="28_save_slot_selected"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/message_panel.tres" id="29_adv_message"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/choice_normal.tres" id="30_adv_choice_normal"]
 [ext_resource type="StyleBox" path="res://assets/themes/adv/choice_hover.tres" id="31_adv_choice_hover"]
@@ -44,8 +45,11 @@
 [ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="save_play"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/thumbnail_action.tres" id="save_play_style"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_focus.tres" id="slot_focus"]
-[ext_resource type="StyleBox" path="res://assets/themes/title/menu_glow.tres" id="title_glow"]
-[ext_resource type="StyleBox" path="res://assets/themes/title/menu_glow_hover.tres" id="title_glow_hover"]
+[ext_resource type="StyleBox" uid="uid://cxgyxicgxb1wj" path="res://assets/themes/title/menu_glow.tres" id="title_glow"]
+[ext_resource type="StyleBox" uid="uid://opr2wrmj2j26" path="res://assets/themes/title/menu_glow_hover.tres" id="title_glow_hover"]
+
+[ext_resource type="Texture2D" path="res://assets/themes/save_load/lock_closed.svg" id="save_lock_closed"]
+[ext_resource type="Texture2D" path="res://assets/themes/save_load/lock_open.svg" id="save_lock_open"]
 
 [resource]
 default_font = ExtResource("1_xiaolai")
@@ -102,6 +106,17 @@ ConfirmationOverlayPanel/base_type = &"SharedGlassPanel"
 ConfirmationOverlayPrimaryButton/base_type = &"SharedPrimaryActionButton"
 ConfirmationOverlayPrimaryButton/font_sizes/font_size = 32
 SaveLoadActionButton/base_type = &"SettingsFooterButton"
+SaveLoadCardLockButton/base_type = &"SettingsFooterButton"
+SaveLoadCardLockButton/font_sizes/font_size = 16
+SaveLoadCardLockButton/styles/focus = ExtResource("7_footer_focus")
+SaveLoadCardLockButton/icons/locked = ExtResource("save_lock_closed")
+SaveLoadCardLockButton/icons/unlocked = ExtResource("save_lock_open")
+SaveLoadCardLockButton/colors/icon_normal_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_hover_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_pressed_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_focus_color = Color(1, 1, 1, 1)
+SaveLoadCardLockButton/colors/icon_disabled_color = Color(1, 1, 1, 0.4)
+SaveLoadCardLockButton/styles/hover = ExtResource("8_footer_hover")
 SaveLoadCommentEdit/base_type = &"LineEdit"
 SaveLoadCommentEdit/colors/font_color = Color(0.07, 0.32, 0.43, 1)
 SaveLoadCommentEdit/colors/font_placeholder_color = Color(0.07, 0.32, 0.43, 0.6)
@@ -156,9 +171,11 @@ SaveLoadSlotButton/colors/font_pressed_color = Color(0.07, 0.32, 0.43, 1)
 SaveLoadSlotButton/styles/disabled = ExtResource("28_save_slot_disabled")
 SaveLoadSlotButton/styles/focus = ExtResource("slot_focus")
 SaveLoadSlotButton/styles/hover = ExtResource("26_save_slot_hover")
-SaveLoadSlotButton/styles/hover_pressed = ExtResource("27_save_slot_pressed")
+SaveLoadSlotButton/styles/hover_pressed = ExtResource("28_save_slot_selected")
 SaveLoadSlotButton/styles/normal = ExtResource("25_save_slot_normal")
-SaveLoadSlotButton/styles/pressed = ExtResource("27_save_slot_pressed")
+SaveLoadSlotButton/styles/pressed = ExtResource("28_save_slot_selected")
+SaveLoadSlotButtonSelected/base_type = &"SaveLoadSlotButton"
+SaveLoadSlotButtonSelected/styles/focus = ExtResource("5_empty_style")
 SaveLoadSlotComment/base_type = &"Label"
 SaveLoadSlotComment/colors/font_color = Color(0.1, 0.48, 0.68, 1)
 SaveLoadSlotComment/colors/font_outline_color = Color(0.96, 0.99, 1, 0.85)

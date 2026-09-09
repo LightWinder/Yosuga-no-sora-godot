@@ -29,6 +29,11 @@ required_files=(
 	"src/title/content/title_memories_page.tscn"
 	"src/title/content/title_voice_page.gd"
 	"src/title/content/title_voice_page.tscn"
+	"src/title/content/appreciation_navigation.gd"
+	"src/title/content/appreciation_navigation.tscn"
+	"src/title/ui/appreciation_page_button.gd"
+	"src/title/ui/title_visual_card.gd"
+	"assets/content/appreciation/appreciation_landscape.png"
 	"src/title/voice/voice_collection_service.gd"
 	"src/ui/design_canvas_page.gd"
 	"src/ui/design_viewport_layout.gd"
@@ -104,10 +109,16 @@ required_files=(
 	"tests/title_cloud_field_test.gd"
 	"src/title/title_cloud_field.gd"
 	"src/title/title_cloud_field.tscn"
+	"tests/title_tree_sway_test.gd"
+	"src/title/title_tree_sway_background.gd"
+	"src/title/title_tree_sway_background.tscn"
+	"assets/shaders/title/title_tree_sway.gdshader"
+	"assets/shaders/title/title_tree_sway_material.tres"
+	"assets/ui/title/background/title_tree_sway_mask.png"
 	"assets/shaders/title/title_perspective_clouds.gdshader"
 	"assets/shaders/title/title_perspective_clouds_material.tres"
-	"assets/ui/title/clouds/AAA.png"
-	"assets/ui/title/clouds/AAA.png.import"
+	"assets/ui/title/clouds/title_cloud_radial_atlas.png"
+	"assets/ui/title/clouds/title_cloud_radial_atlas.png.import"
 	"assets/ui/title/clouds/sky_mask.svg"
 	"src/adv/components/adv_dialogue_appearance.gd"
 	"src/adv/preview/adv_settings_preview.gd"
@@ -362,6 +373,12 @@ require_pattern 'name="CardList"' "$project_root/src/title/content/title_album_p
 require_pattern 'name="TrackList"' "$project_root/src/title/content/title_music_page.tscn" "Music fixed layout must be declared by its scene."
 require_pattern 'name="MemoryList"' "$project_root/src/title/content/title_memories_page.tscn" "Memories fixed layout must be declared by its scene."
 require_pattern 'name="FavoriteList"' "$project_root/src/title/content/title_voice_page.tscn" "Voice fixed layout must be declared by its scene."
+for appreciation_page in title_album_page title_music_page title_memories_page title_voice_page; do
+	require_pattern 'page_title\.tscn' "$project_root/src/title/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared PageTitle component: $appreciation_page."
+	require_pattern 'appreciation_navigation\.tscn' "$project_root/src/title/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared bottom navigation: $appreciation_page."
+done
+require_pattern 'if not _locked and _thumbnail' "$project_root/src/title/ui/title_visual_card.gd" "Locked appreciation cards must not load their real artwork."
+require_pattern 'appreciation_landscape\.png' "$project_root/src/title/title_feature_screen.gd" "Appreciation routes must use the clean landscape behind the shared live-text heading."
 require_pattern 'name="SlotList".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must own its reusable scrolling list scene."
 require_pattern 'extends ScrollContainer' "$project_root/src/save_load/save_slot_list.gd" "Save/Load must use native scrolling with a bounded card pool."
 require_pattern 'confirmation_overlay\.tscn' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must use the shared confirmation overlay."
@@ -471,10 +488,20 @@ fi
 
 require_pattern '^extends Button$' "$project_root/src/title/title_menu_button.gd" "Title menu entries must use native Buttons, not baked texture states."
 require_pattern 'repeat_enable' "$project_root/assets/shaders/title/title_perspective_clouds.gdshader" "Title clouds must repeat the whole texture."
-require_pattern 'AAA\.png' "$project_root/assets/shaders/title/title_perspective_clouds_material.tres" "Title clouds must use the supplied AAA texture."
-require_pattern 'mipmaps/generate=true' "$project_root/assets/ui/title/clouds/AAA.png.import" "Radial cloud minification requires persistent mipmap import settings."
+require_pattern 'title_cloud_radial_atlas\.png' "$project_root/assets/shaders/title/title_perspective_clouds_material.tres" "Title clouds must use the radial atlas texture."
+require_pattern 'mipmaps/generate=true' "$project_root/assets/ui/title/clouds/title_cloud_radial_atlas.png.import" "Radial cloud minification requires persistent mipmap import settings."
 if rg -q 'cloud_strip|cycle_seconds|for \(int (lane|bank)|\bTIME\b' "$project_root/assets/shaders/title/title_perspective_clouds.gdshader"; then
 	echo "Title clouds must not regress to individual ribbon instances or the global shader clock." >&2
+	exit 1
+fi
+require_pattern 'run/max_fps=60' "$project_root/project.godot" "The main UI and input loop must use Godot's built-in 60 FPS cap."
+require_pattern 'renderer/rendering_method="mobile"' "$project_root/project.godot" "The project must use Godot's Mobile renderer on desktop and mobile targets."
+require_pattern 'renderer/rendering_method.mobile="mobile"' "$project_root/project.godot" "Mobile targets must use Godot's Mobile renderer."
+require_pattern 'title_tree_sway_background\.tscn' "$project_root/src/title/title_screen.tscn" "Title must instance the animated background directly in the main viewport."
+require_pattern 'title_cloud_field\.tscn' "$project_root/src/title/title_screen.tscn" "Title must instance the animated cloud field directly in the main viewport."
+require_pattern 'title_tree_sway_mask\.png' "$project_root/assets/shaders/title/title_tree_sway_material.tres" "Tree sway must remain limited by the PSD-derived canopy mask."
+if rg -q '\bTIME\b' "$project_root/assets/shaders/title/title_tree_sway.gdshader"; then
+	echo "Title tree sway must use its scene-local phase clock." >&2
 	exit 1
 fi
 require_pattern 'TitleMenuButton/fonts/font = ExtResource\("1_xiaolai"\)' "$project_root/assets/themes/yosuga_theme.tres" "Title menu typography must use Xiaolai through the project Theme."
@@ -491,25 +518,27 @@ check_runtime_log() {
 	fi
 }
 
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --editor --quit --log-file "$verification_log" --path "$project_root"
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --editor --quit --log-file "$verification_log" --path "$project_root"
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_dialogue_view_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/title_cloud_field_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_cloud_field_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_settings_preview_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_tree_sway_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_settings_preview_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/save_load_contract_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/startup_flow_smoke_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/title_migration_contract_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/save_load_contract_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/krkr_scenario_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/title_migration_contract_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_asset_coverage_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/krkr_scenario_test.gd
 check_runtime_log
-"$godot_executable" --headless --audio-driver Dummy --rendering-method gl_compatibility --log-file "$verification_log" --path "$project_root" --script res://tests/adv_migration_contract_test.gd
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_asset_coverage_test.gd
+check_runtime_log
+"$godot_executable" --headless --audio-driver Dummy --rendering-method mobile --log-file "$verification_log" --path "$project_root" --script res://tests/adv_migration_contract_test.gd
 check_runtime_log
 
 require_pattern 'name="PageLayout" type="VBoxContainer"' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must retain its container-owned page layout."

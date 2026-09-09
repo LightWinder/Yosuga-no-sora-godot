@@ -42,14 +42,12 @@ var _transfer_is_move := false
 @onready var _preview_empty: Control = %PreviewEmpty
 @onready var _preview_date: Label = %PreviewDate
 @onready var _preview_location: Label = %PreviewLocation
-@onready var _preview_comment: Label = %PreviewComment
 @onready var _slot_list: SaveSlotList = %SlotList
 @onready var _status: Label = %Status
 @onready var _primary: Button = %Primary
 @onready var _delete: Button = %Delete
 @onready var _copy: Button = %Copy
 @onready var _move: Button = %Move
-@onready var _lock: Button = %Lock
 @onready var _comment_edit: LineEdit = %CommentEdit
 @onready var _back: Button = %Back
 @onready var _confirmation: ConfirmationOverlay = %ConfirmationOverlay
@@ -65,13 +63,13 @@ func _ready() -> void:
 	super._ready()
 	_slot_list.slot_selected.connect(_on_slot_pressed)
 	_slot_list.load_requested.connect(_on_slot_load_requested)
+	_slot_list.lock_requested.connect(_toggle_slot_lock)
 	_save_mode_button.pressed.connect(_switch_mode.bind(Mode.SAVE))
 	_load_mode_button.pressed.connect(_switch_mode.bind(Mode.LOAD))
 	_primary.pressed.connect(_on_primary_pressed)
 	_delete.pressed.connect(_request_delete)
 	_copy.pressed.connect(_begin_transfer.bind(false))
 	_move.pressed.connect(_begin_transfer.bind(true))
-	_lock.pressed.connect(_toggle_lock)
 	_comment_edit.text_submitted.connect(_save_comment)
 	_back.pressed.connect(func() -> void: back_requested.emit())
 	_confirmation.confirmed.connect(_confirm_pending_action)
@@ -238,13 +236,11 @@ func _refresh_preview() -> void:
 	_comment_edit.text = data.comment if data != null else ""
 	if data == null:
 		_preview_location.text = "空槽位"
-		_preview_comment.text = "这里还没有存档。"
 		return
 	var location := data.scenario_id
 	if not data.instruction_anchor.is_empty():
 		location += "  ·  " + data.instruction_anchor
 	_preview_location.text = location if not location.is_empty() else "未记录剧情位置"
-	_preview_comment.text = str(data.autosave_meta.get("label", ""))
 
 
 func _refresh_actions() -> void:
@@ -254,11 +250,10 @@ func _refresh_actions() -> void:
 	var transferring := _transfer_source != null
 	_primary.disabled = _save_payload == null or not manual or locked or transferring
 	_delete.disabled = not occupied or locked or transferring or (not manual and not _selected_is_autosave)
-	_copy.disabled = not occupied and not transferring
-	_copy.text = "取消移动" if transferring and _transfer_is_move else ("取消复制" if transferring else "复制")
-	_move.disabled = not manual or not occupied or locked or transferring
-	_lock.disabled = not manual or not occupied or transferring
-	_lock.text = "解除锁定" if locked else "锁定存档"
+	_copy.disabled = _transfer_is_move if transferring else not occupied
+	_copy.text = "取消复制" if transferring and not _transfer_is_move else "复制"
+	_move.disabled = not _transfer_is_move if transferring else (not manual or not occupied or locked)
+	_move.text = "取消移动" if transferring and _transfer_is_move else "移动"
 	_comment_edit.editable = manual and occupied and not locked and not transferring
 
 
@@ -329,10 +324,13 @@ func _end_transfer() -> void:
 	_refresh_actions()
 
 
-func _toggle_lock() -> void:
-	if _lock.disabled or is_confirmation_visible():
+func _toggle_slot_lock(slot_id: int) -> void:
+	if is_confirmation_visible() or _transfer_source != null:
 		return
-	if not _save_service.set_slot_locked(_selected_slot_id, not _selected_data.locked):
+	var data := _save_service.load_slot(slot_id)
+	if data == null:
+		return
+	if not _save_service.set_slot_locked(slot_id, not data.locked):
 		_set_status("修改锁定状态失败：%s" % _save_service.last_error)
 
 
@@ -340,9 +338,9 @@ func _save_comment(comment: String) -> void:
 	if not _comment_edit.editable:
 		return
 	if _save_service.set_slot_comment(_selected_slot_id, comment):
-		_set_status("备注已保存。")
+		_set_status("存档文本已保存。")
 	else:
-		_set_status("备注保存失败：%s" % _save_service.last_error)
+		_set_status("存档文本保存失败：%s" % _save_service.last_error)
 
 
 func _open_confirmation(action: PendingAction, message: String, confirm_text: String) -> void:

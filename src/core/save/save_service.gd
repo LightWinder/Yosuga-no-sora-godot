@@ -101,7 +101,8 @@ func list_slot_summaries() -> Array[Dictionary]:
 			"scenario_id": data.scenario_id,
 			"instruction_anchor": data.instruction_anchor,
 			"saved_at_unix": data.saved_at_unix,
-			"label": str(data.autosave_meta.get("label", "")),
+			"comment": data.comment,
+			"comment_edit": data.comment_edit,
 		})
 	return summaries
 
@@ -114,7 +115,8 @@ func get_autosave_summary() -> Dictionary:
 		"valid": bool(data.autosave_meta.get("valid", true)),
 		"scenario_id": data.scenario_id,
 		"instruction_anchor": data.instruction_anchor,
-		"label": str(data.autosave_meta.get("label", "")),
+		"comment": data.comment,
+		"comment_edit": data.comment_edit,
 		"saved_at_unix": data.saved_at_unix,
 	}
 
@@ -378,7 +380,8 @@ func set_slot_comment(slot_id: int, comment: String) -> bool:
 	var data := load_slot(slot_id)
 	if data == null or data.locked:
 		return _fail("The slot is empty or locked.")
-	data.comment = comment.strip_edges().left(120)
+	data.comment = comment.strip_edges().left(SaveData.COMMENT_MAX_LENGTH)
+	data.comment_edit = true
 	return _save_data(_slot_path(slot_id), data) and _emit_save_changed(slot_id, false)
 
 

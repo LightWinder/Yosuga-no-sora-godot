@@ -12,7 +12,6 @@ var _playing := false
 @onready var _track_list: GridContainer = %TrackList
 @onready var _status: Label = %Status
 @onready var _player: AudioStreamPlayer = %MusicAppreciationPlayer
-@onready var _stop_button: Button = %StopPlayback
 
 
 func configure(manifest: TitleContentManifest) -> void:
@@ -24,7 +23,6 @@ func configure(manifest: TitleContentManifest) -> void:
 func _ready() -> void:
 	super._ready()
 	_player.finished.connect(_on_finished)
-	_stop_button.pressed.connect(stop)
 	_refresh()
 
 
@@ -52,7 +50,9 @@ func stop() -> void:
 		_player.stop()
 		_player.stream = null
 		_playing = false
-		_status.text = "音乐已停止。"
+		_selected = null
+		_status.text = ""
+	_refresh_selected_buttons()
 
 
 func _exit_tree() -> void:
@@ -72,19 +72,33 @@ func _refresh() -> void:
 	for child in _track_list.get_children():
 		_track_list.remove_child(child)
 		child.queue_free()
-	for index in _manifest.music_tracks.size():
-		var track := _manifest.music_tracks[index]
-		var button := TitleMusicButton.new()
-		button.name = "Track_%s" % str(track.track_id).validate_node_name()
-		button.configure("res://assets/content/appreciation/track_%02d.png" % (index + 1), "res://assets/content/appreciation/bgm_hitbox.png")
-		button.set_design_size(Vector2(460.0, 67.0))
-		button.tooltip_text = "%s · %s" % [track.track_id, track.title_id]
-		button.pressed.connect(_select_track.bind(track))
-		_track_list.add_child(button)
-	_status.text = "清单：%d 首；BGM03–BGM21 使用源 .sli 的循环起点，BGM01/BGM02_S 整首播放。" % _manifest.music_tracks.size()
+	# The source fills each column top-to-bottom (7 rows), while GridContainer
+	# consumes children row-first. Add them in display order to preserve the
+	# original track numbering and keyboard navigation.
+	for row in 7:
+		for column in 3:
+			var index := column * 7 + row
+			var track := _manifest.music_tracks[index]
+			_add_track_button(index, track)
+	_status.text = ""
+
+
+func _add_track_button(index: int, track: TitleMusicTrack) -> void:
+	var button := TitleMusicButton.new()
+	button.name = "Track_%s" % str(track.track_id).validate_node_name()
+	button.item_id = track.track_id
+	button.configure("res://assets/content/appreciation/track_%02d.png" % (index + 1), "res://assets/content/appreciation/bgm_hitbox.png")
+	button.set_design_size(Vector2(471.0, 67.0))
+	button.tooltip_text = "%s · %s" % [track.track_id, track.title_id]
+	button.pressed.connect(_select_track.bind(track))
+	_track_list.add_child(button)
 
 
 func _select_track(track: TitleMusicTrack) -> void:
+	if _selected == track and is_playing():
+		stop()
+		_refresh_selected_buttons()
+		return
 	_selected = track
 	if _player != null:
 		# Explicitly tear down the previous playback before replacing its stream;
@@ -108,12 +122,23 @@ func _select_track(track: TitleMusicTrack) -> void:
 	_player.stream = stream
 	_player.play()
 	_playing = true
-	_status.text = "正在播放：%s（%s）" % [track.track_id, "循环" if track.loop_enabled else "整首"]
+	_status.text = ""
+	_refresh_selected_buttons()
 	content_requested.emit(TitleContentRequest.for_music(track))
 	status_changed.emit(_status.text)
+
+
+func _refresh_selected_buttons() -> void:
+	for child in _track_list.get_children():
+		var button := child as TitleMusicButton
+		if button == null:
+			continue
+		button.set_selected(_playing and _selected != null and button.item_id == _selected.track_id)
 
 
 func _on_finished() -> void:
 	if _selected == null or not _selected.loop_enabled:
 		_playing = false
+		_selected = null
+		_refresh_selected_buttons()
 	status_changed.emit("音乐播放结束。" if not _playing else "")

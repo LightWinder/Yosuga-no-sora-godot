@@ -30,6 +30,21 @@ func is_global_flag_set(flag_id: int) -> bool:
 	return bool(global_flags.get(str(flag_id), false))
 
 
+## Unlock progress is monotonic. Loading an older scenario save may add flags
+## to the profile, but it must never revoke progress earned in another save.
+func merge_global_unlock_flags(source_flags: Dictionary) -> bool:
+	var changed := false
+	for source_key: Variant in source_flags:
+		if not bool(source_flags[source_key]):
+			continue
+		var flag_key := str(source_key)
+		if bool(global_flags.get(flag_key, false)):
+			continue
+		global_flags[flag_key] = true
+		changed = true
+	return changed
+
+
 func set_catalog_unlocked(catalog_id: StringName, entry_id: String, enabled: bool = true) -> void:
 	var entries := _string_dictionary(unlocked_catalog.get(String(catalog_id), {}))
 	entries[entry_id] = enabled

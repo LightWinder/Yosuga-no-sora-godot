@@ -2,7 +2,8 @@ class_name SaveData
 extends Resource
 
 
-const CURRENT_SCHEMA_VERSION: int = 5
+const CURRENT_SCHEMA_VERSION: int = 6
+const COMMENT_MAX_LENGTH: int = 128
 
 @export var schema_version: int = CURRENT_SCHEMA_VERSION
 @export var content_version: String = ""
@@ -28,6 +29,7 @@ const CURRENT_SCHEMA_VERSION: int = 5
 @export var thumbnail_webp: String = ""
 @export var locked: bool = false
 @export var comment: String = ""
+@export var comment_edit: bool = false
 ## Transient renderer output; only its compressed WebP representation goes on disk.
 var preview_image: Image
 
@@ -71,6 +73,7 @@ func to_dictionary() -> Dictionary:
 		"thumbnail_webp": thumbnail_webp,
 		"locked": locked,
 		"comment": comment,
+		"comment_edit": comment_edit,
 	}
 
 
@@ -109,6 +112,7 @@ static func from_dictionary(raw: Dictionary) -> SaveData:
 	data.thumbnail_webp = str(migrated.get("thumbnail_webp", ""))
 	data.locked = bool(migrated.get("locked", false))
 	data.comment = str(migrated.get("comment", ""))
+	data.comment_edit = bool(migrated.get("comment_edit", false))
 	return data
 
 
@@ -135,8 +139,44 @@ static func _migrate(raw: Dictionary) -> Dictionary:
 		result["choice_navigation_stack"] = []
 		result["choice_navigation_position"] = 0
 
+	# Schema 5 displayed the current dialogue from `autosave_meta.label` while
+	# storing a separate user annotation in `comment`. The source game uses one
+	# editable `comment` field, plus `comment_edit` to record manual replacement.
+	var autosave_meta := _dictionary_or_empty(result.get("autosave_meta", {}))
+	if source_schema < 6:
+		var existing_comment := str(result.get("comment", ""))
+		var was_manually_edited := not existing_comment.is_empty()
+		if existing_comment.is_empty():
+			existing_comment = str(autosave_meta.get("label", ""))
+		if existing_comment.is_empty():
+			var presentation := _dictionary_or_empty(result.get("presentation", {}))
+			existing_comment = default_comment(
+				str(presentation.get("speaker", "")),
+				str(presentation.get("message", ""))
+			)
+		result["comment"] = existing_comment.left(COMMENT_MAX_LENGTH)
+		result["comment_edit"] = bool(result.get("comment_edit", was_manually_edited))
+	autosave_meta.erase("label")
+	result["autosave_meta"] = autosave_meta
+
 	result["schema_version"] = CURRENT_SCHEMA_VERSION
 	return result
+
+
+## Matches the source game's initial save comment: a visible speaker name (if
+## any) followed by the current dialogue in Japanese quotation marks.
+static func default_comment(speaker: String, message: String) -> String:
+	var normalized_speaker := speaker.strip_edges().replace("＆", "&")
+	if normalized_speaker in ["心の声", "語り", "モノローグ"]:
+		normalized_speaker = ""
+	var normalized_message := message \
+		.replace("／", "") \
+		.replace("　", "") \
+		.replace("\r", "") \
+		.replace("\n", "")
+	if normalized_message.is_empty():
+		return normalized_speaker.left(COMMENT_MAX_LENGTH)
+	return ("%s「%s」" % [normalized_speaker, normalized_message]).left(COMMENT_MAX_LENGTH)
 
 
 static func _dictionary_or_empty(value: Variant) -> Dictionary:

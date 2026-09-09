@@ -1,7 +1,7 @@
 [gd_resource type="ShaderMaterial" load_steps=4 format=3]
 
 [ext_resource type="Shader" path="res://assets/shaders/title/title_perspective_clouds.gdshader" id="1_shader"]
-[ext_resource type="Texture2D" path="res://assets/ui/title/clouds/AAA.png" id="2_clouds"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/clouds/title_cloud_radial_atlas.png" id="2_clouds"]
 [ext_resource type="Texture2D" path="res://assets/ui/title/clouds/sky_mask.svg" id="3_mask"]
 
 [resource]
@@ -9,16 +9,22 @@ resource_local_to_scene = true
 shader = ExtResource("1_shader")
 shader_parameter/cloud_texture = ExtResource("2_clouds")
 shader_parameter/sky_mask = ExtResource("3_mask")
-shader_parameter/focus_uv = Vector2(0.6666667, 0.8)
-shader_parameter/speed = 0.015
+shader_parameter/focus_uv = Vector2(0.6666667, 0.88)
+shader_parameter/speed = 0.004
+shader_parameter/distortion_speed = 0.008
+shader_parameter/distortion_strength_px = 1.4
+shader_parameter/distortion_scale = 3.0
 shader_parameter/radial_scale = 20.0
 shader_parameter/radial_repeat = 0.45
 shader_parameter/angular_repeat = 2.0
-shader_parameter/center_fade_start = 0.06
-shader_parameter/center_fade_end = 0.18
+shader_parameter/center_fade_start = 0.02
+shader_parameter/center_fade_end = 0.08
+shader_parameter/horizon_fade = 0.18
+shader_parameter/left_lift = 0.04
 shader_parameter/opacity = 1.0
 shader_parameter/phase = 0.15
 shader_parameter/uv_offset = Vector2(-0.5, 0)
 shader_parameter/uv_scale = Vector2(1, 1)
 shader_parameter/use_sky_mask = true
+shader_parameter/mask_overlap_px = 6.0
 shader_parameter/artwork_aspect = 1.7768332

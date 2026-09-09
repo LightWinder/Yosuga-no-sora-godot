@@ -39,7 +39,8 @@ class MemorySaveService extends SaveService:
 		return {
 			"valid": true,
 			"scenario_id": memory_autosave.scenario_id,
-			"label": memory_autosave.autosave_meta.get("label", ""),
+			"comment": memory_autosave.comment,
+			"comment_edit": memory_autosave.comment_edit,
 		}
 
 	func is_global_flag_set(flag_id: int) -> bool:
@@ -70,6 +71,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_input_actions()
 	_test_save_data_contract()
+	_test_route_progress_contract()
 	_test_theme_font()
 	await _test_save_service_round_trip()
 	_test_export_presets()
@@ -149,6 +151,11 @@ func _test_input_actions() -> void:
 
 
 func _test_save_data_contract() -> void:
+	_expect(
+		SaveData.default_comment("悠", "台词／　换行") == "悠「台词换行」"
+		and SaveData.default_comment("心の声", "独白") == "「独白」",
+		"Default comments must follow the source game's speaker and dialogue formatting."
+	)
 	var data := SaveData.create_empty("0.1.0")
 	data.scenario_id = "00_z000"
 	data.instruction_anchor = "hitret:42"
@@ -161,7 +168,9 @@ func _test_save_data_contract() -> void:
 	}]
 	data.choice_navigation_position = 1
 	data.read_text_ids = ["00_z000:42"]
-	data.autosave_meta = {"valid": true, "label": "列车"}
+	data.autosave_meta = {"valid": true}
+	data.comment = "悠「列车」"
+	data.comment_edit = true
 	var decoded := SaveData.from_dictionary(data.to_dictionary())
 	_expect(decoded != null, "Current save data must round-trip.")
 	if decoded != null:
@@ -169,6 +178,10 @@ func _test_save_data_contract() -> void:
 		_expect(decoded.is_global_flag_set(1), "Global route flag must survive round-trip.")
 		_expect(decoded.instruction_anchor == "hitret:42", "Instruction anchor must survive round-trip.")
 		_expect(decoded.choice_history == [2, 1], "Source selection history must survive round-trip.")
+		_expect(
+			decoded.comment == "悠「列车」" and decoded.comment_edit,
+			"The editable save comment and its manual-edit marker must survive round-trip."
+		)
 		_expect(
 			decoded.choice_navigation_stack.size() == 1
 			and decoded.choice_navigation_position == 1,
@@ -191,7 +204,85 @@ func _test_save_data_contract() -> void:
 			and legacy.choice_navigation_position == 0,
 			"Legacy saves must migrate with an empty previous-choice stack."
 		)
+	var schema_five := SaveData.from_dictionary({
+		"schema_version": 5,
+		"autosave_meta": {"valid": true, "label": "旧版当前对话"},
+		"presentation": {"speaker": "悠", "message": "备用对话"},
+	})
+	_expect(
+		schema_five != null
+		and schema_five.comment == "旧版当前对话"
+		and not schema_five.comment_edit
+		and not schema_five.autosave_meta.has("label"),
+		"Schema 5 dialogue labels must migrate into the source-compatible comment field."
+	)
+	var schema_five_edited := SaveData.from_dictionary({
+		"schema_version": 5,
+		"comment": "旧版用户备注",
+		"autosave_meta": {"label": "旧版当前对话"},
+	})
+	_expect(
+		schema_five_edited != null
+		and schema_five_edited.comment == "旧版用户备注"
+		and schema_five_edited.comment_edit,
+		"Schema 5 user annotations must win migration and be marked as edited."
+	)
 	_expect(SaveData.from_dictionary({"schema_version": 999}) == null, "Future schema must be rejected.")
+
+
+func _test_route_progress_contract() -> void:
+	var expected_routes: Dictionary = {
+		&"sora": {"scenario": "00_a034", "node": &"CharacterSora", "completion": 21, "staff": 11, "name": "穹"},
+		&"nao": {"scenario": "00_b034", "node": &"CharacterNao", "completion": 22, "staff": 12, "name": "奈緒"},
+		&"akira": {"scenario": "00_c036", "node": &"CharacterAkira", "completion": 23, "staff": 13, "name": "瑛"},
+		&"kazuha": {"scenario": "00_d044", "node": &"CharacterKazuha", "completion": 24, "staff": 14, "name": "一葉"},
+		&"motoka": {"scenario": "00_e037", "node": &"CharacterMotoka", "completion": 25, "staff": 15, "name": "初佳"},
+	}
+	var character_flags := RouteProgress.title_character_flags()
+	var parser := KrkrScenarioParser.new()
+	for route_id: StringName in expected_routes:
+		var expected := expected_routes[route_id] as Dictionary
+		var route := RouteProgress.ROUTES.get(route_id, {}) as Dictionary
+		_expect(
+			route.get("title_character_node") == expected.get("node")
+			and int(route.get("completion_flag", 0)) == int(expected.get("completion", 0))
+			and int(route.get("staff_roll_flag", 0)) == int(expected.get("staff", 0)),
+			"Route progress must preserve source completion, Title-character, and staff-roll flags: %s" % route_id
+		)
+		_expect(
+			int(character_flags.get(expected.get("node"), 0)) == int(expected.get("completion", 0)),
+			"Title character mapping must use the completion flag for route %s." % route_id
+		)
+		var alias_route := RouteProgress.route_for_name(str(expected.get("name", "")))
+		_expect(
+			int(alias_route.get("staff_roll_flag", 0)) == int(expected.get("staff", 0)),
+			"Staff-roll route aliases must resolve to the matching unlock flag: %s" % route_id
+		)
+		var scenario_id := str(expected.get("scenario", ""))
+		var document := parser.parse_file("res://assets/scenario/%s.ks" % scenario_id, scenario_id)
+		var ending_flags: Array[int] = []
+		if document != null:
+			for instruction in document.instructions:
+				if instruction.tag_name == &"onglobalflag":
+					ending_flags.append(instruction.int_argument("id"))
+		_expect(
+			ending_flags == [RouteProgress.CLEARED_GAME_FLAG, int(expected.get("completion", 0))],
+			"Route ending %s must unlock Bonus and its matching Title character (found %s)." % [scenario_id, ending_flags]
+		)
+
+	var profile := ProfileData.create_empty()
+	profile.set_global_flag(21)
+	_expect(
+		profile.merge_global_unlock_flags({"21": false, "22": true, "23": false})
+		and profile.is_global_flag_set(21)
+		and profile.is_global_flag_set(22)
+		and not profile.is_global_flag_set(23),
+		"Importing unlocks from an older save must add true flags without revoking profile progress."
+	)
+	_expect(
+		not profile.merge_global_unlock_flags({"21": true, "22": true}),
+		"Merging already-known unlock flags must be idempotent."
+	)
 
 
 func _test_save_service_round_trip() -> void:
@@ -204,7 +295,8 @@ func _test_save_service_round_trip() -> void:
 	var data := SaveData.create_empty("0.1.0")
 	data.scenario_id = "00_z000"
 	data.instruction_anchor = "hitret:first"
-	data.autosave_meta = {"valid": true, "label": "atomic"}
+	data.autosave_meta = {"valid": true}
+	data.comment = "atomic"
 	_expect(service.save_autosave(data), "SaveService must atomically write an autosave.")
 	data.instruction_anchor = "hitret:second"
 	_expect(service.save_autosave(data), "SaveService must safely overwrite the same autosave path.")
@@ -304,10 +396,20 @@ func _test_title_state() -> void:
 	settings_repository.configure_storage("%s/settings.json" % title_root)
 	var autosave := SaveData.create_empty("0.1.0")
 	autosave.scenario_id = "00_z000"
-	autosave.autosave_meta = {"valid": true, "label": "测试自动存档"}
+	autosave.autosave_meta = {"valid": true}
+	autosave.comment = "测试自动存档"
 	service.memory_autosave = autosave
+	var locked_title := TITLE_SCENE.instantiate() as TitleScreen
+	locked_title.configure(service)
+	_expect(
+		not locked_title._is_main_option_available(&"bonus"),
+		"Bonus must remain hidden before any route completion flag is present."
+	)
+	locked_title.free()
 	service.memory_flags[1] = true
 	service.memory_profile.set_global_flag(1)
+	for completion_flag in range(21, 26):
+		service.memory_profile.set_global_flag(completion_flag)
 	var title := TITLE_SCENE.instantiate() as TitleScreen
 	_expect(is_equal_approx(title.game_exit_seconds, 3.0), "New Game must retain the source Title's three-second route departure.")
 	_expect(title.subscreen_exit_seconds < title.subscreen_return_seconds, "Title child-screen departure must be faster than its return animation.")
@@ -317,9 +419,12 @@ func _test_title_state() -> void:
 	root.add_child(title)
 	await process_frame
 	_expect((title.get_node("WhiteCover") as ColorRect).visible, "Title route entry must reveal the scene through its source white cover.")
-	var title_background := title.get_node("Background") as TextureRect
+	var title_background := title.get_node("Background") as TitleTreeSwayBackground
+	var cloud_field := title.get_node("CloudField") as TitleCloudField
 	_expect(title_background.get_parent() == title, "Title background must be independent from the safe-area content canvas.")
+	_expect(cloud_field.get_parent() == title, "Title clouds must be independent from the safe-area content canvas.")
 	_expect(is_equal_approx(title_background.anchor_right, 1.0) and is_equal_approx(title_background.anchor_bottom, 1.0), "Title background must fill the viewport anchors.")
+	_expect(is_equal_approx(cloud_field.anchor_right, 1.0) and is_equal_approx(cloud_field.anchor_bottom, 1.0), "Title clouds must fill the viewport anchors.")
 	_expect(title_background.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED, "Title background must cover without stretching or exposing clear color.")
 	var original_title_size := title.size
 	title.set_size(Vector2(1280.0, 720.0))
@@ -329,6 +434,7 @@ func _test_title_state() -> void:
 		_expect(is_equal_approx(design_root.scale.x, 2.0 / 3.0), "Desktop 16:9 content must not receive an extra safe-area shrink.")
 		_expect(design_root.position.length() < 0.01, "Desktop 16:9 content must be flush with the viewport when no safe area exists.")
 	_expect(title_background.get_global_rect().size.is_equal_approx(Vector2(1280.0, 720.0)), "Title background must cover the complete 16:9 viewport.")
+	_expect(cloud_field.get_global_rect().size.is_equal_approx(Vector2(1280.0, 720.0)), "Title clouds must cover the complete 16:9 viewport.")
 	title.set_size(original_title_size)
 	title._apply_design_transform()
 	var options := title.get_current_options()
@@ -342,6 +448,8 @@ func _test_title_state() -> void:
 		_expect(declared_button is TitleMenuButton and declared_button.scene_file_path.ends_with("title_menu_button.tscn"), "Every Title action must be a scene-owned TitleMenuButton instance.")
 	var declared_characters := title.get_node("DesignRoot/CharacterLayer") as Control
 	_expect(declared_characters.get_child_count() == 5, "Title character variants must be declared by title_screen.tscn.")
+	for character in declared_characters.get_children():
+		_expect(character.visible, "Every cleared route must reveal its matching Title character: %s" % character.name)
 	var blur_warmup := title.get_node_or_null("BlurWarmup") as Control
 	_expect(blur_warmup != null and blur_warmup.get_node_or_null("BackBufferCopy") is BackBufferCopy, "Title must prewarm the live background-blur pipeline before settings is opened.")
 	_expect(title.get_node_or_null("ExitConfirmationOverlay") == null, "Exit confirmation must remain lazy until requested.")
@@ -430,7 +538,7 @@ func _test_title_state() -> void:
 	var manual_slot := SaveData.create_empty("0.1.0")
 	manual_slot.scenario_id = "00_z001"
 	manual_slot.instruction_anchor = "hitret:slot"
-	manual_slot.autosave_meta = {"label": "手动槽位"}
+	manual_slot.comment = "手动槽位"
 	_expect(service.save_slot(0, manual_slot), "Load contract needs a real manual slot.")
 	var feature := FEATURE_SCENE.instantiate() as TitleFeatureScreen
 	feature.configure(&"load_game", service)
@@ -492,7 +600,7 @@ func _test_title_state() -> void:
 	var save_payload := SaveData.create_empty("0.1.0")
 	save_payload.scenario_id = "00_z002"
 	save_payload.instruction_anchor = "hitret:save-mode"
-	save_payload.autosave_meta = {"label": "存档模式契约"}
+	save_payload.comment = "存档模式契约"
 	var save_page := SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
 	save_page.configure(SaveLoadPage.Mode.SAVE, service, save_payload)
 	root.add_child(save_page)
@@ -940,6 +1048,8 @@ func _test_title_state() -> void:
 	_expect(manifest.album_groups[1].cards[8].unlock_flag == 1087, "EB10 must use CgFlag 1087, not HCG flag 1.")
 	var album_ids: Dictionary = {}
 	var variant_ids: Dictionary = {}
+	var progress_catalog := AdvProgressCatalog.load_default()
+	_expect(progress_catalog.load_error.is_empty(), "Album unlock progress manifest must load.")
 	for group in manifest.album_groups:
 		_expect(not album_ids.has(group.group_id), "Album group IDs must be unique: %s" % group.group_id)
 		album_ids[group.group_id] = true
@@ -951,6 +1061,11 @@ func _test_title_state() -> void:
 				_expect(not variant_ids.has(variant.variant_id), "Album variant IDs must be unique: %s" % variant.variant_id)
 				variant_ids[variant.variant_id] = true
 				_expect(FileAccess.file_exists(variant.texture_path), "Album variant asset must exist: %s" % variant.texture_path)
+				var presented_flags := progress_catalog.flags_for_cg(variant.variant_id)
+				_expect(
+					presented_flags.has(card.unlock_flag) and presented_flags.has(variant.unlock_flag),
+					"Presenting %s must unlock its Album card and exact difference (found %s)." % [variant.variant_id, presented_flags]
+				)
 	var music_ids: Dictionary = {}
 	for track in manifest.music_tracks:
 		_expect(not music_ids.has(track.track_id), "Music IDs must be unique: %s" % track.track_id)
@@ -959,6 +1074,7 @@ func _test_title_state() -> void:
 		if track.track_id != &"BGM01" and track.track_id != &"BGM02_S":
 			_expect(track.loop_enabled and track.loop_sample > 0, "BGM03-BGM21 must preserve source .sli loop points: %s" % track.track_id)
 	var memory_ids: Dictionary = {}
+	var memory_parser := KrkrScenarioParser.new()
 	for memory in manifest.memory_entries:
 		_expect(not memory_ids.has(memory.entry_id), "Memory IDs must be unique: %s" % memory.entry_id)
 		memory_ids[memory.entry_id] = true
@@ -966,6 +1082,47 @@ func _test_title_state() -> void:
 		if memory.is_video():
 			_expect(memory.video_path.ends_with(".ogv"), "Video manifest must use Godot-decodable OGV: %s" % memory.video_path)
 			_expect(FileAccess.file_exists(memory.video_path), "Memory video asset must exist: %s" % memory.video_path)
+			if memory.unlock_flag > 0:
+				var matching_staff_route := false
+				for route_id: StringName in RouteProgress.ROUTES:
+					var route := RouteProgress.ROUTES[route_id] as Dictionary
+					if int(route.get("staff_roll_flag", 0)) == memory.unlock_flag:
+						matching_staff_route = true
+						break
+				_expect(matching_staff_route, "Staff-roll memory must use a registered route flag: %s" % memory.entry_id)
+		else:
+			var memory_document := memory_parser.parse_file(
+				"res://assets/scenario/%s.ks" % memory.scenario_id,
+				memory.scenario_id
+			)
+			var recollection_flags: Array[int] = []
+			if memory_document != null:
+				for instruction in memory_document.instructions:
+					if instruction.tag_name == &"recollect":
+						recollection_flags.append(instruction.int_argument("id"))
+			_expect(
+				recollection_flags.has(memory.unlock_flag),
+				"Memory %s must be unlocked by its scenario's Recollect tag (found %s)." % [memory.entry_id, recollection_flags]
+			)
+
+	var locked_service := MemorySaveService.new()
+	locked_service.name = "LockedCatalogSaveService"
+	root.add_child(locked_service)
+	var locked_album := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	locked_album.configure(&"album", locked_service)
+	root.add_child(locked_album)
+	await process_frame
+	var locked_album_page := locked_album.get_node("Content/EntryList/AlbumPage") as TitleAlbumPage
+	var locked_card := locked_album_page.get_node("VisualCanvas/AlbumContent/CardList").get_child(0) as TitleVisualCard
+	var shared_title := locked_album_page.get_node("VisualCanvas/PageTitle") as PageTitle
+	_expect(locked_card != null and locked_card.is_locked(), "A missing source CgFlag must render the Album slot as locked.")
+	_expect(locked_card != null and not locked_card.has_visible_thumbnail(), "Locked Album slots must never load or display their real CG thumbnail.")
+	_expect(locked_card != null and locked_card.disabled and locked_card.focus_mode == Control.FOCUS_NONE, "Locked Album slots must be absent from pointer and focus activation.")
+	_expect(locked_card != null and locked_card.size.is_equal_approx(Vector2(430.0, 250.0)), "Album cards must preserve the source 430x250 frame geometry.")
+	_expect(shared_title != null and shared_title.scene_file_path.ends_with("src/ui/page_title.tscn"), "Appreciation must reuse the same neutral PageTitle scene as Settings.")
+	locked_album.free()
+	locked_service.free()
+	await process_frame
 
 	for flag_id in range(1001, 1010):
 		service.memory_profile.set_global_flag(flag_id)
@@ -1001,6 +1158,11 @@ func _test_title_state() -> void:
 	viewer._input(viewer_right_click)
 	_expect(not viewer.visible, "Album viewer right-click must close only the viewer.")
 	_expect(album_page.get_viewer() != null, "Closing Album viewer must preserve the Album page.")
+	var album_navigation := album_page.get_node("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
+	(album_navigation.get_node("%Memories") as BaseButton).pressed.emit()
+	await process_frame
+	_expect(album.feature_id == TitleCatalog.MEMORIES, "Shared appreciation navigation must switch catalogs without returning through Title.")
+	_expect(album.get_node_or_null("Content/EntryList/MemoriesPage") is TitleMemoriesPage, "Catalog switching must replace only the data page inside the appreciation route.")
 	album.free()
 	await process_frame
 

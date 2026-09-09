@@ -1,7 +1,7 @@
 .DS_Store
 .godot/
 *.import
-!assets/ui/title/clouds/AAA.png.import
+!assets/ui/title/clouds/title_cloud_radial_atlas.png.import
 build/
 dist/
 *.tmp

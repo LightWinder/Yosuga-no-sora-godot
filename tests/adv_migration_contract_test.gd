@@ -196,6 +196,20 @@ func _test_scene_and_animation_contract() -> void:
 	screen.configure(ScenarioLaunchRequest.new_game(), save_service, settings_repository)
 	root.add_child(screen)
 	await process_frame
+	var staff_roll_route := RouteProgress.route_for_name("初佳")
+	_expect(
+		int(staff_roll_route.get("staff_roll_flag", 0)) == 15,
+		"The Motoka staff-roll route must resolve to source global flag 15."
+	)
+	screen._play_staff_roll("初佳")
+	var staff_roll_profile := save_service.load_profile()
+	_expect(
+		bool(screen.runtime().global_flags.get("15", false))
+		and staff_roll_profile != null
+		and staff_roll_profile.is_global_flag_set(15),
+		"Starting a staff roll must immediately persist its matching Memories unlock."
+	)
+	screen._finish_movie()
 
 	var dialogue_view := screen.get_node("%DialogueView") as AdvDialogueView
 	_expect(dialogue_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay must use the shared dialogue scene as a normal instance.")
@@ -887,6 +901,12 @@ func _test_scene_and_animation_contract() -> void:
 		and snapshot.presentation.has("environment_audio"),
 		"Dialogue progress saves must include frame layout and persistent audio presentation."
 	)
+	_expect(
+		not snapshot.comment.is_empty()
+		and not snapshot.comment_edit
+		and not snapshot.autosave_meta.has("label"),
+		"New snapshots must initialize the source-compatible editable comment from the current dialogue."
+	)
 	var restored_frame := snapshot.presentation.duplicate(true)
 	restored_frame["message_frame_type"] = "10"
 	restored_frame["message_frame_position"] = [25.0, 90.0]
@@ -906,12 +926,16 @@ func _test_scene_and_animation_contract() -> void:
 		"Save restoration must preserve frame schema/layout/alpha and cancel the previous fade's completion."
 	)
 	screen._restore_presentation(snapshot.presentation)
+	screen.runtime().global_flags["1"] = true
 	screen.runtime().global_flags["25"] = true
 	screen._on_playback_finished()
 	var ending_profile := save_service.load_profile()
 	_expect(
-		ending_profile != null and ending_profile.is_global_flag_set(25),
-		"Reaching scenario EOF must persist final route-completion flags before returning to Title."
+		ending_profile != null
+		and ending_profile.is_global_flag_set(1)
+		and ending_profile.is_global_flag_set(15)
+		and ending_profile.is_global_flag_set(25),
+		"Reaching scenario EOF must retain Bonus, staff-roll, and route-completion flags before returning to Title."
 	)
 
 	screen.free()
