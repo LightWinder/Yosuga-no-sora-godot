@@ -4,7 +4,6 @@ extends Control
 
 const SAMPLE_SPEAKER := "穹"
 const SAMPLE_MESSAGE := "……这么长的文字，应该足够确认显示速度了吧？太快会来不及阅读，太慢又会让人有些着急。"
-const SAMPLE_NAME: Texture2D = preload("res://assets/content/adv/ui/name/MP-01.png")
 const SAMPLE_PORTRAIT: Texture2D = preload("res://assets/content/adv/characters/CA02_01T.PNG")
 
 @onready var _dialogue_view: AdvDialogueView = %DialogueView
@@ -21,7 +20,7 @@ func configure(settings: Dictionary) -> void:
 
 func _ready() -> void:
 	_dialogue_view.set_interactive(false)
-	_dialogue_view.set_speaker(SAMPLE_SPEAKER, SAMPLE_NAME, true)
+	_dialogue_view.set_speaker(SAMPLE_SPEAKER, true)
 	_dialogue_view.set_message(SAMPLE_MESSAGE)
 	_dialogue_view.reveal_finished.connect(_on_reveal_finished)
 	_replay_timer.timeout.connect(_restart_sample)

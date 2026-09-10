@@ -12,7 +12,8 @@
 src/app/                     应用启动、路由、依赖装配
     │
     ├── src/intro/           启动流程
-    ├── src/title/           Title 与 Bonus 内容
+    ├── src/title/           Title 页面与菜单
+    ├── src/appreciation/    相册、音乐、回忆与语音鉴赏
     ├── src/adv/             ADV 表现与媒体适配
     ├── src/save_load/       可被 Title / ADV 复用的存读档功能
     └── src/settings/        设置功能
@@ -198,11 +199,11 @@ Godot 默认的 touch-to-mouse emulation 是正常运行路径的一部分。
 
 项目会过滤 `InputEvent.DEVICE_ID_EMULATION` 产生的合成鼠标事件，避免一次触摸同时按触摸和鼠标路径触发两次操作。
 
-## Title 与 Bonus
+## Title 与鉴赏
 
-`src/title/` 拥有 Title 路由和 Title 专属组件。
+`src/title/` 只拥有 Title 页面、菜单和 Title 专属表现组件。
 
-`src/title/content/` 存放 Bonus 内容，包括：
+`src/appreciation/` 是与 Title、Settings、Save/Load 平级的独立功能，拥有：
 
 * Album
 * Music
@@ -211,11 +212,18 @@ Godot 默认的 touch-to-mouse emulation 是正常运行路径的一部分。
 
 固定页面结构由 Scene 持有；manifest 决定的数据卡片可以动态生成。
 
+Title 只发出用户选择的路由意图，不直接导入或实例化 Appreciation。`StartupFlow` 负责创建 `AppreciationScreen`、注入 Profile/Save 服务并连接返回与剧情请求。
+
+从 Title 打开 Appreciation 时，`StartupFlow` 必须像 Settings 与 Title Load 一样将其组合为 overlay：同一个 Title 实例保留在底层持续渲染，隐藏交互 chrome 并暂停输入，Appreciation 通过根视口 `BackBufferCopy` 与共享模糊材质显示实时背景。关闭 overlay 后恢复原 Title 实例、输入与调用前焦点；Appreciation 不应再携带静态 Title 背景或以整页背景遮住该实时模糊层。
+
+Appreciation 不拥有 Title、Settings 或 Save/Load 的实现，也不应导入这些平级功能目录。鉴赏内部的数据模型、页面、UI 组件与语音收藏服务均保留在 `src/appreciation/`。
+
 Title 不拥有通用 Save/Load 实现，也不应该把 Save/Load 变成自己的内部页面。
 
 全局解锁进度属于持久化 Profile，而不是某一个临时页面实例。读入旧存档时，不应撤销用户已经在其他流程中获得的全局解锁。
 
 Voice 收藏拥有独立的 `VoiceCollectionService`，不与 autosave 生命周期绑定。
+ADV 只发出中立的语音收藏意图；`StartupFlow` 按需创建该服务，并在进入语音鉴赏时注入同一实例。
 
 ## Scenario 导入边界
 
@@ -333,6 +341,8 @@ ADV runtime 通过项目内 resolver 查找 `res://` 资源。
 
 应用级的 Settings 集成由组合根完成，而不是由 Title 或 ADV 直接拥有另一个功能的内部实现。
 
+ADV 对话框上的音量与文本快捷入口属于 ADV 自身的轻量悬浮控件，不切换到完整 Settings route。它们复用 `SettingsModel` 的值语义，并通过注入给 `AdvScreen` 的 `SettingsRepository` 做即时预览与持久化；不得另建一份设置文件或绕过设置仓储。
+
 ### Settings ADV Preview
 
 Display 页面中的 ADV 预览必须保持轻量。
@@ -432,7 +442,7 @@ UI 和路由代码不得依赖生产环境硬编码路径，应通过服务提�
 
 `src/save_load/` 是独立功能。
 
-它不能依赖 `src/title/`。
+它不能依赖 `src/title/` 或 `src/appreciation/`。
 
 Title 可以配置 Load 行为，ADV 可以为 Save/Load 提供当前剧情快照，但二者都使用同一份 Save/Load 功能。
 

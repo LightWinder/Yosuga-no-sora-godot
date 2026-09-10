@@ -106,7 +106,8 @@ GODOT_EXECUTABLE=/Applications/Godot.app/Contents/MacOS/Godot ./tools/verify_pro
 src/
 ├── app/         应用组合、服务装配与路由
 ├── intro/       启动影片与内容提示流程
-├── title/       Title 页面与 Bonus 鉴赏内容
+├── title/       Title 页面与菜单
+├── appreciation/ 相册、音乐、回忆与语音鉴赏
 ├── adv/         ADV 表现层与媒体适配
 ├── save_load/   可复用的存读档功能
 ├── settings/    设置 UI、数据模型与持久化

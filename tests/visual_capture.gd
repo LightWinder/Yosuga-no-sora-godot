@@ -6,18 +6,18 @@ const SCENES: Dictionary = {
 	&"warning": preload("res://src/intro/content_warning_screen.tscn"),
 	&"title": preload("res://src/title/title_screen.tscn"),
 	&"title_press": preload("res://src/title/title_screen.tscn"),
+	&"title_bonus": preload("res://src/title/title_screen.tscn"),
 }
-const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const APPRECIATION_SCENE: PackedScene = preload("res://src/appreciation/appreciation_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
 const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
-const FEATURE_ROUTES: Dictionary = {
+const APPRECIATION_ROUTES: Dictionary = {
 	&"album": &"album",
 	&"music": &"music",
 	&"memories": &"memories",
 	&"voice": &"voice",
-	&"load": &"load_game",
 }
 
 
@@ -98,12 +98,12 @@ func _initialize() -> void:
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() < 3 or arguments.size() > 5:
-		push_error("Usage: -- <brand|warning|title|title_press|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|adv_anchor:hitret:N|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
+		push_error("Usage: -- <brand|warning|title|title_press|title_bonus|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|hitret:N|quick_audio|quick_text|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
 	var screen_name := StringName(arguments[0])
-	if not SCENES.has(screen_name) and not FEATURE_ROUTES.has(screen_name) and screen_name not in [&"settings", &"save", &"adv", &"adv_choice"]:
+	if not SCENES.has(screen_name) and not APPRECIATION_ROUTES.has(screen_name) and screen_name not in [&"settings", &"load", &"save", &"adv", &"adv_choice"]:
 		push_error("Unknown startup screen: %s" % screen_name)
 		quit(2)
 		return
@@ -125,7 +125,7 @@ func _capture() -> void:
 		var service := CaptureSaveService.new()
 		var settings_repository := CaptureSettingsRepository.new()
 		service.name = "CaptureSaveService"
-		_unlock_capture_content(service.capture_profile)
+		_unlock_capture_content(service.capture_profile, screen_name)
 		root.add_child(service)
 		var title_scene := SCENES[&"title"] as PackedScene
 		var title_backdrop := title_scene.instantiate() as TitleScreen
@@ -135,7 +135,7 @@ func _capture() -> void:
 		root.add_child(title_backdrop)
 		screen = SETTINGS_SCENE.instantiate() as SettingsScreen
 		(screen as SettingsScreen).configure(settings_repository)
-	elif screen_name == &"save":
+	elif screen_name in [&"load", &"save"]:
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
 		root.add_child(service)
@@ -144,17 +144,33 @@ func _capture() -> void:
 		title_backdrop.reveal_seconds = 0.0
 		title_backdrop.menu_fade_seconds = 0.0
 		root.add_child(title_backdrop)
-		var payload := service._sample_save("当前剧情状态", "hitret:current", 0, true)
+		var page_mode := SaveLoadPage.Mode.LOAD if screen_name == &"load" else SaveLoadPage.Mode.SAVE
+		var payload: SaveData
+		if screen_name == &"save":
+			payload = service._sample_save("当前剧情状态", "hitret:current", 0, true)
 		screen = SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
-		(screen as SaveLoadPage).configure(SaveLoadPage.Mode.SAVE, service, payload)
-	elif FEATURE_ROUTES.has(screen_name):
+		(screen as SaveLoadPage).configure(page_mode, service, payload)
+	elif APPRECIATION_ROUTES.has(screen_name):
 		var service := CaptureSaveService.new()
 		service.name = "CaptureSaveService"
 		if arguments.size() < 4 or arguments[3] != "locked":
-			_unlock_capture_content(service.capture_profile)
+			_unlock_capture_content(service.capture_profile, screen_name)
 		root.add_child(service)
-		screen = FEATURE_SCENE.instantiate() as TitleFeatureScreen
-		(screen as TitleFeatureScreen).configure(FEATURE_ROUTES[screen_name], service)
+		var title_backdrop := (SCENES[&"title"] as PackedScene).instantiate() as TitleScreen
+		title_backdrop.configure(service)
+		title_backdrop.reveal_seconds = 0.0
+		title_backdrop.menu_fade_seconds = 0.0
+		root.add_child(title_backdrop)
+		title_backdrop.hide_for_subscreen()
+		screen = APPRECIATION_SCENE.instantiate() as AppreciationScreen
+		(screen as AppreciationScreen).configure(APPRECIATION_ROUTES[screen_name], service)
+	elif screen_name == &"title_bonus":
+		var service := CaptureSaveService.new()
+		service.name = "CaptureSaveService"
+		service.capture_profile.set_global_flag(RouteProgress.CLEARED_GAME_FLAG)
+		root.add_child(service)
+		screen = (SCENES[screen_name] as PackedScene).instantiate() as TitleScreen
+		(screen as TitleScreen).configure(service)
 	else:
 		var scene := SCENES[screen_name] as PackedScene
 		screen = scene.instantiate() as Control
@@ -171,10 +187,22 @@ func _capture() -> void:
 			{"text": "不过，我觉得这就是有意思的地方", "hint": "一叶", "disabled": false},
 			{"text": "捉弄过头的话，是不是不大好啊", "hint": "初佳", "disabled": false},
 		])
+	if screen_name == &"adv" and arguments.size() >= 4:
+		var dialogue := (screen as AdvScreen).get_node("%DialogueView") as AdvDialogueView
+		if arguments[3] == "quick_audio":
+			dialogue.quick_settings_popovers().toggle_audio()
+		elif arguments[3] == "quick_text":
+			dialogue.quick_settings_popovers().toggle_text()
 	# Keep captures deterministic and prevent the host pointer from leaving a
 	# random card in hover/tooltip state.
 	Input.warp_mouse(Vector2(12.0, 12.0))
 	await process_frame
+	if screen_name == &"title_bonus":
+		var title := screen as TitleScreen
+		for button in title.get_menu_buttons():
+			if button.option_id == &"bonus":
+				button.pressed.emit()
+				break
 	if screen_name == &"save":
 		var save_page := screen as SaveLoadPage
 		save_page.slot_cards()[1].pressed.emit()
@@ -211,20 +239,19 @@ func _capture() -> void:
 				quit(2)
 				return
 		await create_timer(overlay_capture_delay).timeout
-	if FEATURE_ROUTES.has(screen_name):
-		var feature := screen as TitleFeatureScreen
-		var content := feature.get_node("Content") as Control
-		var entries := feature.get_node("Content/EntryList") as Control
-		var back := feature.get_node("Content/Back") as Control
+	if APPRECIATION_ROUTES.has(screen_name):
+		var appreciation := screen as AppreciationScreen
+		var content := appreciation.get_node("Content") as Control
+		var entries := appreciation.get_node("Content/EntryList") as Control
+		var back := appreciation.get_node("Content/Back") as Control
 		print("Layout probe: content=", content.get_global_rect(), " entries=", entries.get_global_rect(), " back=", back.get_global_rect())
-		if screen_name == &"load" and arguments.size() >= 4:
-			if arguments[3] != "delete_confirm":
-				push_error("Unknown load overlay: %s" % arguments[3])
-				quit(2)
-				return
-			var save_load_page := feature.load_page()
-			(save_load_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Delete") as Button).pressed.emit()
-			await create_timer(0.25).timeout
+	if screen_name == &"load" and arguments.size() >= 4:
+		if arguments[3] != "delete_confirm":
+			push_error("Unknown load overlay: %s" % arguments[3])
+			quit(2)
+			return
+		((screen as SaveLoadPage).get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Delete") as Button).pressed.emit()
+		await create_timer(0.25).timeout
 	if screen_name == &"save" and arguments.size() >= 4:
 		if arguments[3] != "overwrite_confirm":
 			push_error("Unknown save overlay: %s" % arguments[3])
@@ -257,19 +284,15 @@ func _capture() -> void:
 	quit(1)
 
 
-func _unlock_capture_content(profile: ProfileData) -> void:
-	profile.set_global_flag(1)
-	for flag_id in range(11, 16):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(51, 56):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(61, 65):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(71, 74):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(81, 84):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(91, 94):
-		profile.set_global_flag(flag_id)
-	for flag_id in range(1001, 1284):
-		profile.set_global_flag(flag_id)
+func _unlock_capture_content(profile: ProfileData, screen_name: StringName) -> void:
+	# Keep visual reviews safe for shared/public screens. Album captures reveal
+	# only the first two approved cards; Memories remain locked by default.
+	match screen_name:
+		&"album":
+			for flag_id: int in [1001, 1006, 1010]:
+				profile.set_global_flag(flag_id)
+		&"settings":
+			profile.set_global_flag(1)
+			for flag_range: Array in [range(11, 16), range(51, 56), range(61, 65), range(71, 74), range(81, 84), range(91, 94)]:
+				for flag_id: int in flag_range:
+					profile.set_global_flag(flag_id)

@@ -16,25 +16,28 @@ required_files=(
 	"src/core/save/save_data.gd"
 	"src/core/save/profile_data.gd"
 	"src/core/save/save_service.gd"
-	"src/title/title_feature_screen.tscn"
-	"src/title/title_catalog.gd"
-	"src/title/content/title_content_manifest.gd"
-	"src/title/content/title_album_page.gd"
-	"src/title/content/title_album_page.tscn"
-	"src/title/content/title_album_viewer.gd"
-	"src/title/content/title_album_viewer.tscn"
-	"src/title/content/title_music_page.gd"
-	"src/title/content/title_music_page.tscn"
-	"src/title/content/title_memories_page.gd"
-	"src/title/content/title_memories_page.tscn"
-	"src/title/content/title_voice_page.gd"
-	"src/title/content/title_voice_page.tscn"
-	"src/title/content/appreciation_navigation.gd"
-	"src/title/content/appreciation_navigation.tscn"
-	"src/title/ui/appreciation_page_button.gd"
-	"src/title/ui/title_visual_card.gd"
+	"src/appreciation/appreciation_screen.gd"
+	"src/appreciation/appreciation_screen.tscn"
+	"src/appreciation/appreciation_catalog.gd"
+	"src/appreciation/appreciation_content_request.gd"
+	"src/appreciation/content/appreciation_content_manifest.gd"
+	"src/appreciation/content/appreciation_album_page.gd"
+	"src/appreciation/content/appreciation_album_page.tscn"
+	"src/appreciation/content/appreciation_album_viewer.gd"
+	"src/appreciation/content/appreciation_album_viewer.tscn"
+	"src/appreciation/content/appreciation_music_page.gd"
+	"src/appreciation/content/appreciation_music_page.tscn"
+	"src/appreciation/content/appreciation_memories_page.gd"
+	"src/appreciation/content/appreciation_memories_page.tscn"
+	"src/appreciation/content/appreciation_voice_page.gd"
+	"src/appreciation/content/appreciation_voice_page.tscn"
+	"src/appreciation/ui/appreciation_navigation.gd"
+	"src/appreciation/ui/appreciation_navigation.tscn"
+	"src/appreciation/ui/appreciation_page_button.gd"
+	"src/appreciation/ui/appreciation_visual_card.gd"
+	"src/appreciation/ui/appreciation_music_button.tscn"
 	"assets/content/appreciation/appreciation_landscape.png"
-	"src/title/voice/voice_collection_service.gd"
+	"src/appreciation/voice/voice_collection_service.gd"
 	"src/ui/design_canvas_page.gd"
 	"src/ui/design_viewport_layout.gd"
 	"src/ui/confirmation_overlay.gd"
@@ -92,6 +95,13 @@ required_files=(
 	"src/adv/adv_screen.tscn"
 	"src/adv/components/adv_choice_button.gd"
 	"src/adv/components/adv_choice_button.tscn"
+	"src/adv/components/adv_system_menu_button.gd"
+	"src/adv/components/adv_dialogue_backdrop.gd"
+	"src/adv/components/adv_quick_settings_backdrop.gd"
+	"src/adv/components/adv_quick_settings_popovers.gd"
+	"src/adv/components/adv_quick_settings_popovers.tscn"
+	"src/adv/components/adv_dialogue_icon_button.gd"
+	"src/adv/components/adv_speaker_name.gd"
 	"src/adv/components/adv_dialogue_view.gd"
 	"src/adv/components/adv_dialogue_view.tscn"
 	"tests/adv_dialogue_view_test.gd"
@@ -131,24 +141,41 @@ required_files=(
 	"assets/content/adv/background_tones.csv"
 	"assets/content/adv/ui/name/MP-01.png"
 	"assets/content/adv/ui/DHK-01.png"
+	"assets/content/adv/ui/DHK-13.svg"
+	"assets/content/adv/ui/DHK-14.svg"
+	"assets/content/adv/ui/DHK-15.svg"
 	"assets/content/adv/ui/DHK-16.png"
+	"assets/content/adv/ui/DHK-16.svg"
 	"assets/content/adv/ui/DHK-17.png"
+	"assets/content/adv/ui/DHK-17.svg"
 	"assets/content/adv/ui/DHK-18.png"
+	"assets/content/adv/ui/DHK-18.svg"
 	"assets/content/adv/ui/DHK-19.png"
+	"assets/content/adv/ui/DHK-19.svg"
 	"assets/content/adv/ui/DHK-20.png"
+	"assets/content/adv/ui/DHK-20.svg"
 	"assets/content/adv/ui/DHK-21.png"
+	"assets/content/adv/ui/DHK-21.svg"
 	"assets/content/adv/ui/DHK-22.png"
+	"assets/content/adv/ui/DHK-22.svg"
 	"assets/content/adv/ui/DHK-23.png"
+	"assets/content/adv/ui/DHK-23.svg"
 	"assets/content/adv/ui/DHK-24.png"
+	"assets/content/adv/ui/DHK-24.svg"
 	"assets/content/adv/ui/DHK-25.png"
+	"assets/content/adv/ui/DHK-25.svg"
 	"assets/content/adv/ui/DHK-26.png"
+	"assets/content/adv/ui/DHK-26.svg"
 	"assets/content/adv/ui/DHK-58.png"
 	"assets/content/adv/ui/DHK-60.png"
+	"assets/content/adv/ui/DHK-60.svg"
+	"assets/content/adv/ui/DHK-65.svg"
+	"assets/content/adv/ui/DHK-66.svg"
 	"assets/ui/title/FRM_0513_title_logo.png"
 	"assets/shaders/adv/universal_transition.gdshader"
 	"assets/shaders/adv/universal_transition_material.tres"
 	"assets/themes/adv/eyecatch_panel.tres"
-	"assets/manifests/title_content_manifest.json"
+	"assets/manifests/appreciation_content_manifest.json"
 	"assets/fonts/Xiaolai-Regular.fontdata"
 	"assets/fonts/Xiaolai-Regular-OFL-1.1.txt"
 	"assets/themes/yosuga_theme.tres"
@@ -239,7 +266,7 @@ for music_name in BGM01 BGM02_S BGM03 BGM04 BGM05 BGM06 BGM07 BGM08 BGM09 BGM10 
 	fi
 done
 
-if rg -q '\.mp4(["/]|$)' "$project_root/assets/manifests/title_content_manifest.json"; then
+if rg -q '\.mp4(["/]|$)' "$project_root/assets/manifests/appreciation_content_manifest.json"; then
 	echo "Content manifest must not reference MP4 files; use Godot-decodable OGV assets." >&2
 	exit 1
 fi
@@ -281,25 +308,34 @@ if [[ "$scenario_count" != "306" ]]; then
 fi
 "$project_root/tools/validate_utf8_scenarios.sh" "$project_root/assets/scenario"
 require_pattern 'default_bus_layout="res://default_bus_layout.tres"' "$project_root/project.godot" "The project audio bus layout is not configured."
-require_pattern '"album_cards": 79' "$project_root/assets/manifests/title_content_manifest.json" "Album card manifest count changed unexpectedly."
-require_pattern '"album_variants": 214' "$project_root/assets/manifests/title_content_manifest.json" "Album variant manifest count changed unexpectedly."
-require_pattern '"memories": 24' "$project_root/assets/manifests/title_content_manifest.json" "Memory manifest count changed unexpectedly."
-require_pattern '"music_tracks": 21' "$project_root/assets/manifests/title_content_manifest.json" "Music manifest count changed unexpectedly."
+require_pattern '"album_cards": 79' "$project_root/assets/manifests/appreciation_content_manifest.json" "Album card manifest count changed unexpectedly."
+require_pattern '"album_variants": 214' "$project_root/assets/manifests/appreciation_content_manifest.json" "Album variant manifest count changed unexpectedly."
+require_pattern '"memories": 24' "$project_root/assets/manifests/appreciation_content_manifest.json" "Memory manifest count changed unexpectedly."
+require_pattern '"music_tracks": 21' "$project_root/assets/manifests/appreciation_content_manifest.json" "Music manifest count changed unexpectedly."
 if rg -q 'title_screen_v2|title_screen_legacy|LegacyTitleScreen' "$project_root/src"; then
 	echo "Obsolete Title implementation remains under src/." >&2
 	exit 1
 fi
-if rg -q 'SettingsPage' "$project_root/src/title/title_feature_screen.gd"; then
-	echo "The generic feature host must not own the settings route." >&2
+if [[ -d "$project_root/src/title/content" || -d "$project_root/src/title/voice" ]]; then
+	echo "Appreciation content and voice ownership must not remain under Title." >&2
 	exit 1
 fi
-if rg -q 'Title(Album|Music|Memories|Voice)Page\.new' "$project_root/src/title"; then
-	echo "Reusable Title pages and overlays must be instantiated from scene resources." >&2
+if rg -q 'res://src/appreciation|class_name Appreciation' "$project_root/src/title"; then
+	echo "Title must route through the app composition root instead of importing Appreciation directly." >&2
+	exit 1
+fi
+if rg -q 'res://src/(title|settings|save_load)' "$project_root/src/appreciation"; then
+	echo "Appreciation must not import sibling feature implementations." >&2
+	exit 1
+fi
+if rg -q 'Appreciation(Album|Music|Memories|Voice)Page\.new' "$project_root/src/appreciation"; then
+	echo "Reusable Appreciation pages and overlays must be instantiated from scene resources." >&2
 	exit 1
 fi
 require_pattern 'display_settings_page\.tscn' "$project_root/src/settings/settings_page.tscn" "Screen settings must remain a scene-owned subpage."
 require_pattern 'settings_chrome\.tscn' "$project_root/src/settings/settings_page.tscn" "Settings navigation and overlays must remain a scene-owned chrome component."
 require_pattern 'settings_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route settings through its dedicated scene."
+require_pattern 'appreciation_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route Appreciation through its dedicated scene."
 require_pattern 'adv_screen\.tscn' "$project_root/src/app/startup_flow.gd" "StartupFlow must route scenario requests to the ADV scene."
 require_pattern 'scenario_finished\.connect\(_return_to_title_from_adv\)' "$project_root/src/app/startup_flow.gd" "Completed ADV routes must use the deferred return transition before constructing Title."
 require_pattern 'await source_adv\.play_title_exit\(\)' "$project_root/src/app/startup_flow.gd" "StartupFlow must await ADV's source-style black exit before constructing Title."
@@ -316,7 +352,7 @@ if rg -q 'editable path=.*DialogueView|parent="VisualCanvas/DialogueView/' "$pro
 	echo "ADV must not customize the dialogue component through Editable Children." >&2
 	exit 1
 fi
-if rg -q '%(MessagePanel|MessageLabel|SpeakerLabel|SpeakerNameImage|Portrait|MessageHideButton)|_message_panel[.]|_message_label[.]|visible_characters|MessageColumn/' "$project_root/src/adv/adv_screen.gd"; then
+if rg -q '%(MessagePanel|MessageBackdrop|MessageLabel|SpeakerName|Portrait|MessageHideButton)|_message_panel[.]|_message_label[.]|visible_characters|MessageColumn/' "$project_root/src/adv/adv_screen.gd"; then
 	echo "ADV must use the dialogue view API rather than reach into presentation nodes." >&2
 	exit 1
 fi
@@ -346,7 +382,51 @@ require_pattern 'name="MenuLockButton" type="TextureButton"' "$project_root/src/
 require_pattern 'name="AutoModeIndicator" type="TextureRect"' "$project_root/src/adv/adv_screen.tscn" "ADV automatic-mode animation must remain scene-owned."
 require_pattern 'name="SystemMenuRecallButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV system-menu recall strip must remain scene-owned."
 require_pattern 'name="QuickSaveButton" type="TextureButton"' "$project_root/src/adv/adv_screen.tscn" "ADV source-style quick-save icon must remain scene-owned."
-require_pattern 'name="SpeakerNameImage" type="TextureRect"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV speaker-name artwork must remain scene-owned."
+require_pattern 'name="MessageBackdrop" type="Control"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV code-drawn message backdrop must remain scene-owned."
+require_pattern 'adv_dialogue_backdrop\.gd' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV message backdrop must use its vector drawing component."
+require_pattern 'name="SpeakerName" type="Control"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV code-drawn speaker name must remain scene-owned."
+require_pattern 'adv_speaker_name\.gd' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV speaker name must use its vector text component."
+require_pattern 'adv_quick_settings_popovers\.tscn' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue must instance the source-style inline settings panels."
+require_pattern 'name="AudioQuickSettingsPanel" type="Control"' "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV volume quick settings must remain fixed scene content."
+require_pattern 'name="TextQuickSettingsPanel" type="Control"' "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV text quick settings must remain fixed scene content."
+for quick_slider in master_volume bgm_volume voice_volume se_volume env_se_volume message_speed auto_speed window_depth; do
+	require_pattern "name=\"$quick_slider\" type=\"HSlider\"" "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV inline settings slider must remain native scene content: $quick_slider."
+done
+for quick_choice in SkipReadChoice SkipAllChoice; do
+	require_pattern "name=\"$quick_choice\" type=\"CheckBox\"" "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV inline skip choice must remain native scene content: $quick_choice."
+done
+if rg -q 'voice_settings_requested|text_settings_requested|settings_section_requested|_open_adv_settings_section' \
+		"$project_root/src/adv" "$project_root/src/app/startup_flow.gd"; then
+	echo "ADV dialogue quick settings must stay inline instead of routing to the full Settings screen." >&2
+	exit 1
+fi
+for dialogue_button in VoiceReplayButton VoiceFavoriteButton VoiceSettingsButton TextSettingsButton MessageHideButton; do
+	require_pattern "name=\"$dialogue_button\" type=\"TextureButton\"" "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue shortcut must remain scene-owned: $dialogue_button."
+done
+require_pattern 'adv_dialogue_icon_button\.gd' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue shortcuts must share code-owned state tinting."
+require_pattern 'self_modulate = (DISABLED|ACTIVE|NORMAL)_TINT' "$project_root/src/adv/components/adv_dialogue_icon_button.gd" "ADV dialogue shortcut states must tint one foreground texture from code."
+for dialogue_icon_id in 13 14 15 65 66; do
+	dialogue_icon="$project_root/assets/content/adv/ui/DHK-$dialogue_icon_id.svg"
+	require_pattern 'fill="#fff"|stroke="#fff"' "$dialogue_icon" "ADV dialogue SVG must contain a single white foreground: DHK-$dialogue_icon_id."
+	require_pattern "DHK-$dialogue_icon_id\\.svg" "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue must use SVG DHK-$dialogue_icon_id."
+	if rg -q '<image|#999|#9[0-9a-fA-F]{5}' "$dialogue_icon"; then
+		echo "ADV dialogue SVGs must contain one untinted vector state: DHK-$dialogue_icon_id." >&2
+		exit 1
+	fi
+done
+if rg -q 'DHK-(13|14|15|65|66)\.png' "$project_root/src/adv/components/adv_dialogue_view.tscn"; then
+	echo "ADV dialogue shortcuts must not render paired PNG state atlases." >&2
+	exit 1
+fi
+if rg -q 'DHK-28\.png|ui/name/MP-|speaker_name_manifest' \
+		"$project_root/src/adv/adv_screen.gd" \
+		"$project_root/src/adv/components/adv_dialogue_view.gd" \
+		"$project_root/src/adv/components/adv_dialogue_view.tscn" \
+		"$project_root/src/adv/preview/adv_settings_preview.gd" \
+		"$project_root/assets/themes/adv/message_panel.tres"; then
+	echo "ADV dialogue chrome must be drawn from code instead of the former frame/name PNGs." >&2
+	exit 1
+fi
 require_pattern 'name="Portrait" type="TextureRect" parent="MessagePanel/MessageColumn"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue portrait must remain on the free-layout message content layer."
 require_pattern 'name="ScenarioRuntime" type="Node"' "$project_root/src/adv/adv_screen.tscn" "ADV parser runtime must be declared by the scene."
 require_pattern 'AdvMessagePanel/base_type' "$project_root/assets/themes/yosuga_theme.tres" "ADV message styling must come from the centralized Theme."
@@ -367,31 +447,41 @@ require_pattern 'cg_presented\.connect' "$project_root/src/adv/adv_screen.gd" "E
 require_pattern 'name="ContinueGame".*instance=' "$project_root/src/title/title_screen.tscn" "Title menu buttons must be declared as scene instances."
 require_pattern 'parent="DesignRoot/CharacterLayer"' "$project_root/src/title/title_screen.tscn" "Title character layers must be declared by the scene."
 require_pattern '^@tool' "$project_root/src/title/title_menu_button.gd" "Scene-owned Title buttons must preview their native drawing in the editor."
-require_pattern 'appreciation_gallery\.tscn' "$project_root/src/title/content/title_album_page.tscn" "Album must instance the shared gallery layout."
-require_pattern 'name="TrackList"' "$project_root/src/title/content/title_music_page.tscn" "Music fixed layout must be declared by its scene."
-require_pattern 'appreciation_gallery\.tscn' "$project_root/src/title/content/title_memories_page.tscn" "Memories must instance the shared gallery layout."
-require_pattern 'name="FavoriteList"' "$project_root/src/title/content/title_voice_page.tscn" "Voice fixed layout must be declared by its scene."
-for appreciation_page in title_album_page title_music_page title_memories_page title_voice_page; do
-	require_pattern 'page_title\.tscn' "$project_root/src/title/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared PageTitle component: $appreciation_page."
-	require_pattern 'appreciation_navigation\.tscn' "$project_root/src/title/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared bottom navigation: $appreciation_page."
+require_pattern 'appreciation_gallery\.tscn' "$project_root/src/appreciation/content/appreciation_album_page.tscn" "Album must instance the shared gallery layout."
+require_pattern 'name="TrackList"' "$project_root/src/appreciation/content/appreciation_music_page.tscn" "Music fixed layout must be declared by its scene."
+require_pattern 'appreciation_gallery\.tscn' "$project_root/src/appreciation/content/appreciation_memories_page.tscn" "Memories must instance the shared gallery layout."
+require_pattern 'name="FavoriteList"' "$project_root/src/appreciation/content/appreciation_voice_page.tscn" "Voice fixed layout must be declared by its scene."
+for appreciation_page in appreciation_album_page appreciation_music_page appreciation_memories_page appreciation_voice_page; do
+	require_pattern 'page_title\.tscn' "$project_root/src/appreciation/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared PageTitle component: $appreciation_page."
+	require_pattern 'appreciation_navigation\.tscn' "$project_root/src/appreciation/content/$appreciation_page.tscn" "Appreciation pages must reuse the shared bottom navigation: $appreciation_page."
 done
-require_pattern 'if not _locked and _thumbnail' "$project_root/src/title/ui/title_visual_card.gd" "Locked appreciation cards must not load their real artwork."
-require_pattern 'settings_background_blur_material\.tres' "$project_root/src/title/title_feature_screen.tscn" "Appreciation must share Save/Load background blur."
+require_pattern 'if not _locked and _thumbnail' "$project_root/src/appreciation/ui/appreciation_visual_card.gd" "Locked appreciation cards must not load their real artwork."
+require_pattern 'settings_background_blur_material\.tres' "$project_root/src/appreciation/appreciation_screen.tscn" "Appreciation must share Save/Load background blur."
+require_pattern 'type="BackBufferCopy"' "$project_root/src/appreciation/appreciation_screen.tscn" "Appreciation must copy the live Title route before applying background blur."
+require_pattern '_appreciation_overlay = APPRECIATION_SCENE\.instantiate' "$project_root/src/app/startup_flow.gd" "StartupFlow must compose Appreciation as an overlay above the live Title route."
+if rg -q '_replace_screen\(APPRECIATION_SCENE\)|QD-13-BG|name="CollectionBackground"' \
+	"$project_root/src/app/startup_flow.gd" \
+	"$project_root/src/appreciation/appreciation_screen.gd" \
+	"$project_root/src/appreciation/appreciation_screen.tscn" \
+	"$project_root/src/appreciation/content/appreciation_voice_page.tscn"; then
+	echo "Appreciation must not replace or cover its live Title underlay." >&2
+	exit 1
+fi
 require_pattern 'name="SlotList".*instance=' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must own its reusable scrolling list scene."
 require_pattern 'extends ScrollContainer' "$project_root/src/save_load/save_slot_list.gd" "Save/Load must use native scrolling with a bounded card pool."
 require_pattern 'confirmation_overlay\.tscn' "$project_root/src/save_load/save_load_page.tscn" "Save/Load must use the shared confirmation overlay."
 require_pattern 'confirmation_overlay\.tscn' "$project_root/src/title/title_screen.gd" "Title must use the shared confirmation overlay."
 require_pattern '_save_service\.autosave_path\(\)' "$project_root/src/title/title_screen.gd" "Title Continue must respect configured SaveService storage."
-if rg -q '_build_shell|add_design_(label|button)' "$project_root/src/title/content" "$project_root/src/ui/design_canvas_page.gd"; then
-	echo "Stable Title page chrome must remain scene-owned."
+if rg -q '_build_shell|add_design_(label|button)' "$project_root/src/appreciation/content" "$project_root/src/ui/design_canvas_page.gd"; then
+	echo "Stable Appreciation page chrome must remain scene-owned."
 	exit 1
 fi
-if rg -q 'res://src/(settings|title|save_load)' "$project_root/src/core"; then
+if rg -q 'res://src/(appreciation|settings|title|save_load)' "$project_root/src/core"; then
 	echo "Core modules must not import feature-owned resources."
 	exit 1
 fi
-if rg -q 'res://src/title' "$project_root/src/save_load"; then
-	echo "Save/Load must not import Title-owned resources." >&2
+if rg -q 'res://src/(appreciation|title)' "$project_root/src/save_load"; then
+	echo "Save/Load must not import Title- or Appreciation-owned resources." >&2
 	exit 1
 fi
 if rg -q 'save_load_hd' "$project_root/src/save_load"; then
@@ -399,8 +489,25 @@ if rg -q 'save_load_hd' "$project_root/src/save_load"; then
 	exit 1
 fi
 require_pattern 'AtomicJsonStore\.new' "$project_root/src/core/save/save_service.gd" "SaveService must use the shared atomic JSON store."
-require_pattern 'AtomicJsonStore\.new' "$project_root/src/title/voice/voice_collection_service.gd" "Voice favorites must use the shared atomic JSON store."
+require_pattern 'AtomicJsonStore\.new' "$project_root/src/appreciation/voice/voice_collection_service.gd" "Voice favorites must use the shared atomic JSON store."
 require_pattern 'SettingsRepository\.new' "$project_root/src/app/startup_flow.gd" "Settings persistence must be composed outside SaveService."
+require_pattern 'adv_system_menu_button\.gd' "$project_root/src/adv/adv_screen.tscn" "ADV system-menu buttons must share the code-drawn state background."
+require_pattern 'draw_style_box' "$project_root/src/adv/components/adv_system_menu_button.gd" "ADV system-menu backgrounds must be drawn in code."
+for adv_icon_id in 16 17 18 19 20 21 22 23 24 25 26 60; do
+	adv_icon="$project_root/assets/content/adv/ui/DHK-$adv_icon_id.svg"
+	require_pattern 'width="55" height="56"' "$adv_icon" "ADV system-menu foreground SVG must contain one 55x56 icon: DHK-$adv_icon_id."
+	require_pattern "DHK-$adv_icon_id\\.svg" "$project_root/src/adv/adv_screen.tscn" "ADV system menu must use foreground SVG DHK-$adv_icon_id."
+	if rg -q '#80b0c0|#165768|width="110"|<image' "$adv_icon"; then
+		echo "ADV system-menu SVGs must contain only one vector foreground; backgrounds belong to AdvSystemMenuButton: DHK-$adv_icon_id." >&2
+		exit 1
+	fi
+done
+require_pattern '<circle cx="14\.5" cy="9\.5" r="5\.5"' "$project_root/assets/content/adv/ui/DHK-22.svg" "Quick Save foreground must retain its Q mark."
+require_pattern '<circle cx="14\.5" cy="9\.5" r="5\.5"' "$project_root/assets/content/adv/ui/DHK-23.svg" "Quick Load foreground must retain its Q mark."
+if rg -q 'DHK-(16|17|18|19|20|21|22|23|24|25|26|60)\.png' "$project_root/src/adv/adv_screen.tscn"; then
+	echo "ADV system-menu buttons must not render the former paired PNG state atlases." >&2
+	exit 1
+fi
 if rg -q 'add_page_background|add_dual_toggle|add_strip_toggle|add_check_box|settings/(system|voices)/bg\.png|settings/system/(YES|NO|checkbox)|settings/voices/(sora|nao|akira|kazuha|motoka|ryohei|yahiro|kozue|npc)\.png' \
 	"$project_root/src/settings/pages/system_settings_page.gd" "$project_root/src/settings/pages/system_settings_page.tscn" \
 	"$project_root/src/settings/pages/audio_settings_page.gd" "$project_root/src/settings/pages/audio_settings_page.tscn"; then

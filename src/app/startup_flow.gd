@@ -16,7 +16,7 @@ enum Stage {
 const BRAND_MOVIE_SCENE: PackedScene = preload("res://src/intro/brand_movie_screen.tscn")
 const CONTENT_WARNING_SCENE: PackedScene = preload("res://src/intro/content_warning_screen.tscn")
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
-const TITLE_FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const APPRECIATION_SCENE: PackedScene = preload("res://src/appreciation/appreciation_screen.tscn")
 const SAVE_LOAD_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
@@ -33,9 +33,11 @@ const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/a
 
 var current_stage := Stage.BRAND_MOVIE
 var last_selected_option: StringName = &""
-var last_content_request: TitleContentRequest
+var last_content_request: AppreciationContentRequest
 var last_scenario_request: ScenarioLaunchRequest
 var _current_screen: Control
+var _appreciation_overlay: AppreciationScreen
+var _appreciation_return_focus: Control
 var _title_load_overlay: SaveLoadPage
 var _title_load_return_focus: Control
 var _settings_overlay: SettingsScreen
@@ -44,6 +46,7 @@ var _settings_return_focus: Control
 var _settings_prepared_once := false
 var _route_transitioning := false
 var _load_transition_tween: Tween
+var _voice_collection_service: VoiceCollectionService
 var _screen_settings := DisplaySettingsService.new()
 var _settings_repository := SettingsRepository.new()
 
@@ -86,7 +89,7 @@ func _show_title() -> void:
 	current_stage = Stage.TITLE
 	var screen := _replace_screen(TITLE_SCENE) as TitleScreen
 	screen.option_selected.connect(_on_title_option_selected)
-	screen.feature_requested.connect(_show_title_feature)
+	screen.feature_requested.connect(_show_title_route)
 	screen.scenario_requested.connect(_on_scenario_requested)
 	screen.exit_requested.connect(_on_exit_requested)
 	_audio.play_title_bgm()
@@ -96,6 +99,7 @@ func _show_title() -> void:
 
 func _replace_screen(scene: PackedScene) -> Control:
 	_discard_title_load_overlay()
+	_discard_appreciation_overlay()
 	_close_settings_overlay(false)
 	if is_instance_valid(_current_screen):
 		if _current_screen.get_parent() == _screen_host:
@@ -105,8 +109,6 @@ func _replace_screen(scene: PackedScene) -> Control:
 	_current_screen = scene.instantiate() as Control
 	if _current_screen is TitleScreen:
 		(_current_screen as TitleScreen).configure(_save_service, _settings_repository)
-	elif _current_screen is TitleFeatureScreen:
-		(_current_screen as TitleFeatureScreen).configure(last_selected_option, _save_service)
 	elif _current_screen is SettingsScreen:
 		(_current_screen as SettingsScreen).configure(_settings_repository)
 	elif _current_screen is AdvScreen:
@@ -120,6 +122,8 @@ func _replace_screen(scene: PackedScene) -> Control:
 func open_settings() -> SettingsScreen:
 	if is_instance_valid(_settings_overlay):
 		return _settings_overlay
+	if is_instance_valid(_appreciation_overlay) or is_instance_valid(_title_load_overlay) or _route_transitioning:
+		return null
 
 	_set_adv_route_overlay_active(true)
 	_settings_return_focus = get_viewport().gui_get_focus_owner()
@@ -146,7 +150,7 @@ func open_settings() -> SettingsScreen:
 
 
 func _prepare_settings_screen() -> void:
-	if _settings_prepared_once or is_instance_valid(_settings_overlay) or is_instance_valid(_prepared_settings_screen):
+	if _settings_prepared_once or is_instance_valid(_settings_overlay) or is_instance_valid(_prepared_settings_screen) or is_instance_valid(_appreciation_overlay):
 		return
 	_settings_prepared_once = true
 	_prepared_settings_screen = SETTINGS_SCENE.instantiate() as SettingsScreen
@@ -177,37 +181,72 @@ func _on_title_option_selected(option_id: StringName) -> void:
 	last_selected_option = option_id
 
 
-func _show_title_feature(feature_id: StringName) -> void:
-	last_selected_option = feature_id
-	if feature_id == &"settings":
+func _show_title_route(route_id: StringName) -> void:
+	last_selected_option = route_id
+	if route_id == &"settings":
 		open_settings()
 		return
-	if feature_id == &"load_game" and _current_screen is TitleScreen:
+	if route_id == &"load_game" and _current_screen is TitleScreen:
 		_open_title_load_overlay()
 		return
-	_open_title_feature_after_transition(feature_id)
+	if route_id in [AppreciationCatalog.ALBUM, AppreciationCatalog.MUSIC, AppreciationCatalog.MEMORIES, AppreciationCatalog.VOICE]:
+		_open_appreciation_overlay(route_id)
 
 
-func _open_title_feature_after_transition(feature_id: StringName) -> void:
+## Appreciation uses the same live-overlay composition as Settings: Title keeps
+## rendering below the root-viewport blur while its interactive chrome is hidden.
+func _open_appreciation_overlay(catalog_id: StringName) -> void:
+	if is_instance_valid(_appreciation_overlay) or is_instance_valid(_settings_overlay) or is_instance_valid(_title_load_overlay) or _route_transitioning:
+		return
 	var source_title := _current_screen as TitleScreen
-	if source_title != null:
-		get_viewport().gui_release_focus()
-		_set_current_screen_input_enabled(false)
-		await source_title.play_subscreen_exit()
-		if _current_screen != source_title or is_instance_valid(_settings_overlay):
+	if source_title == null:
+		return
+	last_selected_option = catalog_id
+	_appreciation_return_focus = get_viewport().gui_get_focus_owner()
+	get_viewport().gui_release_focus()
+	_set_current_screen_input_enabled(false)
+	_appreciation_overlay = APPRECIATION_SCENE.instantiate() as AppreciationScreen
+	_appreciation_overlay.name = "AppreciationOverlay"
+	var voice_service: VoiceCollectionService
+	if catalog_id == AppreciationCatalog.VOICE:
+		voice_service = _ensure_voice_collection_service()
+	_appreciation_overlay.configure(catalog_id, _save_service, voice_service)
+	_appreciation_overlay.back_requested.connect(_close_appreciation_overlay)
+	_appreciation_overlay.bonus_back_requested.connect(_close_appreciation_overlay)
+	_appreciation_overlay.scenario_requested.connect(_on_scenario_requested)
+	_appreciation_overlay.content_requested.connect(_on_content_requested)
+	_overlay_host.add_child(_appreciation_overlay)
+	source_title.hide_for_subscreen()
+
+
+func _close_appreciation_overlay() -> void:
+	if not is_instance_valid(_appreciation_overlay) or _appreciation_overlay.is_closing() or _route_transitioning:
+		return
+	var overlay := _appreciation_overlay
+	var source_title := _current_screen as TitleScreen
+	await overlay.play_close_transition()
+	if not is_instance_valid(overlay) or overlay != _appreciation_overlay:
+		return
+	var return_focus := _appreciation_return_focus
+	_discard_appreciation_overlay()
+	if source_title != null and _current_screen == source_title:
+		await source_title.play_subscreen_return()
+		if _current_screen != source_title:
 			return
-	var screen := _replace_screen(TITLE_FEATURE_SCENE) as TitleFeatureScreen
-	screen.back_requested.connect(_show_title)
-	screen.bonus_back_requested.connect(_show_title_bonus)
-	screen.scenario_requested.connect(_on_scenario_requested)
-	screen.content_requested.connect(_on_content_requested)
+	_set_current_screen_input_enabled(true)
+	if is_instance_valid(return_focus) and return_focus.is_visible_in_tree():
+		return_focus.call_deferred("grab_focus")
 
 
-func _show_title_bonus() -> void:
-	_show_title()
-	var title := _current_screen as TitleScreen
-	if title != null:
-		title.call_deferred("show_bonus_menu")
+func _discard_appreciation_overlay() -> void:
+	if not is_instance_valid(_appreciation_overlay):
+		return
+	var overlay := _appreciation_overlay
+	_appreciation_overlay = null
+	_appreciation_return_focus = null
+	if overlay.get_parent() == _overlay_host:
+		_overlay_host.remove_child(overlay)
+	overlay.queue_free()
 
 
 func _close_settings_overlay(restore_focus := true) -> void:
@@ -278,7 +317,7 @@ func _clear_read_flags() -> void:
 	read_flags_reset_requested.emit()
 
 
-func _on_content_requested(request: TitleContentRequest) -> void:
+func _on_content_requested(request: AppreciationContentRequest) -> void:
 	last_content_request = request
 
 
@@ -385,7 +424,39 @@ func _show_adv(stop_startup_audio := true) -> void:
 	var screen := _replace_screen(ADV_SCENE) as AdvScreen
 	screen.title_requested.connect(_return_to_title_from_adv)
 	screen.settings_requested.connect(open_settings)
+	screen.voice_favorite_requested.connect(_on_adv_voice_favorite_requested)
 	screen.scenario_finished.connect(_return_to_title_from_adv)
+
+
+func _on_adv_voice_favorite_requested(
+		voice_id: String,
+		voice_path: String,
+		speaker: String,
+		message: String
+) -> void:
+	var adv := _current_screen as AdvScreen
+	if adv == null or voice_id.is_empty() or voice_path.is_empty():
+		return
+	var service := _ensure_voice_collection_service()
+	var display_name := speaker.strip_edges()
+	if display_name.is_empty():
+		display_name = "语音 %s" % voice_id
+	var favorite := VoiceFavorite.create(voice_id, voice_path, display_name, message)
+	if service.add_favorite(favorite):
+		adv.show_notice("已收藏语音")
+	elif service.last_error.is_empty():
+		adv.show_notice("该语音已收藏")
+	else:
+		adv.show_notice("语音收藏失败：%s" % service.last_error)
+
+
+func _ensure_voice_collection_service() -> VoiceCollectionService:
+	if is_instance_valid(_voice_collection_service):
+		return _voice_collection_service
+	_voice_collection_service = VoiceCollectionService.new()
+	_voice_collection_service.name = "VoiceCollectionService"
+	add_child(_voice_collection_service)
+	return _voice_collection_service
 
 
 func _return_to_title_from_adv() -> void:
@@ -411,7 +482,7 @@ func _on_exit_requested() -> void:
 
 
 func _open_title_load_overlay() -> void:
-	if is_instance_valid(_title_load_overlay) or is_instance_valid(_settings_overlay) or _route_transitioning:
+	if is_instance_valid(_title_load_overlay) or is_instance_valid(_settings_overlay) or is_instance_valid(_appreciation_overlay) or _route_transitioning:
 		return
 	var title := _current_screen as TitleScreen
 	if title == null:

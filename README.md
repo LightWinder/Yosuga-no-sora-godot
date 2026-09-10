@@ -4,7 +4,7 @@
 
 An unofficial Godot remake project based on the HD assets and scenario data of *Yosuga no Sora*.
 
-The project is rebuilding the original startup flow, Title/Bonus screens, ADV runtime, Save/Load system, and Settings UI in **Godot 4.7**, using typed GDScript and native Godot scenes, Controls, Resources, Themes, and shaders.
+The project is rebuilding the original startup flow, Title and Appreciation screens, ADV runtime, Save/Load system, and Settings UI in **Godot 4.7**, using typed GDScript and native Godot scenes, Controls, Resources, Themes, and shaders.
 
 The original `yosuga-no-sora-remake` project is treated as reference/source material only. Runtime implementation lives entirely in this repository.
 
@@ -106,7 +106,8 @@ Specialized visual captures are available through `tests/visual_capture.gd`.
 src/
 ├── app/         Application composition, services, and routing
 ├── intro/       Startup movie and warning flow
-├── title/       Title screen and Bonus content
+├── title/       Title screen and menu
+├── appreciation/ Album, Music, Memories, and Voice galleries
 ├── adv/         ADV presentation and media integration
 ├── save_load/   Shared Save/Load feature
 ├── settings/    Settings UI, model, and persistence

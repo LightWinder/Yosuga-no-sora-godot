@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/appreciation/content/appreciation_music_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://src/ui/page_title.tscn" id="2_page_title"]
+[ext_resource type="PackedScene" path="res://src/appreciation/ui/appreciation_navigation.tscn" id="3_navigation"]
+
+[sub_resource type="StyleBoxFlat" id="MusicPanel"]
+content_margin_left = 25.0
+content_margin_top = 25.0
+content_margin_right = 25.0
+content_margin_bottom = 25.0
+bg_color = Color(0.58, 0.78, 0.93, 0.38)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.74, 0.93, 1, 0.62)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+border_blend = true
+shadow_color = Color(0.05, 0.28, 0.5, 0.12)
+shadow_size = 10
+shadow_offset = Vector2(0, 3)
+
+[node name="MusicPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_page")
+
+[node name="VisualCanvas" type="Control" parent="."]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="MusicAppreciationPlayer" type="AudioStreamPlayer" parent="VisualCanvas"]
+unique_name_in_owner = true
+bus = &"BGM"
+
+[node name="PageTitle" parent="VisualCanvas" instance=ExtResource("2_page_title")]
+layout_mode = 0
+offset_top = 24.0
+offset_right = 566.0
+offset_bottom = 140.0
+title = "鉴赏"
+subtitle = "GALLERY."
+
+[node name="MusicContent" type="Control" parent="VisualCanvas"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="Panel" type="PanelContainer" parent="VisualCanvas/MusicContent"]
+offset_left = 18.0
+offset_top = 190.0
+offset_right = 1902.0
+offset_bottom = 962.0
+mouse_filter = 2
+theme_type_variation = &"SaveLoadPagePanel"
+theme_override_styles/panel = SubResource("MusicPanel")
+
+[node name="TrackList" type="GridContainer" parent="VisualCanvas/MusicContent/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 3
+
+[node name="Status" type="Label" parent="VisualCanvas/MusicContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 1.0
+offset_bottom = 1.0
+
+[node name="AppreciationNavigation" parent="VisualCanvas" instance=ExtResource("3_navigation")]
+layout_mode = 0
+current_catalog = "music"

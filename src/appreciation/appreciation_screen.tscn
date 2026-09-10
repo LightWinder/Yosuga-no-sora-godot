@@ -1,0 +1,95 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/appreciation/appreciation_screen.gd" id="1_feature"]
+[ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="2_blur"]
+
+[node name="AppreciationScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_feature")
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="."]
+copy_mode = 2
+
+[node name="BackgroundBlur" type="ColorRect" parent="."]
+material = ExtResource("2_blur")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BackgroundTint" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.31764707, 0.627451, 0.8235294, 0.39215687)
+
+[node name="Content" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="Content"]
+layout_mode = 0
+offset_left = 690.0
+offset_top = 48.0
+offset_right = 1230.0
+offset_bottom = 102.0
+visible = false
+text = "功能"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Content"]
+layout_mode = 0
+offset_left = 420.0
+offset_top = 104.0
+offset_right = 1500.0
+offset_bottom = 142.0
+visible = false
+text = "请选择条目。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Status" type="Label" parent="Content"]
+layout_mode = 0
+offset_left = 390.0
+offset_top = 1012.0
+offset_right = 1530.0
+offset_bottom = 1054.0
+visible = false
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EntryList" type="VBoxContainer" parent="Content"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Back" type="Button" parent="Content"]
+layout_mode = 0
+offset_left = 1460.0
+offset_top = 980.0
+offset_right = 1840.0
+offset_bottom = 1044.0
+theme_type_variation = &"SaveLoadActionButton"
+text = "返回标题"

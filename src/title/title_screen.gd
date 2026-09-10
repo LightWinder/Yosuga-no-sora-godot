@@ -16,6 +16,8 @@ const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmati
 @export_range(0.0, 3.0, 0.05) var reveal_seconds := 1.0
 @export_range(0.0, 3.0, 0.05) var menu_fade_seconds := 0.5
 @export_range(0.0, 5.0, 0.05) var game_exit_seconds := 3.0
+@export_range(0.0, 1.0, 0.01) var bonus_transition_seconds := 0.3
+@export_range(0.0, 96.0, 1.0) var bonus_transition_offset_y := 32.0
 @export_range(0.0, 1.0, 0.01) var subscreen_exit_seconds := 0.18
 @export_range(0.0, 1.0, 0.01) var subscreen_return_seconds := 0.32
 @export_range(0.0, 400.0, 1.0) var subscreen_exit_offset_y := 180.0
@@ -29,6 +31,7 @@ const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmati
 @onready var _menu_layer: Control = $DesignRoot/BottomChrome/MenuLayer
 @onready var _main_menu_center: CenterContainer = $DesignRoot/BottomChrome/MenuLayer/MainMenuCenter
 @onready var _bonus_menu_center: CenterContainer = $DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter
+# Source Title.tjs setLayout order: Continue, Start, Load, Config, Bonus, End.
 @onready var _declared_main_buttons: Array[TitleMenuButton] = [
 	%ContinueGame,
 	%NewGame,
@@ -37,6 +40,7 @@ const CONFIRMATION_OVERLAY_SCENE: PackedScene = preload("res://src/ui/confirmati
 	%Bonus,
 	%ExitGame,
 ]
+# Source Title.tjs appreciation order: Album, Music, Memories, Voice.
 @onready var _declared_bonus_buttons: Array[TitleMenuButton] = [
 	%Album,
 	%Music,
@@ -57,11 +61,14 @@ var _active_controls: Array[Control] = []
 var _exit_confirmation: ConfirmationOverlay
 var _reveal_tween: Tween
 var _game_exit_tween: Tween
+var _bonus_transition_tween: Tween
 var _bonus_mode := false
 var _exit_confirmation_visible := false
 var _subscreen_tween: Tween
 var _subscreen_departed := false
 var _bottom_chrome_rest_position := Vector2.ZERO
+var _main_menu_rest_position := Vector2.ZERO
+var _bonus_menu_rest_position := Vector2.ZERO
 
 
 func configure(save_service: SaveService, settings_repository: SettingsRepository = null) -> void:
@@ -78,6 +85,8 @@ func _ready() -> void:
 		_save_service.name = "SaveService"
 		add_child(_save_service)
 	_configure_character_layers()
+	_main_menu_rest_position = _main_menu_center.position
+	_bonus_menu_rest_position = _bonus_menu_center.position
 	_configure_menu()
 	_bottom_chrome_rest_position = _bottom_chrome.position
 	_version_label.text = "version %s" % str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
@@ -94,6 +103,7 @@ func _exit_tree() -> void:
 	if _game_exit_tween != null and _game_exit_tween.is_valid():
 		_game_exit_tween.kill()
 	_game_exit_tween = null
+	_kill_bonus_transition()
 	if _subscreen_tween != null and _subscreen_tween.is_valid():
 		_subscreen_tween.kill()
 	_subscreen_tween = null
@@ -145,8 +155,13 @@ func is_bonus_mode() -> bool:
 	return _bonus_mode
 
 
+func is_bonus_transitioning() -> bool:
+	return _bonus_transition_tween != null
+
+
 func show_bonus_menu() -> void:
-	_enter_bonus()
+	# The source recreates Title with fBonus=true and calls enterBonus(0).
+	_enter_bonus(0.0)
 
 
 func is_exit_confirmation_visible() -> bool:
@@ -287,11 +302,24 @@ func _connect_menu_button(button: TitleMenuButton) -> void:
 	button.mouse_exited.connect(_hide_autosave_info)
 
 
-func _set_bonus_visibility(enabled: bool) -> void:
+func _set_bonus_visibility(enabled: bool, focus_first: bool = false) -> void:
+	_kill_bonus_transition()
 	_bonus_mode = enabled
 	_main_menu_center.visible = not enabled
 	_bonus_menu_center.visible = enabled
 	_back_button.visible = enabled
+	_main_menu_center.position = _main_menu_rest_position
+	_bonus_menu_center.position = _bonus_menu_rest_position
+	_set_control_alpha(_main_menu_center, 1.0)
+	_set_control_alpha(_bonus_menu_center, 1.0)
+	_set_control_alpha(_back_button, 1.0)
+	_update_active_controls(enabled)
+	_set_menu_mode_interaction_enabled(enabled, true)
+	if focus_first:
+		_focus_first_active_control()
+
+
+func _update_active_controls(enabled: bool) -> void:
 	_active_controls.clear()
 	if enabled:
 		for button in _bonus_buttons:
@@ -302,6 +330,14 @@ func _set_bonus_visibility(enabled: bool) -> void:
 			_active_controls.append(button)
 	_configure_focus_neighbors()
 	menu_mode_changed.emit(enabled)
+
+
+func _set_menu_mode_interaction_enabled(bonus_enabled: bool, interaction_enabled: bool) -> void:
+	for button in _declared_main_buttons:
+		button.set_interaction_disabled(bonus_enabled or not interaction_enabled, false)
+	for button in _declared_bonus_buttons:
+		button.set_interaction_disabled(not bonus_enabled or not interaction_enabled, false)
+	_back_button.disabled = not bonus_enabled or not interaction_enabled
 
 
 func _configure_focus_neighbors() -> void:
@@ -335,20 +371,89 @@ func _on_option_activated(option_id: StringName) -> void:
 			_show_exit_confirmation()
 
 
-func _enter_bonus() -> void:
-	if _bonus_mode:
+func _enter_bonus(duration: float = bonus_transition_seconds) -> void:
+	if _bonus_mode or _bonus_transition_tween != null:
 		return
-	_set_bonus_visibility(true)
-	if not _bonus_buttons.is_empty():
-		_bonus_buttons[0].grab_focus()
+	_play_bonus_transition(true, duration)
 
 
 func _leave_bonus() -> void:
-	if not _bonus_mode:
+	if not _bonus_mode or _bonus_transition_tween != null:
 		return
-	_set_bonus_visibility(false)
-	if not _main_buttons.is_empty():
-		_main_buttons[0].grab_focus()
+	_play_bonus_transition(false, bonus_transition_seconds)
+
+
+## Mirrors Title.tjs enterBonus/leaveBonus: the outgoing row fades while
+## moving down 32 px, and the incoming row rises from the same offset.
+func _play_bonus_transition(entering_bonus: bool, duration: float) -> void:
+	_finish_reveal_animation()
+	_hide_autosave_info()
+	get_viewport().gui_release_focus()
+	_bonus_mode = entering_bonus
+	_update_active_controls(entering_bonus)
+	_set_menu_mode_interaction_enabled(entering_bonus, false)
+
+	var outgoing := _main_menu_center if entering_bonus else _bonus_menu_center
+	var incoming := _bonus_menu_center if entering_bonus else _main_menu_center
+	var outgoing_rest := _main_menu_rest_position if entering_bonus else _bonus_menu_rest_position
+	var incoming_rest := _bonus_menu_rest_position if entering_bonus else _main_menu_rest_position
+	outgoing.visible = true
+	incoming.visible = true
+	outgoing.position = outgoing_rest
+	incoming.position = incoming_rest + Vector2(0.0, bonus_transition_offset_y)
+	_set_control_alpha(outgoing, 1.0)
+	_set_control_alpha(incoming, 0.0)
+	_back_button.visible = true
+	_set_control_alpha(_back_button, 0.0 if entering_bonus else 1.0)
+
+	if duration <= 0.0:
+		_finish_bonus_transition(entering_bonus)
+		return
+	var tween := create_tween().set_parallel(true)
+	_bonus_transition_tween = tween
+	# Sprite.tjs uses acceleration=2 for motion (quadratic ease-out), while
+	# opacity is interpolated directly from the normalized activation tick.
+	tween.tween_property(outgoing, "position", outgoing_rest + Vector2(0.0, bonus_transition_offset_y), duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(outgoing, "modulate:a", 0.0, duration).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(incoming, "position", incoming_rest, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(incoming, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(_back_button, "modulate:a", 1.0 if entering_bonus else 0.0, duration).set_trans(Tween.TRANS_LINEAR)
+	tween.finished.connect(func() -> void:
+		if _bonus_transition_tween != tween:
+			return
+		_bonus_transition_tween = null
+		_finish_bonus_transition(entering_bonus)
+	)
+
+
+func _finish_bonus_transition(entering_bonus: bool) -> void:
+	_main_menu_center.visible = not entering_bonus
+	_bonus_menu_center.visible = entering_bonus
+	_main_menu_center.position = _main_menu_rest_position
+	_bonus_menu_center.position = _bonus_menu_rest_position
+	_set_control_alpha(_main_menu_center, 1.0)
+	_set_control_alpha(_bonus_menu_center, 1.0)
+	_back_button.visible = entering_bonus
+	_set_control_alpha(_back_button, 1.0)
+	_set_menu_mode_interaction_enabled(entering_bonus, true)
+	_focus_first_active_control()
+
+
+func _focus_first_active_control() -> void:
+	if not _active_controls.is_empty():
+		_active_controls[0].grab_focus()
+
+
+func _kill_bonus_transition() -> void:
+	if _bonus_transition_tween != null and _bonus_transition_tween.is_valid():
+		_bonus_transition_tween.kill()
+	_bonus_transition_tween = null
+
+
+func _set_control_alpha(control: CanvasItem, alpha: float) -> void:
+	var color := control.modulate
+	color.a = alpha
+	control.modulate = color
 
 
 func _ensure_exit_confirmation() -> void:

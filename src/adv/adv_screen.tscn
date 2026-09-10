@@ -5,122 +5,27 @@
 [ext_resource type="PackedScene" path="res://src/ui/confirmation_overlay.tscn" id="3_confirmation"]
 [ext_resource type="Script" uid="uid://d0nta1s4ms0wl" path="res://src/adv/adv_stage_director.gd" id="4_stage"]
 [ext_resource type="Material" path="res://assets/shaders/adv/universal_transition_material.tres" id="5_transition"]
-[ext_resource type="Texture2D" uid="uid://cekln3b2m4ckn" path="res://assets/content/adv/ui/DHK-17.png" id="7_auto"]
-[ext_resource type="Texture2D" uid="uid://d2ykatvfkllxl" path="res://assets/content/adv/ui/DHK-18.png" id="8_skip"]
-[ext_resource type="Texture2D" uid="uid://dx3jihy8i3ueu" path="res://assets/content/adv/ui/DHK-20.png" id="9_save"]
-[ext_resource type="Texture2D" uid="uid://blrgneknxbxj3" path="res://assets/content/adv/ui/DHK-21.png" id="10_load"]
-[ext_resource type="Texture2D" uid="uid://kn725qid5uve" path="res://assets/content/adv/ui/DHK-22.png" id="11_qsave"]
-[ext_resource type="Texture2D" uid="uid://cc2ofri8q6b02" path="res://assets/content/adv/ui/DHK-23.png" id="12_qload"]
-[ext_resource type="Texture2D" uid="uid://cyvrbvuty3p62" path="res://assets/content/adv/ui/DHK-24.png" id="13_history"]
-[ext_resource type="Texture2D" uid="uid://dw082f55igopb" path="res://assets/content/adv/ui/DHK-25.png" id="14_settings"]
-[ext_resource type="Texture2D" uid="uid://cxxc8q362bph2" path="res://assets/content/adv/ui/DHK-60.png" id="15_title"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-17.svg" id="7_auto"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-18.svg" id="8_skip"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-20.svg" id="9_save"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-21.svg" id="10_load"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-22.svg" id="11_qsave"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-23.svg" id="12_qload"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-24.svg" id="13_history"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-25.svg" id="14_settings"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-60.svg" id="15_title"]
 [ext_resource type="Texture2D" uid="uid://w8y5j1jb3bsd" path="res://assets/ui/title/FRM_0513_title_logo.png" id="16_eyecatch_logo"]
 [ext_resource type="Texture2D" uid="uid://dfu5y7u3d1s25" path="res://assets/content/adv/ui/DHK-01.png" id="17_auto_indicator"]
-[ext_resource type="Texture2D" uid="uid://dik0sp1xacdnx" path="res://assets/content/adv/ui/DHK-16.png" id="18_choice_prev"]
-[ext_resource type="Texture2D" uid="uid://djmgk4hc078nf" path="res://assets/content/adv/ui/DHK-19.png" id="19_choice_next"]
-[ext_resource type="Texture2D" uid="uid://b57chkhoj26kx" path="res://assets/content/adv/ui/DHK-26.png" id="20_menu_lock"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-16.svg" id="18_choice_prev"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-19.svg" id="19_choice_next"]
+[ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-26.svg" id="20_menu_lock"]
 [ext_resource type="Texture2D" uid="uid://dwqvlkl6farw1" path="res://assets/content/adv/ui/DHK-58.png" id="21_menu_recall"]
 [ext_resource type="PackedScene" path="res://src/adv/components/adv_dialogue_view.tscn" id="22_dialogue"]
+[ext_resource type="Script" path="res://src/adv/components/adv_system_menu_button.gd" id="23_system_button"]
 
 [sub_resource type="AtlasTexture" id="Atlas_auto_indicator"]
 atlas = ExtResource("17_auto_indicator")
 region = Rect2(0, 0, 40, 40)
-
-[sub_resource type="AtlasTexture" id="Atlas_choice_prev_normal"]
-atlas = ExtResource("18_choice_prev")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_choice_prev_hover"]
-atlas = ExtResource("18_choice_prev")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_auto_normal"]
-atlas = ExtResource("7_auto")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_auto_hover"]
-atlas = ExtResource("7_auto")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_skip_normal"]
-atlas = ExtResource("8_skip")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_skip_hover"]
-atlas = ExtResource("8_skip")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_choice_next_normal"]
-atlas = ExtResource("19_choice_next")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_choice_next_hover"]
-atlas = ExtResource("19_choice_next")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_save_normal"]
-atlas = ExtResource("9_save")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_save_hover"]
-atlas = ExtResource("9_save")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_load_normal"]
-atlas = ExtResource("10_load")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_load_hover"]
-atlas = ExtResource("10_load")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_qsave_normal"]
-atlas = ExtResource("11_qsave")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_qsave_hover"]
-atlas = ExtResource("11_qsave")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_qload_normal"]
-atlas = ExtResource("12_qload")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_qload_hover"]
-atlas = ExtResource("12_qload")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_history_normal"]
-atlas = ExtResource("13_history")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_history_hover"]
-atlas = ExtResource("13_history")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_settings_normal"]
-atlas = ExtResource("14_settings")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_settings_hover"]
-atlas = ExtResource("14_settings")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_menu_lock_normal"]
-atlas = ExtResource("20_menu_lock")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_menu_lock_hover"]
-atlas = ExtResource("20_menu_lock")
-region = Rect2(55, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_title_normal"]
-atlas = ExtResource("15_title")
-region = Rect2(0, 0, 55, 56)
-
-[sub_resource type="AtlasTexture" id="Atlas_title_hover"]
-atlas = ExtResource("15_title")
-region = Rect2(55, 0, 55, 56)
 
 [sub_resource type="AtlasTexture" id="Atlas_menu_recall_normal"]
 atlas = ExtResource("21_menu_recall")
@@ -404,11 +309,11 @@ offset_bottom = 56.0
 tooltip_text = "上一选项"
 focus_mode = 1
 mouse_default_cursor_shape = 2
+script = ExtResource("23_system_button")
 disabled = true
-texture_normal = SubResource("Atlas_choice_prev_normal")
-texture_pressed = SubResource("Atlas_choice_prev_hover")
-texture_hover = SubResource("Atlas_choice_prev_hover")
-texture_focused = SubResource("Atlas_choice_prev_hover")
+texture_normal = ExtResource("18_choice_prev")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="AutoButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=161807926]
 unique_name_in_owner = true
@@ -419,11 +324,11 @@ offset_bottom = 56.0
 tooltip_text = "自动模式"
 focus_mode = 1
 mouse_default_cursor_shape = 2
+script = ExtResource("23_system_button")
 toggle_mode = true
-texture_normal = SubResource("Atlas_auto_normal")
-texture_pressed = SubResource("Atlas_auto_hover")
-texture_hover = SubResource("Atlas_auto_hover")
-texture_focused = SubResource("Atlas_auto_hover")
+texture_normal = ExtResource("7_auto")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="SkipButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=100841617]
 unique_name_in_owner = true
@@ -434,11 +339,11 @@ offset_bottom = 56.0
 tooltip_text = "快进模式"
 focus_mode = 1
 mouse_default_cursor_shape = 2
+script = ExtResource("23_system_button")
 toggle_mode = true
-texture_normal = SubResource("Atlas_skip_normal")
-texture_pressed = SubResource("Atlas_skip_hover")
-texture_hover = SubResource("Atlas_skip_hover")
-texture_focused = SubResource("Atlas_skip_hover")
+texture_normal = ExtResource("8_skip")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="NextChoiceButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1837790529]
 unique_name_in_owner = true
@@ -449,10 +354,10 @@ offset_bottom = 56.0
 tooltip_text = "下一选项"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_choice_next_normal")
-texture_pressed = SubResource("Atlas_choice_next_hover")
-texture_hover = SubResource("Atlas_choice_next_hover")
-texture_focused = SubResource("Atlas_choice_next_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("19_choice_next")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="SaveButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1905024051]
 unique_name_in_owner = true
@@ -464,10 +369,10 @@ offset_bottom = 116.0
 tooltip_text = "保存存档"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_save_normal")
-texture_pressed = SubResource("Atlas_save_hover")
-texture_hover = SubResource("Atlas_save_hover")
-texture_focused = SubResource("Atlas_save_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("9_save")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="LoadButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1916607976]
 unique_name_in_owner = true
@@ -479,10 +384,10 @@ offset_bottom = 116.0
 tooltip_text = "读取存档"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_load_normal")
-texture_pressed = SubResource("Atlas_load_hover")
-texture_hover = SubResource("Atlas_load_hover")
-texture_focused = SubResource("Atlas_load_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("10_load")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="QuickSaveButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1498383669]
 unique_name_in_owner = true
@@ -494,10 +399,10 @@ offset_bottom = 116.0
 tooltip_text = "快速保存"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_qsave_normal")
-texture_pressed = SubResource("Atlas_qsave_hover")
-texture_hover = SubResource("Atlas_qsave_hover")
-texture_focused = SubResource("Atlas_qsave_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("11_qsave")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="QuickLoadButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=2095910310]
 unique_name_in_owner = true
@@ -509,10 +414,10 @@ offset_bottom = 116.0
 tooltip_text = "快速读取"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_qload_normal")
-texture_pressed = SubResource("Atlas_qload_hover")
-texture_hover = SubResource("Atlas_qload_hover")
-texture_focused = SubResource("Atlas_qload_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("12_qload")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="HistoryButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=1397456925]
 unique_name_in_owner = true
@@ -524,10 +429,10 @@ offset_bottom = 176.0
 tooltip_text = "文本记录"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_history_normal")
-texture_pressed = SubResource("Atlas_history_hover")
-texture_hover = SubResource("Atlas_history_hover")
-texture_focused = SubResource("Atlas_history_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("13_history")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="SettingsButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=2032325349]
 unique_name_in_owner = true
@@ -539,10 +444,10 @@ offset_bottom = 176.0
 tooltip_text = "系统设置"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_settings_normal")
-texture_pressed = SubResource("Atlas_settings_hover")
-texture_hover = SubResource("Atlas_settings_hover")
-texture_focused = SubResource("Atlas_settings_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("14_settings")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="MenuLockButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=899966180]
 unique_name_in_owner = true
@@ -554,11 +459,11 @@ offset_bottom = 176.0
 tooltip_text = "锁定系统菜单"
 focus_mode = 1
 mouse_default_cursor_shape = 2
+script = ExtResource("23_system_button")
 toggle_mode = true
-texture_normal = SubResource("Atlas_menu_lock_normal")
-texture_pressed = SubResource("Atlas_menu_lock_hover")
-texture_hover = SubResource("Atlas_menu_lock_hover")
-texture_focused = SubResource("Atlas_menu_lock_hover")
+texture_normal = ExtResource("20_menu_lock")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="TitleButton" type="TextureButton" parent="VisualCanvas/SystemMenu" unique_id=843643989]
 unique_name_in_owner = true
@@ -570,10 +475,10 @@ offset_bottom = 176.0
 tooltip_text = "返回主页"
 focus_mode = 1
 mouse_default_cursor_shape = 2
-texture_normal = SubResource("Atlas_title_normal")
-texture_pressed = SubResource("Atlas_title_hover")
-texture_hover = SubResource("Atlas_title_hover")
-texture_focused = SubResource("Atlas_title_hover")
+script = ExtResource("23_system_button")
+texture_normal = ExtResource("15_title")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="SystemMenuRecallButton" type="TextureButton" parent="VisualCanvas" unique_id=500643518]
 unique_name_in_owner = true

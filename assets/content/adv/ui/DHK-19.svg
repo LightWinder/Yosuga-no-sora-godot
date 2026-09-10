@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="55" height="56" viewBox="0 0 55 56">
+  <title>Next choice</title>
+  <g fill="#fff" opacity=".9">
+    <path d="M9 14.4a3.5 3.5 0 0 1 5.4-3L37.2 25.2a3.25 3.25 0 0 1 0 5.6L14.4 44.6a3.5 3.5 0 0 1-5.4-3Z"/>
+    <rect x="40" y="11" width="7" height="34" rx="3.5"/>
+  </g>
+</svg>

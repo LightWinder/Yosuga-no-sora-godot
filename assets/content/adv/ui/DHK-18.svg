@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="55" height="56" viewBox="0 0 55 56">
+  <title>Skip</title>
+  <g fill="#fff" opacity=".9">
+    <path d="M5 14.4a3.5 3.5 0 0 1 5.4-3L31 25a3.5 3.5 0 0 1 0 6L10.4 44.6A3.5 3.5 0 0 1 5 41.6Z"/>
+    <path d="M24 14.4a3.5 3.5 0 0 1 5.4-3L50 25a3.5 3.5 0 0 1 0 6L29.4 44.6a3.5 3.5 0 0 1-5.4-3Z"/>
+  </g>
+</svg>

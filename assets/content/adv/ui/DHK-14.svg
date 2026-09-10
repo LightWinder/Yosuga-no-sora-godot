@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="29" height="27" viewBox="0 0 29 27">
+  <title>Voice volume settings</title>
+  <path fill="#fff" d="M0 9h6l7-6v21l-7-6H0V9Z"/>
+  <path d="M17.5 10.2c3 1.8 3 4.8 0 6.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M22 6.5c7 3.8 7 10.2 0 14" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

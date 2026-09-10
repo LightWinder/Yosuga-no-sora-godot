@@ -54,39 +54,100 @@ func _run() -> void:
 func _test_presentation(view: AdvDialogueView, other: AdvDialogueView) -> void:
 	var panel := view.get_node("%MessagePanel") as PanelContainer
 	var label := view.get_node("%MessageLabel") as RichTextLabel
-	var speaker := view.get_node("%SpeakerLabel") as Label
-	var name_image := view.get_node("%SpeakerNameImage") as TextureRect
+	var backdrop := view.get_node("%MessageBackdrop") as AdvDialogueBackdrop
+	var speaker := view.get_node("%SpeakerName") as AdvSpeakerName
 	var portrait := view.get_node("%Portrait") as TextureRect
+	var replay := view.get_node("%VoiceReplayButton") as AdvDialogueIconButton
+	var favorite := view.get_node("%VoiceFavoriteButton") as AdvDialogueIconButton
+	var voice_settings := view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
+	var text_settings := view.get_node("%TextSettingsButton") as AdvDialogueIconButton
+	var hide := view.get_node("%MessageHideButton") as AdvDialogueIconButton
+	var quick_settings := view.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
+	var audio_popover := quick_settings.get_node("%AudioQuickSettingsPanel") as Control
+	var text_popover := quick_settings.get_node("%TextQuickSettingsPanel") as Control
 	_expect(view.size == Vector2(1920, 1080), "The component must fill its design surface.")
 	_expect(panel.position == Vector2(0, 760) and panel.size == Vector2(1920, 320), "Extraction must retain the bottom frame layout.")
 	_expect(panel.z_index == 1100 and portrait.z_index == 2, "Extraction must retain frame and portrait ordering.")
 	_expect(label.position == Vector2(450, 80) and label.size == Vector2(1170, 238), "Extraction must retain the text rectangle.")
-	_expect(speaker.position == Vector2(380, 0) and portrait.position == Vector2(0, -40), "Extraction must retain speaker and portrait placement.")
+	_expect(speaker.position == Vector2(380, 0) and speaker.size == Vector2(197, 61) and portrait.position == Vector2(0, -40), "Extraction must retain speaker and portrait placement.")
+	_expect(
+		replay.position == Vector2(590, 30)
+		and favorite.position == Vector2(628, 31)
+		and voice_settings.position == Vector2(665, 30)
+		and text_settings.position == Vector2(709, 30)
+		and hide.position == Vector2(1863, 20),
+		"Dialogue shortcuts must retain the source icon positions and the existing enlarged close hit area."
+	)
+	_expect(
+		is_equal_approx(replay.position.y + replay.size.y * 0.5, 43.5)
+		and is_equal_approx(favorite.position.y + favorite.size.y * 0.5, 43.5)
+		and is_equal_approx(voice_settings.position.y + voice_settings.size.y * 0.5, 43.5)
+		and is_equal_approx(text_settings.position.y + text_settings.size.y * 0.5, 43.5)
+		and is_equal_approx(hide.position.y + hide.size.y * 0.5, 43.5),
+		"Dialogue shortcuts and the close action must share one vertical center line."
+	)
+	for icon_button: AdvDialogueIconButton in [replay, favorite, voice_settings, text_settings, hide]:
+		var icon_texture: Texture2D = icon_button.texture_normal
+		var icon_display_size: Vector2 = icon_button.size
+		var scales_import_to_display: bool = icon_button.ignore_texture_size and icon_button.stretch_mode == TextureButton.STRETCH_SCALE
+		if icon_button == hide:
+			var icon := hide.get_node("Icon") as TextureRect
+			icon_texture = icon.texture
+			icon_display_size = icon.size
+			scales_import_to_display = (
+				hide.texture_normal == null
+				and icon.stretch_mode == TextureRect.STRETCH_SCALE
+				and icon.mouse_filter == Control.MOUSE_FILTER_IGNORE
+			)
+		_expect(
+			icon_texture != null
+			and icon_texture.resource_path.ends_with(".svg")
+			and icon_texture.get_size().is_equal_approx(icon_display_size * 2.0)
+			and scales_import_to_display
+			and icon_button.texture_hover == null
+			and icon_button.texture_pressed == null
+			and icon_button.texture_disabled == null,
+			"Each dialogue shortcut must scale one 2x SVG import into its logical icon rect; code tint owns every interaction state."
+		)
 	_expect(panel.theme_type_variation == &"AdvMessagePanel" and label.theme_type_variation == &"AdvMessageLabel", "Dialogue must reuse the existing Theme variations.")
+	_expect(
+		audio_popover.position == Vector2(665, -236)
+		and audio_popover.size == Vector2(647, 266)
+		and text_popover.position == Vector2(709, -183)
+		and text_popover.size == Vector2(647, 213),
+		"The source-sized quick-settings panels must align to their corresponding shortcut and open above the frame."
+	)
+	_expect(
+		quick_settings.get_node("%master_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%bgm_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%voice_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%se_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%env_se_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%message_speed") is SettingsKnobSlider
+		and quick_settings.get_node("%auto_speed") is SettingsKnobSlider
+		and quick_settings.get_node("%window_depth") is SettingsKnobSlider,
+		"Both popovers must keep all source controls as fixed native sliders."
+	)
 	var texture := GradientTexture2D.new()
-	view.set_speaker("穹", texture, true)
+	view.set_speaker("穹", true)
 	view.set_portrait(texture)
 	view.set_message("……别把我当小孩子。")
-	_expect(not speaker.visible and name_image.visible and name_image.texture == texture, "Resolved name artwork must replace the fallback label.")
+	_expect(speaker.visible and speaker.speaker_text() == "穹" and speaker.reading_text() == "SORA", "The principal cast name and reading must be rendered as live text.")
 	_expect(portrait.visible and portrait.texture == texture and label.text == "……别把我当小孩子。", "The view must display supplied portrait and message data.")
-	view.set_speaker("fallback", null, true)
-	_expect(speaker.visible and speaker.text == "fallback" and not name_image.visible, "Missing name artwork must retain the fallback label.")
-	view.set_speaker("心の声", null, false)
-	_expect(not speaker.visible and not name_image.visible, "The caller must be able to suppress names for monologues.")
+	view.set_speaker("fallback", true)
+	_expect(speaker.visible and speaker.speaker_text() == "fallback" and speaker.reading_text().is_empty(), "Unknown speakers must retain a fitted live-text fallback.")
+	view.set_speaker("心の声", false)
+	_expect(not speaker.visible and speaker.speaker_text() == "心の声", "The caller must be able to suppress names for monologues.")
 	view.set_portrait(null)
 	_expect(not portrait.visible and portrait.texture == null, "Disabling portraits must remove their presentation.")
 	view.set_portrait(texture)
 	view.set_message_font_size(48)
 	view.set_message_color(Color(0.72, 0.91, 1.0, 1.0))
 	_expect(label.get_theme_font_size("normal_font_size") == 48 and label.get_theme_color("default_color").is_equal_approx(Color(0.72, 0.91, 1.0, 1.0)), "Font size and read color must apply only to message text.")
-	var style := panel.get_theme_stylebox("panel") as StyleBoxTexture
-	var other_style := (other.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
-	var shared_style := THEME.get_stylebox("panel", &"AdvMessagePanel") as StyleBoxTexture
-	var other_alpha := other_style.modulate_color.a
-	var shared_alpha := shared_style.modulate_color.a
+	var other_backdrop := other.get_node("%MessageBackdrop") as AdvDialogueBackdrop
 	view.set_frame_opacity(0.25)
-	_expect(style != other_style and style != shared_style, "Each view must own a distinct mutable frame style.")
-	_expect(is_equal_approx(style.modulate_color.a, 0.25) and is_equal_approx(other_style.modulate_color.a, other_alpha) and is_equal_approx(shared_style.modulate_color.a, shared_alpha), "Frame opacity must not mutate other views or the shared Theme.")
+	_expect(backdrop != other_backdrop, "Each view must own a distinct code-drawn backdrop.")
+	_expect(is_equal_approx(backdrop.frame_opacity(), 0.25) and is_equal_approx(other_backdrop.frame_opacity(), 1.0), "Frame opacity must not mutate another view's backdrop.")
 	_expect(panel.modulate == Color.WHITE and label.modulate == Color.WHITE and portrait.modulate == Color.WHITE and speaker.modulate == Color.WHITE, "Frame opacity must not fade text, speaker, or portrait.")
 	_expect(label.get_theme_font("normal_font") == THEME.default_font, "Extraction must retain the project's message font.")
 
@@ -94,22 +155,87 @@ func _test_presentation(view: AdvDialogueView, other: AdvDialogueView) -> void:
 func _test_input_seam(view: AdvDialogueView) -> void:
 	var hidden: Array[bool] = []
 	var events: Array[InputEvent] = []
+	var replayed: Array[bool] = []
+	var favorited: Array[bool] = []
+	var previews: Array[Dictionary] = []
+	var commits: Array[Dictionary] = []
 	view.hide_requested.connect(func() -> void: hidden.append(true))
 	view.frame_gui_input.connect(func(event: InputEvent) -> void: events.append(event))
-	var button := view.get_node("%MessageHideButton") as TextureButton
+	view.voice_replay_requested.connect(func() -> void: replayed.append(true))
+	view.voice_favorite_requested.connect(func() -> void: favorited.append(true))
+	view.settings_preview_requested.connect(func(settings: Dictionary) -> void: previews.append(settings))
+	view.settings_commit_requested.connect(func(settings: Dictionary) -> void: commits.append(settings))
+	var button := view.get_node("%MessageHideButton") as AdvDialogueIconButton
+	var replay := view.get_node("%VoiceReplayButton") as AdvDialogueIconButton
+	var favorite := view.get_node("%VoiceFavoriteButton") as AdvDialogueIconButton
+	var voice_settings := view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
+	var text_settings := view.get_node("%TextSettingsButton") as AdvDialogueIconButton
 	var panel := view.get_node("%MessagePanel") as PanelContainer
+	var quick_settings := view.quick_settings_popovers()
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = true
 	button.pressed.emit()
 	panel.gui_input.emit(event)
 	_expect(hidden.size() == 1 and events == [event] and view.is_frame_visible(), "The view emits requests without implementing gameplay policy.")
+	_expect(replay.disabled and favorite.disabled and replay.mouse_filter == Control.MOUSE_FILTER_STOP and favorite.mouse_filter == Control.MOUSE_FILTER_STOP and not voice_settings.disabled and not text_settings.disabled, "Voice-dependent shortcuts must start disabled without resolved dialogue voice data while still consuming their icon hit areas.")
+	voice_settings.pressed.emit()
+	_expect(
+		view.has_quick_settings_open()
+		and quick_settings.active_panel_name() == &"AudioQuickSettingsPanel"
+		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible,
+		"The voice-settings shortcut must open its inline volume panel."
+	)
+	text_settings.pressed.emit()
+	_expect(
+		quick_settings.active_panel_name() == &"TextQuickSettingsPanel"
+		and not (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible
+		and (quick_settings.get_node("%TextQuickSettingsPanel") as Control).visible,
+		"The two inline panels must be mutually exclusive."
+	)
+	var supplied := SettingsModel.defaults()
+	supplied["message_speed"] = 23
+	supplied["auto_speed"] = 4200
+	supplied["window_depth"] = 64
+	view.sync_quick_settings(supplied)
+	_expect(
+		is_equal_approx((quick_settings.get_node("%message_speed") as SettingsKnobSlider).value, 77.0)
+		and is_equal_approx((quick_settings.get_node("%auto_speed") as SettingsKnobSlider).value, 58.0)
+		and is_equal_approx((quick_settings.get_node("%window_depth") as SettingsKnobSlider).value, 64.0),
+		"Text quick settings must preserve the source inverse speed mapping and direct opacity mapping."
+	)
+	(quick_settings.get_node("%message_speed") as SettingsKnobSlider).value = 68.0
+	(quick_settings.get_node("%SkipAllChoice") as CheckBox).pressed.emit()
+	quick_settings.flush_pending_commit()
+	_expect(
+		previews.size() == 2
+		and int(previews[0].message_speed) == 32
+		and not bool(previews[1].read_skip)
+		and commits.size() == 1
+		and int(commits[0].message_speed) == 32
+		and not bool(commits[0].read_skip),
+		"Quick controls must emit complete preview and persistent settings snapshots using source value semantics."
+	)
+	text_settings.pressed.emit()
+	_expect(not view.has_quick_settings_open(), "Pressing the active shortcut again must close its panel.")
+	view.set_voice_actions_enabled(true)
+	replay.pressed.emit()
+	favorite.pressed.emit()
+	_expect(replayed.size() == 1 and favorited.size() == 1, "Voice shortcuts must keep their presentation-level request seam.")
+	replay.button_down.emit()
+	_expect(replay.self_modulate.is_equal_approx(AdvDialogueIconButton.ACTIVE_TINT), "Pressed dialogue shortcuts must tint the same SVG from code.")
+	replay.button_up.emit()
+	_expect(replay.self_modulate.is_equal_approx(AdvDialogueIconButton.NORMAL_TINT), "Released dialogue shortcuts must restore the normal SVG tint.")
 	view.set_interactive(false)
 	button.pressed.emit()
+	replay.pressed.emit()
+	favorite.pressed.emit()
+	voice_settings.pressed.emit()
+	text_settings.pressed.emit()
 	panel.gui_input.emit(event)
-	_expect(hidden.size() == 1 and events.size() == 1 and button.disabled and panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Read-only mode must suppress input and hide requests.")
+	_expect(hidden.size() == 1 and events.size() == 1 and replayed.size() == 1 and favorited.size() == 1 and not view.has_quick_settings_open() and button.disabled and replay.disabled and favorite.disabled and voice_settings.disabled and text_settings.disabled and panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Read-only mode must suppress every dialogue shortcut and frame input request.")
 	view.set_interactive(true)
-	_expect(not button.disabled and button.focus_mode == Control.FOCUS_CLICK and panel.mouse_filter == Control.MOUSE_FILTER_PASS, "Interactive mode must restore original button/panel input behavior.")
+	_expect(not button.disabled and not replay.disabled and not favorite.disabled and not voice_settings.disabled and not text_settings.disabled and button.focus_mode == Control.FOCUS_CLICK and panel.mouse_filter == Control.MOUSE_FILTER_PASS, "Interactive mode must restore original button/panel input behavior and the prior voice availability.")
 
 
 func _test_reveal(view: AdvDialogueView) -> void:

@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/appreciation/content/appreciation_album_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://src/ui/page_title.tscn" id="3_page_title"]
+[ext_resource type="PackedScene" path="res://src/appreciation/ui/appreciation_navigation.tscn" id="5_navigation"]
+[ext_resource type="PackedScene" path="res://src/appreciation/content/appreciation_album_viewer.tscn" id="6_viewer"]
+
+[ext_resource type="PackedScene" path="res://src/appreciation/ui/appreciation_gallery.tscn" id="8_gallery"]
+
+[node name="AlbumPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_page")
+
+[node name="VisualCanvas" type="Control" parent="."]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="PageTitle" parent="VisualCanvas" instance=ExtResource("3_page_title")]
+layout_mode = 0
+offset_top = 24.0
+offset_right = 566.0
+offset_bottom = 140.0
+title = "鉴赏"
+subtitle = "GALLERY."
+
+[node name="GalleryContent" parent="VisualCanvas" instance=ExtResource("8_gallery")]
+
+[node name="AppreciationNavigation" parent="VisualCanvas" instance=ExtResource("5_navigation")]
+layout_mode = 0
+current_catalog = "album"
+
+[node name="AlbumViewer" parent="VisualCanvas" instance=ExtResource("6_viewer")]
+unique_name_in_owner = true
+z_index = 100

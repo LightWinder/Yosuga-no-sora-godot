@@ -105,7 +105,7 @@ func _run() -> void:
 	var prepared_preview := prepared_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
 	_expect(not (prepared_preview.get_node("%DialogueView") as AdvDialogueView).is_revealing() and (prepared_preview.get_node("%ReplayTimer") as Timer).is_stopped(), "Prepared Settings must not start an invisible demo loop.")
 	var previous_max_fps := Engine.max_fps
-	startup_flow._show_title_feature(&"settings")
+	startup_flow._show_title_route(&"settings")
 	await create_timer(0.4, true, false, true).timeout
 	var settings_screen := overlay_host.get_child(overlay_host.get_child_count() - 1) as SettingsScreen
 	_expect(settings_screen != null, "Settings must use its dedicated route scene.")
@@ -124,7 +124,7 @@ func _run() -> void:
 	var sample_message := (title_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text
 	var sample_background := (title_preview.get_node("%Background") as TextureRect).texture
 	var sample_portrait := (title_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture
-	var sample_speaker := (title_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture
+	var sample_speaker := (title_preview.get_node("%DialogueView").get_node("%SpeakerName") as AdvSpeakerName).speaker_text()
 	_expect(sample_background.resource_path.ends_with("EA01E.png"), "Title Settings must show the fixed train sample.")
 	settings_screen.settings_page().read_flags_reset_requested.emit()
 	_expect(read_reset_events.size() == 1, "StartupFlow must expose the settings read-reset integration seam.")
@@ -133,13 +133,29 @@ func _run() -> void:
 	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 0, "Closing settings must reveal the same Title instance without replaying its route.")
 	_expect(title_underlay.is_processing_input() and title_underlay.is_processing_unhandled_input(), "Closing settings must restore input to the underlying route.")
 	_expect(Engine.max_fps == previous_max_fps, "Closing settings must leave the application frame rate unchanged.")
+	var appreciation_return_focus := title_underlay.get_menu_buttons()[0] as Control
+	appreciation_return_focus.grab_focus()
+	startup_flow._show_title_route(&"memories")
+	await process_frame
+	var appreciation_overlay := overlay_host.get_child(overlay_host.get_child_count() - 1) as AppreciationScreen
+	_expect(appreciation_overlay != null and appreciation_overlay.name == &"AppreciationOverlay", "Appreciation must open as a route overlay.")
+	_expect((appreciation_overlay.get_node("BackBufferCopy") as BackBufferCopy).copy_mode == BackBufferCopy.COPY_MODE_VIEWPORT, "Appreciation must copy the live Title route directly from the root viewport.")
+	_expect(appreciation_overlay.get_node_or_null("Background") == null, "Appreciation must not cover the live Title with its former static background.")
+	_expect(screen_host.get_child_count() == 1 and screen_host.get_child(0) == title_underlay and overlay_host.get_child_count() == 1, "Appreciation must preserve the same live Title instance below its blur layer.")
+	_expect(title_underlay.is_subscreen_departed() and not title_underlay.is_processing_input(), "Title chrome and input must be hidden while Appreciation is open.")
+	var appreciation_back := appreciation_overlay.get_node("Content/EntryList/MemoriesPage/VisualCanvas/AppreciationNavigation/%BackToTitle") as Button
+	appreciation_back.pressed.emit()
+	_expect(appreciation_overlay.is_closing(), "Returning from Appreciation must play its close transition before removal.")
+	await create_timer(0.7, true, false, true).timeout
+	_expect(overlay_host.get_child_count() == 0 and screen_host.get_child(0) == title_underlay and not title_underlay.is_subscreen_departed(), "Closing Appreciation must restore the same Title instance without replaying the route.")
+	_expect(title_underlay.is_processing_input() and root.gui_get_focus_owner() == appreciation_return_focus, "Closing Appreciation must restore Title input and the invoking focus.")
 	var load_return_focus: Control
 	for button in title_underlay.get_menu_buttons():
 		if button.is_visible_in_tree() and not button.disabled:
 			button.grab_focus()
 			load_return_focus = button
 			break
-	startup_flow._show_title_feature(&"load_game")
+	startup_flow._show_title_route(&"load_game")
 	await process_frame
 	var load_overlay := overlay_host.get_child(overlay_host.get_child_count() - 1) as SaveLoadPage
 	_expect(load_overlay != null and screen_host.get_child(0) == title_underlay, "Load must overlay the existing title like Settings.")
@@ -155,7 +171,7 @@ func _run() -> void:
 	route_save.scenario_id = "00_z000"
 	route_save.instruction_anchor = "hitret:1"
 	_expect(startup_save_service.save_slot(0, route_save), "ADV route smoke test must create an isolated save fixture.")
-	startup_flow._show_title_feature(&"load_game")
+	startup_flow._show_title_route(&"load_game")
 	await process_frame
 	var path_only_request := ScenarioLaunchRequest.new()
 	path_only_request.kind = ScenarioLaunchRequest.RequestKind.CONTINUE
@@ -181,28 +197,83 @@ func _run() -> void:
 	_expect(adv.current_message().begins_with("蔚蓝的天空"), "ADV route must restore real UTF-8 source dialogue.")
 	_expect(path_only_request.save_data != null and path_only_request.instruction_anchor == "hitret:1", "StartupFlow must resolve path-only voice/save jump requests through SaveService.")
 	var adv_message_panel := adv.get_node("VisualCanvas/DialogueView/MessagePanel") as Control
+	var gameplay_view := adv.get_node("%DialogueView") as AdvDialogueView
 	var source_message := adv.current_message()
 	_expect(source_message != sample_message, "The gameplay fixture must differ from the fixed Settings sample.")
-	var adv_settings := startup_flow.open_settings()
+	var voice_collection := startup_flow._ensure_voice_collection_service()
+	voice_collection.configure_storage(
+		"/tmp/yosuga-startup-voice-%d/voice_favorites.json" % Time.get_ticks_usec()
+	)
+	adv.voice_favorite_requested.emit(
+		"SR000001",
+		"res://assets/audio/adv/voice/SR000001.ogg",
+		"穹",
+		"……………"
+	)
+	_expect(voice_collection.count() == 1, "The app composition root must persist ADV voice-favorite requests through the independent collection service.")
+	adv.voice_favorite_requested.emit(
+		"SR000001",
+		"res://assets/audio/adv/voice/SR000001.ogg",
+		"穹",
+		"……………"
+	)
+	_expect(voice_collection.count() == 1 and (adv.get_node("%Status") as Label).text == "该语音已收藏", "Duplicate ADV favorite clicks must retain one entry and report the source-style result.")
+	(gameplay_view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton).pressed.emit()
+	var quick_settings := gameplay_view.quick_settings_popovers()
+	_expect(
+		quick_settings.active_panel_name() == &"AudioQuickSettingsPanel"
+		and adv_message_panel.visible
+		and overlay_host.get_child_count() == 0,
+		"The dialogue voice shortcut must open the source-style inline panel without leaving ADV."
+	)
+	var quick_master := quick_settings.get_node("%master_volume") as SettingsKnobSlider
+	quick_master.value = 37.0
+	quick_master.drag_ended.emit(true)
+	_expect(
+		is_equal_approx(float(startup_settings_repository.read_settings().master_volume), 0.37)
+		and _bus_volume_is("Master", 0.37),
+		"Inline audio edits must preview through the live audio buses and persist through SettingsRepository."
+	)
+	(gameplay_view.get_node("%TextSettingsButton") as AdvDialogueIconButton).pressed.emit()
+	_expect(
+		quick_settings.active_panel_name() == &"TextQuickSettingsPanel"
+		and not (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible,
+		"Opening inline text settings must replace the inline volume panel."
+	)
+	var quick_message_speed := quick_settings.get_node("%message_speed") as SettingsKnobSlider
+	quick_message_speed.value = 74.0
+	quick_message_speed.drag_ended.emit(true)
+	(quick_settings.get_node("%SkipAllChoice") as CheckBox).pressed.emit()
+	_expect(
+		int(startup_settings_repository.read_settings().message_speed) == 26
+		and not bool(startup_settings_repository.read_settings().read_skip)
+		and int(adv.get("_message_speed_milliseconds")) == 26
+		and bool(adv.get("_allow_unread_skip")),
+		"Inline text edits must preserve source speed polarity and apply the selected skip range immediately."
+	)
+	(gameplay_view.get_node("%TextSettingsButton") as AdvDialogueIconButton).pressed.emit()
+	_expect(not gameplay_view.has_quick_settings_open(), "Pressing the active inline-settings shortcut again must close it.")
+	adv.settings_requested.emit()
 	await create_timer(0.4, true, false, true).timeout
+	var adv_settings := startup_flow.open_settings()
 	_expect(
 		adv_settings.visible and not adv_message_panel.visible,
 		"Opening route-level Settings above ADV must hide dialogue chrome from the live blurred backdrop."
 	)
+	_expect(adv_settings.settings_page().current_tab() == SettingsChrome.Tab.DISPLAY, "The full system-menu Settings action must keep its normal default tab.")
 	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
-	var gameplay_view := adv.get_node("%DialogueView") as AdvDialogueView
 	var preview_view := adv_preview.get_node("%DialogueView") as AdvDialogueView
 	_expect(gameplay_view.scene_file_path == preview_view.scene_file_path and preview_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay and preview must reuse the same unmodified dialogue scene.")
-	var gameplay_style := (gameplay_view.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
-	var preview_style := (preview_view.get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
-	var gameplay_alpha := gameplay_style.modulate_color.a
+	var gameplay_backdrop := gameplay_view.get_node("%MessageBackdrop") as AdvDialogueBackdrop
+	var preview_backdrop := preview_view.get_node("%MessageBackdrop") as AdvDialogueBackdrop
+	var gameplay_alpha := gameplay_backdrop.frame_opacity()
 	var preview_settings := adv_settings.settings_page().get_current_settings()
 	var isolated_settings := preview_settings.duplicate(true)
 	isolated_settings["window_depth"] = 17
 	# Bypass the repository deliberately: legitimate settings propagation is not
-	# a shared-resource leak. This checks only direct preview-style mutation.
+	# a shared-resource leak. This checks only direct preview-backdrop mutation.
 	adv_preview.apply_settings(isolated_settings)
-	_expect(gameplay_style != preview_style and is_equal_approx(gameplay_style.modulate_color.a, gameplay_alpha) and is_equal_approx(preview_style.modulate_color.a, 0.17), "Preview-only opacity changes must not mutate gameplay's frame StyleBox.")
+	_expect(gameplay_backdrop != preview_backdrop and is_equal_approx(gameplay_backdrop.frame_opacity(), gameplay_alpha) and is_equal_approx(preview_backdrop.frame_opacity(), 0.17), "Preview-only opacity changes must not mutate gameplay's code-drawn backdrop.")
 	adv_preview.apply_settings(preview_settings)
 	_expect_preview_connection(adv_settings)
 	_test_preview_settings_flow(adv_settings)
@@ -211,7 +282,7 @@ func _run() -> void:
 	var preview_background := adv_preview.get_node("%Background") as TextureRect
 	_expect(preview_background.texture == sample_background, "Preview background, characters and camera must match the Title sample, independent of gameplay.")
 	_expect((adv_preview.get_node("%DialogueView").get_node("%Portrait") as TextureRect).texture == sample_portrait, "In-game Settings must retain the fixed sample portrait.")
-	_expect((adv_preview.get_node("%DialogueView").get_node("%SpeakerNameImage") as TextureRect).texture == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
+	_expect((adv_preview.get_node("%DialogueView").get_node("%SpeakerName") as AdvSpeakerName).speaker_text() == sample_speaker, "In-game Settings must retain the fixed sample speaker.")
 	_expect(adv_preview.find_child("ChoiceOverlay", true, false) == null, "The fixed preview must not contain gameplay choices.")
 	adv_settings.back_requested.emit()
 	await create_timer(0.7, true, false, true).timeout
@@ -220,12 +291,6 @@ func _run() -> void:
 		"Returning from ADV Settings must restore dialogue chrome synchronously after the overlay closes."
 	)
 	_expect(adv.current_message() == source_message, "Closing Settings must preserve the real dialogue instead of applying the preview sample to gameplay.")
-	var reopened_settings := startup_flow.open_settings()
-	var reopened_preview := reopened_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
-	_expect_preview_connection(reopened_settings)
-	_expect((reopened_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == sample_message, "Reopening in-game Settings must still initialize the same fixed sample.")
-	_expect((reopened_preview.get_node("%Background") as TextureRect).texture == sample_background, "Reopened Settings must retain the fixed sample stage.")
-	startup_flow._close_settings_overlay(false)
 	adv.title_exit_seconds = 0.01
 	adv.title_exit_audio_seconds = 0.01
 	adv.title_exit_chrome_seconds = 0.01
@@ -325,8 +390,8 @@ func _test_preview_settings_flow(screen: SettingsScreen) -> void:
 	_expect(preview.visible and view.is_revealing() and (view.get_node("%MessageLabel") as RichTextLabel).visible_characters == 0, "Returning to Display must restart the sample from zero.")
 	page.find_setting_slider("window_depth").value = 25.0
 	preview_values = preview.get("_settings")
-	var message_style := (preview.get_node("%DialogueView").get_node("%MessagePanel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxTexture
-	_expect(is_equal_approx(message_style.modulate_color.a, 0.25) and preview_values == page.get_current_settings(), "Display opacity must update immediately without overwriting the latest System settings.")
+	var message_backdrop := preview.get_node("%DialogueView").get_node("%MessageBackdrop") as AdvDialogueBackdrop
+	_expect(is_equal_approx(message_backdrop.frame_opacity(), 0.25) and preview_values == page.get_current_settings(), "Display opacity must update immediately without overwriting the latest System settings.")
 	_expect(repository_updates.size() == 3 and repository_updates.back() == preview_values, "Opacity edits must not duplicate repository preview notifications.")
 	page.display_page().set_screen_toggle(&"portrait_visible", false)
 	_expect(not (view.get_node("%Portrait") as TextureRect).visible and preview.get("_settings") == page.get_current_settings(), "Portrait settings must reach the preview directly.")

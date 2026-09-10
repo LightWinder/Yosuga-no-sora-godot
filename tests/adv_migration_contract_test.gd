@@ -216,6 +216,92 @@ func _test_scene_and_animation_contract() -> void:
 	_expect(dialogue_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay must use the shared dialogue scene as a normal instance.")
 	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel") is PanelContainer, "Dialogue frame must remain scene-owned.")
 	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait") is TextureRect, "Dialogue portrait must remain scene-owned.")
+	var voice_replay_button := dialogue_view.get_node("%VoiceReplayButton") as AdvDialogueIconButton
+	var voice_favorite_button := dialogue_view.get_node("%VoiceFavoriteButton") as AdvDialogueIconButton
+	var voice_settings_button := dialogue_view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
+	var text_settings_button := dialogue_view.get_node("%TextSettingsButton") as AdvDialogueIconButton
+	var quick_settings := dialogue_view.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
+	_expect(
+		voice_replay_button != null
+		and voice_favorite_button != null
+		and voice_settings_button != null
+		and text_settings_button != null
+		and dialogue_view.get_node("%MessageHideButton") is AdvDialogueIconButton,
+		"The dialogue's four source shortcuts and close action must remain fixed scene-owned icon buttons."
+	)
+	_expect(
+		quick_settings != null
+		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).size == Vector2(647, 266)
+		and (quick_settings.get_node("%TextQuickSettingsPanel") as Control).size == Vector2(647, 213)
+		and quick_settings.get_node("%master_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%bgm_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%voice_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%se_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%env_se_volume") is SettingsKnobSlider
+		and quick_settings.get_node("%message_speed") is SettingsKnobSlider
+		and quick_settings.get_node("%auto_speed") is SettingsKnobSlider
+		and quick_settings.get_node("%window_depth") is SettingsKnobSlider
+		and quick_settings.get_node("%SkipReadChoice") is CheckBox
+		and quick_settings.get_node("%SkipAllChoice") is CheckBox,
+		"The inline panels must retain the source five-channel and text/skip control set as native scene content."
+	)
+	var message_before_disabled_voice_click := screen.current_message()
+	_send_primary_click(voice_replay_button.get_global_rect().get_center())
+	await process_frame
+	_expect(screen.current_message() == message_before_disabled_voice_click, "A disabled voice shortcut must consume its icon hit area instead of advancing dialogue.")
+	var favorite_requests: Array[Dictionary] = []
+	screen.voice_favorite_requested.connect(
+		func(voice_id: String, voice_path: String, speaker: String, message: String) -> void:
+			favorite_requests.append({
+				"voice_id": voice_id,
+				"voice_path": voice_path,
+				"speaker": speaker,
+				"message": message,
+			})
+	)
+	screen.set("_current_voice_id", "SR000001")
+	screen._refresh_dialogue_voice_actions()
+	_expect(not voice_replay_button.disabled and not voice_favorite_button.disabled, "A resolved current voice must enable replay and favorite actions.")
+	voice_favorite_button.pressed.emit()
+	voice_replay_button.pressed.emit()
+	var replay_player := screen.get_node("%VoicePlayer") as AudioStreamPlayer
+	_expect(
+		favorite_requests.size() == 1
+		and str(favorite_requests[0].voice_id) == "SR000001"
+		and str(favorite_requests[0].voice_path).ends_with("/SR000001.ogg")
+		and replay_player.stream != null
+		and replay_player.stream.resource_path.ends_with("/SR000001.ogg"),
+		"Dialogue voice actions must replay the resolved stream and emit a neutral favorite payload."
+	)
+	voice_settings_button.pressed.emit()
+	_expect(
+		quick_settings.active_panel_name() == &"AudioQuickSettingsPanel"
+		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible,
+		"DHK-14 must open the inline source volume panel."
+	)
+	var quick_voice_slider := quick_settings.get_node("%voice_volume") as SettingsKnobSlider
+	quick_voice_slider.value = 44.0
+	quick_voice_slider.drag_ended.emit(true)
+	text_settings_button.pressed.emit()
+	var quick_message_slider := quick_settings.get_node("%message_speed") as SettingsKnobSlider
+	quick_message_slider.value = 71.0
+	quick_message_slider.drag_ended.emit(true)
+	(quick_settings.get_node("%SkipAllChoice") as CheckBox).pressed.emit()
+	_expect(
+		quick_settings.active_panel_name() == &"TextQuickSettingsPanel"
+		and not (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible
+		and is_equal_approx(float(settings_repository.read_settings().voice_volume), 0.44)
+		and int(settings_repository.read_settings().message_speed) == 29
+		and not bool(settings_repository.read_settings().read_skip),
+		"Inline settings must be mutually exclusive and persist source-mapped values through the injected repository."
+	)
+	text_settings_button.pressed.emit()
+	_expect(not dialogue_view.has_quick_settings_open(), "DHK-15 must toggle its active inline panel closed.")
+	screen._set_auto_enabled(true)
+	_expect(voice_replay_button.disabled and voice_favorite_button.disabled, "Auto mode must disable replay and favorite like the source frame.")
+	screen._set_auto_enabled(false)
+	screen.set("_current_voice_id", "")
+	screen._refresh_dialogue_voice_actions()
 	var stage_fallback := screen.get_node("VisualCanvas/Stage/StageFallback") as ColorRect
 	var message_panel := screen.get_node("VisualCanvas/DialogueView/MessagePanel") as Control
 	_expect(
@@ -277,7 +363,8 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.get_node_or_null("SystemMenuAutoHideTimer") is Timer,
 		"System-menu animation timing must use scene-owned Timer nodes."
 	)
-	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage") is TextureRect, "Speaker name artwork must remain scene-owned.")
+	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageBackdrop") is AdvDialogueBackdrop, "The code-drawn dialogue backdrop must remain scene-owned.")
+	_expect(screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerName") is AdvSpeakerName, "The code-drawn speaker name must remain scene-owned.")
 	_expect(screen.get_node_or_null("VisualCanvas/ChoiceOverlay/ChoiceCenter/ChoiceList") is VBoxContainer, "Choice layout must remain scene-owned.")
 	var route_exit_cover := screen.get_node_or_null("VisualCanvas/RouteExitCover") as ColorRect
 	var route_exit_blocker := screen.get_node_or_null("VisualCanvas/RouteExitBlocker") as Control
@@ -327,6 +414,27 @@ func _test_scene_and_animation_contract() -> void:
 	]
 	for button_name in system_button_names:
 		var system_button := screen.get_node("VisualCanvas/SystemMenu/%s" % button_name) as TextureButton
+		var vector_icon := system_button.texture_normal
+		var state_background := system_button.get_node_or_null("StateBackground") as Control
+		var normal_background: StyleBoxFlat
+		var active_background: StyleBoxFlat
+		if state_background != null:
+			normal_background = state_background.get("normal_style") as StyleBoxFlat
+			active_background = state_background.get("active_style") as StyleBoxFlat
+		_expect(
+			system_button is AdvSystemMenuButton
+			and vector_icon != null
+			and vector_icon.resource_path.ends_with(".svg")
+			and vector_icon.get_size().is_equal_approx(Vector2(110.0, 112.0))
+			and system_button.ignore_texture_size
+			and system_button.stretch_mode == TextureButton.STRETCH_SCALE
+			and system_button.size.is_equal_approx(Vector2(55.0, 56.0))
+			and normal_background != null
+			and normal_background.bg_color.is_equal_approx(AdvSystemMenuButton.NORMAL_BACKGROUND)
+			and active_background != null
+			and active_background.bg_color.is_equal_approx(AdvSystemMenuButton.ACTIVE_BACKGROUND),
+			"System-menu button %s must combine one foreground SVG with its code-drawn state background." % button_name
+		)
 		_send_pointer_motion(system_button.get_global_rect().get_center())
 		await process_frame
 		_expect(
@@ -454,12 +562,12 @@ func _test_scene_and_animation_contract() -> void:
 		"Presenting a bust-up must register both source dress and difference CgFlag progress."
 	)
 	screen._update_dialogue_chrome("穹")
-	var speaker_name_image := screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage") as TextureRect
+	var speaker_name := screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerName") as AdvSpeakerName
 	var portrait := screen.get_node("VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait") as TextureRect
 	_expect(
-		speaker_name_image.visible and speaker_name_image.texture != null
+		speaker_name.visible and speaker_name.speaker_text() == "穹" and speaker_name.reading_text() == "SORA"
 		and portrait.visible and portrait.texture != null,
-		"Source speaker-name artwork and the matching T portrait must be selected from dialogue state."
+		"The source-style speaker name/reading and matching T portrait must be selected from dialogue state."
 	)
 	var opening_state := stage.presentation_state()
 	_expect(
@@ -841,19 +949,19 @@ func _test_scene_and_animation_contract() -> void:
 	var navigation_message_label := screen.get_node(
 		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/MessageLabel"
 	) as RichTextLabel
-	var navigation_speaker_name_image := screen.get_node(
-		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerNameImage"
-	) as TextureRect
+	var navigation_speaker_name := screen.get_node(
+		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/SpeakerName"
+	) as AdvSpeakerName
 	var navigation_portrait := screen.get_node(
 		"VisualCanvas/DialogueView/MessagePanel/MessageColumn/Portrait"
 	) as TextureRect
-	var first_choice_speaker_texture := navigation_speaker_name_image.texture
+	var first_choice_speaker := navigation_speaker_name.speaker_text()
 	var first_choice_portrait_texture := navigation_portrait.texture
 	_expect(
 		screen.current_message() == "第一个选项之前"
 		and navigation_message_label.text == "第一个选项之前"
 		and navigation_message_label.get_theme_font_size("normal_font_size") == 48
-		and first_choice_speaker_texture != null
+		and not first_choice_speaker.is_empty()
 		and first_choice_portrait_texture != null,
 		"The first choice checkpoint must include its complete pre-choice dialogue presentation."
 	)
@@ -874,7 +982,7 @@ func _test_scene_and_animation_contract() -> void:
 	_expect(
 		navigation_message_label.text == "第二个选项之前"
 		and navigation_message_label.get_theme_font_size("normal_font_size") == 50
-		and navigation_speaker_name_image.texture != first_choice_speaker_texture
+		and navigation_speaker_name.speaker_text() != first_choice_speaker
 		and navigation_portrait.texture != first_choice_portrait_texture,
 		"A temporary font on a skipped intermediate line must not leak into the later choice dialogue."
 	)
@@ -888,7 +996,7 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.current_message() == "第一个选项之前"
 		and navigation_message_label.text == "第一个选项之前"
 		and navigation_message_label.get_theme_font_size("normal_font_size") == 48
-		and navigation_speaker_name_image.texture == first_choice_speaker_texture
+		and navigation_speaker_name.speaker_text() == first_choice_speaker
 		and navigation_portrait.texture == first_choice_portrait_texture,
 		"Previous-choice navigation from an unselected next choice must restore the earlier choice together with its speaker, message, and portrait."
 	)

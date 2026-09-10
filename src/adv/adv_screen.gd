@@ -4,13 +4,17 @@ extends DesignCanvasPage
 
 signal title_requested
 signal settings_requested
+signal voice_favorite_requested(
+	voice_id: String,
+	voice_path: String,
+	speaker: String,
+	message: String
+)
 signal scenario_finished
 
 const BACKGROUND_PREVIEW_SCENE: PackedScene = preload("res://src/adv/components/adv_background_preview.tscn")
 const SAVE_LOAD_PAGE_SCENE: PackedScene = preload("res://src/save_load/save_load_page.tscn")
 const CHOICE_BUTTON_SCENE: PackedScene = preload("res://src/adv/components/adv_choice_button.tscn")
-const SPEAKER_NAME_MANIFEST := "res://assets/content/adv/ui/speaker_name_manifest.csv"
-const SPEAKER_NAME_DIRECTORY := "res://assets/content/adv/ui/name"
 const SYSTEM_MENU_SHOWN_X := 1602.0
 const SYSTEM_MENU_HIDDEN_X := 1860.0
 const SYSTEM_MENU_SLIDE_SECONDS := 0.2
@@ -86,6 +90,7 @@ var _runtime_settings: Dictionary = {}
 var _current_message := ""
 var _current_speaker := ""
 var _current_anchor := ""
+var _current_voice_id := ""
 var _auto_enabled := false
 var _skip_enabled := false
 var _auto_generation := 0
@@ -119,7 +124,6 @@ var _stop_voice_on_advance := false
 var _preserve_skip_after_choice := false
 var _preserve_auto_after_choice := false
 var _route_guide_enabled := true
-var _speaker_name_textures: Dictionary = {}
 var _autosave_capture_generation := 0
 var _pending_autosave_snapshot: SaveData
 var _save_capture_busy := false
@@ -166,7 +170,6 @@ func _ready() -> void:
 	if not _progress_catalog.load_error.is_empty():
 		push_error(_progress_catalog.load_error)
 	_active_bgm_player = _bgm_players[0]
-	_load_speaker_name_textures()
 	_connect_controls()
 	_connect_runtime()
 	_connect_stage_director()
@@ -243,6 +246,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_history()
 			get_viewport().set_input_as_handled()
 		return
+	if _dialogue_view.has_quick_settings_open():
+		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
+			_dialogue_view.close_quick_settings()
+			get_viewport().set_input_as_handled()
+		return
 	if _menu_chrome_tween != null and _menu_chrome_tween.is_valid():
 		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
 			get_viewport().set_input_as_handled()
@@ -272,6 +280,15 @@ func runtime() -> KrkrScenarioRuntime:
 
 func current_message() -> String:
 	return _current_message
+
+
+func current_voice_id() -> String:
+	return _current_voice_id
+
+
+func show_notice(message: String) -> void:
+	_status.text = message
+	_status.visible = not message.is_empty()
 
 
 ## Reproduces ADVScreen.returnTo(): selection UI ends immediately, player
@@ -335,6 +352,10 @@ func _connect_controls() -> void:
 	_dialogue_view.hide_requested.connect(_hide_player_chrome_manually)
 	_dialogue_view.frame_gui_input.connect(_on_message_panel_gui_input)
 	_dialogue_view.reveal_finished.connect(_try_schedule_auto_advance)
+	_dialogue_view.voice_replay_requested.connect(_replay_current_voice)
+	_dialogue_view.voice_favorite_requested.connect(_favorite_current_voice)
+	_dialogue_view.settings_preview_requested.connect(_preview_quick_settings)
+	_dialogue_view.settings_commit_requested.connect(_commit_quick_settings)
 	_settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	_menu_lock_button.toggled.connect(_on_system_menu_lock_toggled)
 	_title_button.pressed.connect(_request_title)
@@ -445,6 +466,7 @@ func _on_dialogue_ready(
 	_current_speaker = speaker
 	_current_message = message
 	_current_anchor = anchor
+	_current_voice_id = voice_id
 	_current_message_already_read = already_read
 	# Font is a one-dialogue command in the source. Consume it even while a
 	# next-choice scan suppresses intermediate rendering, otherwise an earlier
@@ -602,6 +624,7 @@ func _restore_choice_jump_dialogue() -> void:
 
 func _present_current_dialogue(reveal_all: bool) -> void:
 	_update_dialogue_chrome(_current_speaker)
+	_refresh_dialogue_voice_actions()
 	_refresh_message_appearance()
 	if reveal_all:
 		_dialogue_view.set_message(_current_message)
@@ -1059,6 +1082,43 @@ func _play_voice(resource_id: String) -> void:
 		var player := _voice_players[index]
 		player.volume_db = linear_to_db(_voice_detail_volume(voice_id))
 		_play_audio(player, stream)
+
+
+func _replay_current_voice() -> void:
+	if _auto_enabled or _current_voice_entry().is_empty():
+		return
+	_play_voice(_current_voice_id)
+
+
+func _favorite_current_voice() -> void:
+	if _auto_enabled:
+		return
+	var entry := _current_voice_entry()
+	if entry.is_empty():
+		return
+	voice_favorite_requested.emit(
+		str(entry.get("id", "")),
+		str(entry.get("path", "")),
+		_current_speaker,
+		_current_message
+	)
+
+
+func _current_voice_entry() -> Dictionary:
+	for raw_id in _current_voice_id.split("/", false):
+		var voice_id := raw_id.strip_edges()
+		if voice_id.is_empty():
+			continue
+		var voice_path := _resolver().path_for_voice(voice_id)
+		if not voice_path.is_empty():
+			return {"id": voice_id, "path": voice_path}
+	return {}
+
+
+func _refresh_dialogue_voice_actions() -> void:
+	_dialogue_view.set_voice_actions_enabled(
+		not _auto_enabled and not _current_voice_entry().is_empty()
+	)
 
 
 func _stop_voice() -> void:
@@ -1873,6 +1933,7 @@ func _build_save_snapshot() -> SaveData:
 	data.presentation = _stage_director.presentation_state()
 	data.presentation["speaker"] = _current_speaker
 	data.presentation["message"] = _current_message
+	data.presentation["voice_id"] = _current_voice_id
 	data.presentation["message_already_read"] = _current_message_already_read
 	data.presentation["message_font_size"] = _current_message_font_size
 	data.presentation["message_font_bound"] = true
@@ -1943,6 +2004,7 @@ func _restore_presentation(presentation: Dictionary) -> void:
 	_stage_director.restore_presentation(presentation)
 	_current_speaker = str(presentation.get("speaker", ""))
 	_current_message = str(presentation.get("message", ""))
+	_current_voice_id = str(presentation.get("voice_id", ""))
 	_current_message_already_read = bool(presentation.get("message_already_read", false))
 	# Checkpoints written by the old scanner could contain a font leaked from an
 	# unrelated skipped line. Only trust sizes explicitly marked as dialogue-bound.
@@ -2018,6 +2080,7 @@ func _write_profile_progress() -> void:
 
 func _set_auto_enabled(enabled: bool) -> void:
 	_auto_enabled = enabled
+	_refresh_dialogue_voice_actions()
 	_auto_mode_indicator.visible = enabled
 	if enabled:
 		_auto_indicator_timer.start()
@@ -2183,6 +2246,7 @@ func _can_skip_current_message() -> bool:
 
 func _apply_runtime_settings(settings: Dictionary) -> void:
 	_runtime_settings = SettingsModel.normalize(settings)
+	_dialogue_view.sync_quick_settings(_runtime_settings)
 	_message_speed_milliseconds = int(_runtime_settings.get("message_speed", 5))
 	_dialogue_view.set_reveal_speed(_message_speed_milliseconds)
 	_auto_wait_seconds = float(_runtime_settings.get("auto_speed", 5000)) / 1000.0
@@ -2198,30 +2262,24 @@ func _apply_runtime_settings(settings: Dictionary) -> void:
 		_stage_director.set_screen_effects_enabled(bool(_runtime_settings.get("screen_effect", true)))
 
 
-func _load_speaker_name_textures() -> void:
-	_speaker_name_textures.clear()
-	var file := FileAccess.open(SPEAKER_NAME_MANIFEST, FileAccess.READ)
-	if file == null:
+func _preview_quick_settings(settings: Dictionary) -> void:
+	if _settings_repository != null:
+		_settings_repository.preview_settings(settings)
+
+
+func _commit_quick_settings(settings: Dictionary) -> void:
+	if _settings_repository == null:
 		return
-	var first_row := true
-	while not file.eof_reached():
-		var row := file.get_csv_line()
-		if first_row:
-			first_row = false
-			continue
-		if row.size() < 2 or row[0].is_empty() or row[1].is_empty() or row[1] == "nothing.png":
-			continue
-		var texture_path := "%s/%s" % [SPEAKER_NAME_DIRECTORY, row[1]]
-		var texture := ResourceLoader.load(texture_path, "Texture2D") as Texture2D
-		if texture != null:
-			_speaker_name_textures[_normalize_speaker_name(row[0])] = texture
+	if _settings_repository.write_settings(settings):
+		return
+	_apply_runtime_settings(_settings_repository.read_settings())
+	show_notice(_settings_repository.last_error)
 
 
 func _update_dialogue_chrome(speaker: String) -> void:
 	var normalized := _normalize_speaker_name(speaker)
 	var is_monologue := normalized.is_empty() or normalized in ["心の声", "語り", "モノローグ"]
-	var name_texture := _speaker_name_textures.get(normalized) as Texture2D
-	_dialogue_view.set_speaker(speaker, name_texture, not is_monologue)
+	_dialogue_view.set_speaker(speaker, not is_monologue)
 	_update_portrait(speaker)
 
 

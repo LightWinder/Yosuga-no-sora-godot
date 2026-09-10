@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const TITLE_SCENE: PackedScene = preload("res://src/title/title_screen.tscn")
-const FEATURE_SCENE: PackedScene = preload("res://src/title/title_feature_screen.tscn")
+const APPRECIATION_SCENE: PackedScene = preload("res://src/appreciation/appreciation_screen.tscn")
 const SETTINGS_SCENE: PackedScene = preload("res://src/settings/settings_screen.tscn")
 const ADV_SCENE: PackedScene = preload("res://src/adv/adv_screen.tscn")
 const ADV_SETTINGS_PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
@@ -313,7 +313,7 @@ func _test_save_service_round_trip() -> void:
 
 	var profile := ProfileData.create_empty("0.1.0")
 	profile.set_global_flag(1)
-	profile.set_catalog_unlocked(TitleCatalog.MUSIC, "title_theme")
+	profile.set_catalog_unlocked(AppreciationCatalog.MUSIC, "title_theme")
 	_expect(service.save_profile(profile), "Profile progress must persist independently.")
 	_expect(service.clear_autosave(), "Autosave cleanup must succeed.")
 	_expect(service.is_global_flag_set(1), "Global progress must survive autosave deletion.")
@@ -417,6 +417,8 @@ func _test_title_state() -> void:
 		service.memory_profile.set_global_flag(completion_flag)
 	var title := TITLE_SCENE.instantiate() as TitleScreen
 	_expect(is_equal_approx(title.game_exit_seconds, 3.0), "New Game must retain the source Title's three-second route departure.")
+	_expect(is_equal_approx(title.bonus_transition_seconds, 0.3) and is_equal_approx(title.bonus_transition_offset_y, 32.0), "Appreciation menu transition must retain the source Title's 300 ms / 32 px motion envelope.")
+	title.bonus_transition_seconds = 0.05
 	_expect(title.subscreen_exit_seconds < title.subscreen_return_seconds, "Title child-screen departure must be faster than its return animation.")
 	title.subscreen_exit_seconds = 0.01
 	title.subscreen_return_seconds = 0.01
@@ -443,6 +445,7 @@ func _test_title_state() -> void:
 	title.set_size(original_title_size)
 	title._apply_design_transform()
 	var options := title.get_current_options()
+	_expect(options == [&"continue_game", &"new_game", &"load_game", &"settings", &"bonus", &"exit_game"], "Title main-menu order must match source Title.tjs.")
 	_expect(options.has(&"continue_game"), "Continue must appear when an autosave exists.")
 	_expect(options.has(&"bonus"), "Bonus must appear after the cleared-game flag.")
 	_expect(options.has(&"exit_game"), "Exit must appear on desktop.")
@@ -478,22 +481,31 @@ func _test_title_state() -> void:
 		if button.option_id == &"bonus":
 			button.pressed.emit()
 			break
-	await process_frame
+	var main_menu_center := title.get_node("DesignRoot/BottomChrome/MenuLayer/MainMenuCenter") as Control
+	var bonus_menu_center := title.get_node("DesignRoot/BottomChrome/MenuLayer/BonusMenuCenter") as Control
 	_expect(title.is_bonus_mode(), "Bonus must enter the four-item submenu.")
+	_expect(main_menu_center.visible and bonus_menu_center.visible, "Source appreciation transition must keep both menu rows visible while cross-fading.")
+	_expect(is_equal_approx(main_menu_center.modulate.a, 1.0) and is_zero_approx(bonus_menu_center.modulate.a), "Appreciation transition must begin with the source row opacity envelope.")
+	_expect(is_equal_approx(bonus_menu_center.position.y - main_menu_center.position.y, 32.0), "Appreciation row must enter from 32 pixels below the main row.")
+	await _wait_for_bonus_transition(title)
+	_expect(not main_menu_center.visible and bonus_menu_center.visible and is_equal_approx(bonus_menu_center.modulate.a, 1.0), "Appreciation transition must finish on the source submenu row.")
+	_expect(title.get_current_options() == [&"album", &"music", &"memories", &"voice"], "Title appreciation order must match source Title.tjs.")
 	_expect(title.get_bonus_buttons().size() == 4, "Bonus must expose Album/Music/Memories/Voice.")
 	var bonus_back := title.get_node("DesignRoot/BottomChrome/MenuLayer/BonusBackButton") as Button
 	bonus_back.pressed.emit()
 	_expect(not title.is_bonus_mode(), "Bonus Back button must return through normal GUI.")
+	await _wait_for_bonus_transition(title)
 	for button in title.get_menu_buttons():
 		if button.option_id == &"bonus":
 			button.pressed.emit()
 			break
-	await process_frame
+	await _wait_for_bonus_transition(title)
 	var escape := InputEventKey.new()
 	escape.pressed = true
 	escape.keycode = KEY_ESCAPE
 	title._input(escape)
 	_expect(not title.is_bonus_mode(), "Escape must return from Bonus.")
+	await _wait_for_bonus_transition(title)
 	var exit_button: TitleMenuButton
 	for button in title.get_menu_buttons():
 		if button.option_id == &"exit_game":
@@ -541,45 +553,39 @@ func _test_title_state() -> void:
 	_expect(is_equal_approx(title_logo.modulate.a, 1.0), "Title child-screen return API must restore the logo.")
 	title.free()
 	await process_frame
-
 	var manual_slot := SaveData.create_empty("0.1.0")
 	manual_slot.scenario_id = "00_z001"
 	manual_slot.instruction_anchor = "hitret:slot"
 	manual_slot.comment = "手动槽位"
 	_expect(service.save_slot(0, manual_slot), "Load contract needs a real manual slot.")
-	var feature := FEATURE_SCENE.instantiate() as TitleFeatureScreen
-	feature.configure(&"load_game", service)
+	var load_page := SAVE_LOAD_PAGE_SCENE.instantiate() as SaveLoadPage
+	load_page.configure(SaveLoadPage.Mode.LOAD, service)
 	var back_events: Array[bool] = []
-	var feature_requests: Array[ScenarioLaunchRequest] = []
-	feature.back_requested.connect(func() -> void: back_events.append(true))
-	feature.scenario_requested.connect(func(request: ScenarioLaunchRequest) -> void: feature_requests.append(request))
-	root.add_child(feature)
+	var load_requests: Array[ScenarioLaunchRequest] = []
+	load_page.back_requested.connect(func() -> void: back_events.append(true))
+	load_page.load_requested.connect(func(data: SaveData, save_path: String) -> void:
+		load_requests.append(ScenarioLaunchRequest.from_save(data, save_path))
+	)
+	root.add_child(load_page)
 	await process_frame
-	_expect(feature.feature_id == &"load_game", "Feature screen must preserve its route id.")
-	_expect(feature.get_node_or_null("ScenarioUnavailableNotice") == null, "Load route must not construct the retired unavailable-runner notice.")
-	_expect(feature.get_node_or_null("VoiceCollectionService") == null, "Load route must not own the voice catalog service.")
-	var load_list := feature.get_node("Content/EntryList") as VBoxContainer
-	_expect(load_list.get_child_count() == 1, "Load route must own one reusable save/load page scene.")
-	var load_page := feature.load_page()
-	_expect(load_page != null and load_page.scene_file_path.ends_with("save_load_page.tscn"), "Load content must be a dedicated static TSCN page.")
+	_expect(load_page.scene_file_path.ends_with("save_load_page.tscn"), "Load must use the dedicated Save/Load feature scene directly.")
 	_expect(load_page.slot_cards().size() == 12, "Load must initially show a 4×3 viewport with a bounded virtual pool.")
-	_expect(load_page.size.is_equal_approx(load_list.size), "Embedded Save/Load fills its host.")
 	var load_select := load_page.slot_cards()[0]
 	_expect(load_select.slot_id == 0 and load_select.button_pressed, "Manual slot 001 must be selected initially.")
 	load_select.load_requested.emit(0, false)
-	_expect(load_page.is_confirmation_visible() and feature_requests.is_empty(), "Load must wait for confirmation before routing.")
+	_expect(load_page.is_confirmation_visible() and load_requests.is_empty(), "Load must wait for confirmation before routing.")
 	load_page.confirm_delete_confirmation()
-	_expect(feature_requests.size() == 1, "The thumbnail action must emit a typed load route.")
+	_expect(load_requests.size() == 1, "The thumbnail action must emit a typed load route.")
 	var page_primary := load_page.get_node("%Primary") as Button
 	_expect(not page_primary.visible, "Load must not duplicate its thumbnail action in the footer.")
 	var page_delete := load_page.get_node("%Delete") as Button
 	page_delete.pressed.emit()
 	await process_frame
-	_expect(feature.is_delete_confirmation_visible(), "Deleting a manual slot must ask for confirmation.")
-	feature.cancel_delete_confirmation()
+	_expect(load_page.is_delete_confirmation_visible(), "Deleting a manual slot must ask for confirmation.")
+	load_page.cancel_delete_confirmation()
 	_expect(service.has_slot(0), "Cancel must preserve the manual slot.")
 	page_delete.pressed.emit()
-	feature.confirm_delete_confirmation()
+	load_page.confirm_delete_confirmation()
 	await process_frame
 	_expect(not service.has_slot(0), "Confirmed deletion removes the selected manual slot.")
 	load_page.scroll_to_entry(899)
@@ -589,21 +595,21 @@ func _test_title_state() -> void:
 	await process_frame
 	_expect(load_page.selected_is_autosave(), "Autosave is after manual slots and nine quick entries.")
 	page_delete.pressed.emit()
-	feature.cancel_delete_confirmation()
+	load_page.cancel_delete_confirmation()
 	_expect(service.has_autosave(), "Cancel must preserve autosave.")
 	page_delete.pressed.emit()
-	feature.confirm_delete_confirmation()
+	load_page.confirm_delete_confirmation()
 	await process_frame
 	_expect(not service.has_autosave(), "Confirmed autosave deletion removes its file.")
 	load_page.scroll_to_entry(0)
 	await process_frame
 	_expect(load_page.slot_cards()[0].slot_id == 0, "Scrolling back restores the first manual row.")
-	_expect_no_generated_node_names(feature, "Virtual Save/Load list")
+	_expect_no_generated_node_names(load_page, "Virtual Save/Load list")
 	load_select = null
-	var feature_back := load_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Back") as Button
-	feature_back.pressed.emit()
-	_expect(back_events.size() == 1, "Feature Back button must emit its typed route signal.")
-	feature.free()
+	var load_back := load_page.get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Back") as Button
+	load_back.pressed.emit()
+	_expect(back_events.size() == 1, "Save/Load Back button must emit its typed route signal.")
+	load_page.free()
 	await process_frame
 
 	var save_payload := SaveData.create_empty("0.1.0")
@@ -800,12 +806,10 @@ func _test_title_state() -> void:
 	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == preview_message_before and preview_textbox.visible, "Preview clicks and advance input must not advance or hide dialogue.")
 	_expect(root.gui_get_focus_owner() == preview_focus_before, "Preview input must not steal focus from Settings.")
 	_expect(preview.find_child("FeatureOverlay", true, false) == null, "Preview must not own a gameplay overlay.")
-	var preview_style := preview_textbox.get_theme_stylebox("panel") as StyleBoxTexture
-	var shared_style := load("res://assets/themes/adv/message_panel.tres") as StyleBoxTexture
+	var preview_backdrop := preview.get_node("%DialogueView").get_node("%MessageBackdrop") as AdvDialogueBackdrop
 	window_depth_slider.value = 25.0
-	_expect(is_equal_approx(preview_style.modulate_color.a, 0.25), "Opacity slider must update the real ADV frame immediately.")
+	_expect(is_equal_approx(preview_backdrop.frame_opacity(), 0.25), "Opacity slider must update the real code-drawn ADV frame immediately.")
 	_expect(is_equal_approx(preview_message.modulate.a, 1.0) and is_equal_approx(preview_avatar.modulate.a, 1.0), "Frame opacity must not fade the text or portrait.")
-	_expect(is_equal_approx(shared_style.modulate_color.a, 1.0), "Preview changes must not mutate the shared Theme StyleBox.")
 	display_page.set_screen_toggle(&"read_color", false)
 	_expect(preview_message.get_theme_color("default_color").is_equal_approx(Color(0.98, 0.995, 1.0, 1.0)), "Read-color setting must refresh the real ADV text immediately.")
 	display_page.set_screen_toggle(&"read_color", true)
@@ -813,7 +817,7 @@ func _test_title_state() -> void:
 	var sample_background := (preview.get_node("%Background") as TextureRect).texture
 	_expect(sample_background.resource_path.ends_with("EA01E.png"), "Settings preview must always show the fixed train background.")
 	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == AdvSettingsPreview.SAMPLE_MESSAGE, "Settings preview must always show the fixed sample dialogue.")
-	_expect((preview.get_node("%DialogueView").get_node("%SpeakerLabel") as Label).text == "穹", "Settings preview must always use the fixed sample speaker.")
+	_expect((preview.get_node("%DialogueView").get_node("%SpeakerName") as AdvSpeakerName).speaker_text() == "穹", "Settings preview must always use the fixed sample speaker.")
 
 	await create_timer(0.1).timeout
 	_expect((preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == preview_message_before and (preview.get_node("%Background") as TextureRect).texture == sample_background, "Time and settings changes must not advance or replace the fixed preview sample.")
@@ -1047,7 +1051,7 @@ func _test_title_state() -> void:
 	settings.free()
 	await process_frame
 
-	var manifest := TitleCatalog.load_manifest()
+	var manifest := AppreciationCatalog.load_manifest()
 	_expect(manifest.load_error.is_empty(), "Title content manifest must load without error.")
 	_expect(manifest.album_groups.size() == 6, "Album manifest must expose six HD character groups.")
 	_expect(manifest.album_card_count() == 79, "Album manifest must expose 79 HD card groups.")
@@ -1118,17 +1122,19 @@ func _test_title_state() -> void:
 	var locked_service := MemorySaveService.new()
 	locked_service.name = "LockedCatalogSaveService"
 	root.add_child(locked_service)
-	var locked_album := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	var locked_album := APPRECIATION_SCENE.instantiate() as AppreciationScreen
 	locked_album.configure(&"album", locked_service)
 	root.add_child(locked_album)
 	await process_frame
-	var locked_album_page := locked_album.get_node("Content/EntryList/AlbumPage") as TitleAlbumPage
-	var locked_card := locked_album_page.get_node("VisualCanvas/GalleryContent/ContentPanel/ContentInset/CardList").get_child(0) as TitleVisualCard
+	_expect((locked_album.get_node("BackBufferCopy") as BackBufferCopy).copy_mode == BackBufferCopy.COPY_MODE_VIEWPORT, "Appreciation must use the same root-viewport live blur contract as Settings.")
+	_expect(locked_album.get_node_or_null("Background") == null, "Appreciation must not retain a static Title background below its blur layer.")
+	var locked_album_page := locked_album.get_node("Content/EntryList/AlbumPage") as AppreciationAlbumPage
+	var locked_card := locked_album_page.get_node("VisualCanvas/GalleryContent/%CardList").get_child(0) as AppreciationVisualCard
 	var shared_title := locked_album_page.get_node("VisualCanvas/PageTitle") as PageTitle
 	_expect(locked_card != null and locked_card.is_locked(), "A missing source CgFlag must render the Album slot as locked.")
 	_expect(locked_card != null and not locked_card.has_visible_thumbnail(), "Locked Album slots must never load or display their real CG thumbnail.")
 	_expect(locked_card != null and locked_card.disabled and locked_card.focus_mode == Control.FOCUS_NONE, "Locked Album slots must be absent from pointer and focus activation.")
-	_expect(locked_card != null and locked_card.size.is_equal_approx(Vector2(396.0, 222.75)), "Album cards must keep a 16:9 frame in the three-row gallery layout.")
+	_expect(locked_card != null and locked_card.size.is_equal_approx(Vector2(448.0, 224.0)), "Gallery must preserve card width while compressing thumbnail height.")
 	_expect(shared_title != null and shared_title.scene_file_path.ends_with("src/ui/page_title.tscn"), "Appreciation must reuse the same neutral PageTitle scene as Settings.")
 	var grid := locked_album_page.get_node("VisualCanvas/GalleryContent/%CardList") as GridContainer
 	_expect(grid.get_child_count() == 12, "CG first page must show twelve cards.")
@@ -1136,8 +1142,15 @@ func _test_title_state() -> void:
 	var previous_arrow := gallery.get_node("%PreviousPage") as BaseButton
 	var next_arrow := gallery.get_node("%NextPage") as BaseButton
 	gallery.set_process(false)
-	_expect(is_equal_approx(gallery.position.y + gallery.size.y * 0.5, 540.0), "Gallery tabs and content must be centered together on the design canvas.")
-	gallery.update_hover(Vector2(960, 30), 0.2)
+	var character_tab := gallery.get_node("%Group01") as Control
+	var content_panel := gallery.get_node("ContentPanel") as Control
+	var gallery_panel_style := content_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_expect(gallery.position.y >= shared_title.position.y + shared_title.size.y, "Gallery tabs must not overlap the page title.")
+	_expect(character_tab.position.y + character_tab.size.y <= content_panel.position.y, "Character tabs must stay above the grid.")
+	_expect(character_tab.size.is_equal_approx(Vector2(148.0, 60.0)), "Character tabs must keep the enlarged gallery proportions.")
+	_expect(gallery_panel_style != null and is_equal_approx(gallery_panel_style.bg_color.a, 0.38) and gallery_panel_style.border_color.a >= 0.6, "CG and Memories must use the shared translucent blue gallery panel.")
+	_expect(gallery.position.y + content_panel.position.y + content_panel.size.y < 995.0, "Three rows must leave stable footer space.")
+	gallery.update_hover(Vector2(960, 850), 0.2)
 	_expect(is_zero_approx(previous_arrow.modulate.a), "First page must never reveal a previous arrow.")
 	gallery.update_hover(Vector2(960, 336), 0.08)
 	_expect(next_arrow.modulate.a > 0.0 and next_arrow.modulate.a < 1.0, "Available hover arrow must fade in rather than appear instantly.")
@@ -1152,7 +1165,7 @@ func _test_title_state() -> void:
 	_expect(is_zero_approx(next_arrow.modulate.a), "The clicked last-page arrow must not remain visible after leaving its edge.")
 	gallery.update_hover(Vector2(960, 336), 0.16)
 	_expect(is_equal_approx(previous_arrow.modulate.a, 1.0), "Second page must reveal the available previous arrow.")
-	gallery.update_hover(Vector2(960, 30), 0.08)
+	gallery.update_hover(Vector2(960, 850), 0.08)
 	_expect(previous_arrow.modulate.a > 0.0 and previous_arrow.modulate.a < 1.0, "Leaving the edge must fade out its arrow.")
 
 	_expect(next_arrow.disabled, "Last CG page must disable next page.")
@@ -1163,26 +1176,41 @@ func _test_title_state() -> void:
 	var footer_status := navigation.get_node("%CollectionStatus") as Label
 	var footer_page := navigation.get_node("%PageNumber") as Label
 	var footer_back := navigation.get_node("%BackToTitle") as Button
-	_expect(footer_status.position.x < footer_page.position.x and footer_page.position.x < footer_back.position.x, "Collection status and page number must sit immediately left of Return to Title.")
+	var footer_previous := navigation.get_node("%PagePrevious") as Button
+	var footer_next := navigation.get_node("%PageNext") as Button
+	_expect(footer_status.global_position.x < footer_page.global_position.x and footer_page.global_position.x < footer_back.global_position.x, "Collection status and compact pagination must sit left of Return to Title.")
+	(gallery.get_node("%Group01") as Button).pressed.emit()
+	_expect(footer_previous.disabled and not footer_next.disabled, "Compact pagination must disable only Previous on page one.")
+	footer_next.grab_focus()
+	footer_next.pressed.emit()
+	_expect(footer_page.text == "2 / 2" and grid.get_child_count() == 4, "Footer Next must show actual remaining cards without filling fake slots.")
+	_expect(footer_next.disabled and not footer_previous.disabled, "Compact pagination must disable only Next on the final page.")
+	_expect(footer_previous.has_focus(), "Keyboard/controller focus must move to the available direction at the page boundary.")
+	footer_previous.pressed.emit()
+	(gallery.get_node("%Group02") as Button).pressed.emit()
+	await process_frame
+	_expect(grid.position.is_zero_approx() and is_equal_approx(grid.modulate.a, 1.0), "Changing category during rapid paging must cancel stale animation offsets.")
+	_expect((grid.get_child(0) as Control).size.is_equal_approx(Vector2(448, 224)), "Partial pages must preserve the same card dimensions.")
 	locked_album.free()
 	locked_service.free()
 	await process_frame
+	await _test_gallery_polish()
 
 	for flag_id in range(1001, 1010):
 		service.memory_profile.set_global_flag(flag_id)
-	var album := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	var album := APPRECIATION_SCENE.instantiate() as AppreciationScreen
 	album.configure(&"album", service)
-	var content_requests: Array[TitleContentRequest] = []
-	album.content_requested.connect(func(request: TitleContentRequest) -> void: content_requests.append(request))
+	var content_requests: Array[AppreciationContentRequest] = []
+	album.content_requested.connect(func(request: AppreciationContentRequest) -> void: content_requests.append(request))
 	root.add_child(album)
 	await process_frame
-	var album_page := album.get_node("Content/EntryList/AlbumPage") as TitleAlbumPage
-	_expect(album_page.scene_file_path.ends_with("title_album_page.tscn"), "Album route must instantiate its dedicated page scene.")
+	var album_page := album.get_node("Content/EntryList/AlbumPage") as AppreciationAlbumPage
+	_expect(album_page.scene_file_path.ends_with("appreciation_album_page.tscn"), "Album route must instantiate its dedicated page scene.")
 	_expect(album.get_node_or_null("VoiceCollectionService") == null, "Album route must not allocate the voice catalog service.")
 	_expect(album_page.group_count() == 6 and album_page.card_count() == 79, "Album page must expose the full source grid model.")
 	_expect(album_page.open_card_for_test(0, 0), "Unlocked Album card must open the full-screen viewer.")
 	_expect(album_page.get_viewer().variant_count() == 8, "Viewer must filter differences by profile flags.")
-	_expect(content_requests.size() == 1 and content_requests[0].catalog_id == TitleCatalog.ALBUM, "Album viewer must emit a typed album request.")
+	_expect(content_requests.size() == 1 and content_requests[0].catalog_id == AppreciationCatalog.ALBUM, "Album viewer must emit a typed album request.")
 	_expect(content_requests[0].group_id == &"sora", "Album request must preserve source group id.")
 	var viewer := album_page.get_viewer()
 	var first_variant_id := viewer.current_variant().variant_id
@@ -1205,19 +1233,20 @@ func _test_title_state() -> void:
 	var album_navigation := album_page.get_node("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
 	(album_navigation.get_node("%Memories") as BaseButton).pressed.emit()
 	await process_frame
-	_expect(album.feature_id == TitleCatalog.MEMORIES, "Shared appreciation navigation must switch catalogs without returning through Title.")
-	_expect(album.get_node_or_null("Content/EntryList/MemoriesPage") is TitleMemoriesPage, "Catalog switching must replace only the data page inside the appreciation route.")
+	_expect(album.catalog_id == AppreciationCatalog.MEMORIES, "Shared appreciation navigation must switch catalogs without returning through Title.")
+	_expect(album.get_node_or_null("Content/EntryList/MemoriesPage") is AppreciationMemoriesPage, "Catalog switching must replace only the data page inside the appreciation route.")
 	album.free()
 	await process_frame
 
-	var music := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	var music := APPRECIATION_SCENE.instantiate() as AppreciationScreen
 	music.configure(&"music", service)
 	root.add_child(music)
 	await process_frame
-	var music_page := music.get_node("Content/EntryList/MusicPage") as TitleMusicPage
-	_expect(music_page.scene_file_path.ends_with("title_music_page.tscn"), "Music route must instantiate its dedicated page scene.")
+	var music_page := music.get_node("Content/EntryList/MusicPage") as AppreciationMusicPage
+	_expect(music_page.scene_file_path.ends_with("appreciation_music_page.tscn"), "Music route must instantiate its dedicated page scene.")
 	_expect(music.get_node_or_null("VoiceCollectionService") == null, "Music route must not allocate the voice catalog service.")
 	_expect(music_page.track_count() == 21, "Music page must expose all source tracks.")
+	await _test_music_gallery(music_page)
 	music_page.select_track(0)
 	await process_frame
 	_expect(music_page.selected_track().track_id == &"BGM01", "Music page must switch to the selected track.")
@@ -1231,31 +1260,32 @@ func _test_title_state() -> void:
 	music.queue_free()
 	await process_frame
 
-	var memories := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	var memories := APPRECIATION_SCENE.instantiate() as AppreciationScreen
 	memories.configure(&"memories", service)
 	var memory_requests: Array[ScenarioLaunchRequest] = []
 	memories.scenario_requested.connect(func(request: ScenarioLaunchRequest) -> void: memory_requests.append(request))
 	root.add_child(memories)
 	await process_frame
-	var memories_page := memories.get_node("Content/EntryList/MemoriesPage") as TitleMemoriesPage
-	_expect(memories_page.scene_file_path.ends_with("title_memories_page.tscn"), "Memories route must instantiate its dedicated page scene.")
+	var memories_page := memories.get_node("Content/EntryList/MemoriesPage") as AppreciationMemoriesPage
+	_expect(memories_page.scene_file_path.ends_with("appreciation_memories_page.tscn"), "Memories route must instantiate its dedicated page scene.")
 	_expect(memories.get_node_or_null("VoiceCollectionService") == null, "Memories route must not allocate the voice catalog service.")
 	_expect(memories_page.entry_count() == 24 and memories_page.adv_count() == 18 and memories_page.video_count() == 6, "Memories page must separate 18 ADV seams and six videos.")
 	var memory_gallery := memories_page.get_node("VisualCanvas/GalleryContent") as AppreciationGallery
 	_expect(memory_gallery.scene_file_path.ends_with("appreciation_gallery.tscn"), "CG and Memories must share the same gallery scene.")
 	var memory_grid := memory_gallery.get_node("%CardList") as GridContainer
-	var memory_card := memory_grid.get_child(0) as TitleVisualCard
-	_expect(memory_card.size.is_equal_approx(Vector2(396, 222.75)), "Memories must use the same 16:9 cards as the three-row CG gallery.")
+	var memory_card := memory_grid.get_child(0) as AppreciationVisualCard
+	_expect(memory_card.size.is_equal_approx(Vector2(448, 224)), "Memories must share the same wide thumbnail cards as CG.")
 	_expect(memory_card.get_node("Panel/EmptyBackground") != null, "Memories must retain each card's rounded background.")
 	memories.free()
 	await process_frame
 
-	var voice_feature := FEATURE_SCENE.instantiate() as TitleFeatureScreen
+	var voice_feature := APPRECIATION_SCENE.instantiate() as AppreciationScreen
 	voice_feature.configure(&"voice", service)
 	root.add_child(voice_feature)
 	await process_frame
-	var voice_page := voice_feature.get_node("Content/EntryList/VoicePage") as TitleVoicePage
-	_expect(voice_page.scene_file_path.ends_with("title_voice_page.tscn"), "Voice route must instantiate its dedicated page scene.")
+	var voice_page := voice_feature.get_node("Content/EntryList/VoicePage") as AppreciationVoicePage
+	_expect(voice_page.scene_file_path.ends_with("appreciation_voice_page.tscn"), "Voice route must instantiate its dedicated page scene.")
+	_expect(voice_page.get_node_or_null("VisualCanvas/CollectionBackground") == null, "Voice must not cover the shared live Title blur with a page-local background.")
 	_expect(voice_feature.get_node_or_null("VoiceCollectionService") is VoiceCollectionService, "Voice service must be named and scoped only to the voice route.")
 	_expect_no_generated_node_names(voice_feature, "Voice scene")
 	voice_feature.free()
@@ -1298,6 +1328,14 @@ func _test_title_state() -> void:
 	_clear_contract_directory(title_root)
 	await process_frame
 
+func _wait_for_bonus_transition(title: TitleScreen) -> void:
+	for frame in range(60):
+		if not title.is_bonus_transitioning():
+			return
+		await process_frame
+	_expect(false, "Title appreciation transition must finish within 60 rendered frames.")
+
+
 func _expect(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
@@ -1310,6 +1348,145 @@ func _expect_no_generated_node_names(scene_root: Node, context: String) -> void:
 		_expect(not String(current.name).begins_with("@"), "%s contains an auto-generated node name: %s" % [context, current.name])
 		for child in current.get_children():
 			pending.append(child)
+
+
+func _test_music_gallery(page: AppreciationMusicPage) -> void:
+	var grid := page.get_node("%TrackList") as GridContainer
+	_expect(grid.columns == 3 and grid.get_child_count() == 21, "Music gallery must show all 21 tracks in three columns.")
+	var manifest := AppreciationCatalog.load_manifest()
+	for row in 7:
+		for column in 3:
+			var index := column * 7 + row
+			var button := grid.get_child(row * 3 + column) as AppreciationMusicButton
+			var track := manifest.music_tracks[index]
+			_expect(button.item_id == track.track_id and (button.get_node("%Number") as Label).text == "%02d" % (index + 1), "Music numbering must run top-to-bottom in each column.")
+			var title := button.get_node("%Title") as Label
+			var subtitle := button.get_node("%Subtitle") as Label
+			_expect(title.text == AppreciationMusicButton.TITLES[track.title_id][0] and subtitle.text == AppreciationMusicButton.TITLES[track.title_id][1], "Music labels must match the original bilingual titles.")
+			_expect(title.get_theme_constant("outline_size") == 0 and is_equal_approx(subtitle.get_theme_color("font_color").a, 1.0), "Native music text must omit baked outlines and remain fully opaque.")
+			_expect((button.get_node("%Duration") as Label).horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT and button.size.y == 94, "Durations must be right aligned without changing row height.")
+			var seconds := int((load(track.stream_path) as AudioStream).get_length())
+			_expect((button.get_node("%Duration") as Label).text == "%d:%02d" % [seconds / 60, seconds % 60], "Music durations must match the actual audio resource.")
+	var first := grid.get_child(0) as AppreciationMusicButton
+	var normal_style := first.get_theme_stylebox("normal") as StyleBoxFlat
+	_expect(normal_style != null and normal_style.border_color.a >= 0.9, "Music rows must keep a clearly readable normal-state border.")
+	for label_path: String in ["%Number", "%MusicIcon", "%Title", "%Subtitle", "%Duration"]:
+		var label := first.get_node(label_path) as Label
+		_expect(label.get_theme_color("font_color").a == 1.0, "Music row text and icons must remain fully opaque: %s." % label_path)
+	first.grab_focus()
+	var key := InputEventKey.new()
+	key.keycode = KEY_DOWN
+	key.pressed = true
+	root.push_input(key)
+	_expect((grid.get_child(3) as Control).has_focus(), "Music keyboard Down must move 01 to 02 in the same column.")
+	key.pressed = false
+	root.push_input(key)
+	var joy := InputEventJoypadButton.new()
+	joy.button_index = JOY_BUTTON_DPAD_RIGHT
+	joy.pressed = true
+	root.push_input(joy)
+	_expect((grid.get_child(4) as Control).has_focus(), "Music controller Right must move 02 to 09 in the next column.")
+	joy.pressed = false
+	root.push_input(joy)
+	var confirm := InputEventAction.new()
+	confirm.action = &"ui_accept"
+	confirm.pressed = true
+	root.push_input(confirm)
+	confirm.pressed = false
+	root.push_input(confirm)
+	_expect(page.is_playing() and (grid.get_child(4) as AppreciationMusicButton).is_selected(), "Confirm must play the focused music track and mark it Playing.")
+	root.notify_mouse_entered()
+	var motion := InputEventMouseMotion.new()
+	motion.position = first.get_global_rect().get_center()
+	root.push_input(motion, true)
+	_expect(first.is_hovered(), "Music rows must receive pointer hover.")
+	var click := InputEventMouseButton.new()
+	click.position = motion.position
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	root.push_input(click, true)
+	click.pressed = false
+	root.push_input(click, true)
+	_expect(page.selected_track().track_id == first.item_id and first.is_selected() and not (grid.get_child(4) as AppreciationMusicButton).is_selected(), "Clicking another track must move the sole Playing state to that row.")
+	_expect((first.get_node("%Equalizer") as Control).visible and (first.get_node("%FocusInner") as Control).visible, "Playing and focus must display together on a clicked track.")
+	(grid.get_child(4) as Control).grab_focus()
+	_expect(first.is_selected() and first.button_pressed and (first.get_node("%Equalizer") as Control).visible, "Playing must retain its background and equalizer after focus moves to another row.")
+	_expect(not (first.get_node("%FocusInner") as Control).visible and (grid.get_child(4).get_node("%FocusInner") as Control).visible, "Focus glow must follow focus independently of the playing row.")
+	var nav := page.get_node("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
+	_expect((nav.get_node("%CollectionStatus") as Label).text == "曲目：21" and not (nav.get_node("%Pagination") as Control).visible, "Music footer must show the actual catalog count without pagination.")
+	_expect((grid.get_child(20) as Control).find_valid_focus_neighbor(SIDE_BOTTOM) == nav.get_node("%BackToTitle"), "Music's final row must reach Return to Title.")
+	page.stop()
+	_expect(not first.is_selected(), "Stopping music must clear the Playing state.")
+
+
+func _test_gallery_polish() -> void:
+	var manifest := AppreciationCatalog.load_manifest()
+	var profile := ProfileData.create_empty("gallery-navigation-test")
+	for group in manifest.album_groups:
+		for card in group.cards:
+			profile.set_global_flag(card.unlock_flag)
+	var page := load("res://src/appreciation/content/appreciation_album_page.tscn").instantiate() as AppreciationAlbumPage
+	page.configure(manifest, profile)
+	root.add_child(page)
+	await process_frame
+	await process_frame
+	var gallery := page.get_node("VisualCanvas/GalleryContent") as AppreciationGallery
+	var grid := gallery.get_node("%CardList") as GridContainer
+	var navigation := page.get_node("VisualCanvas/AppreciationNavigation") as AppreciationNavigation
+	var pager := navigation.get_node("%Pagination") as Control
+	var footer := navigation.get_node("Footer") as Control
+	_expect(is_equal_approx(pager.position.x + pager.size.x * 0.5, footer.size.x * 0.5), "Footer pagination must be exactly centered independently of side labels.")
+	var previous := navigation.get_node("%PagePrevious") as Button
+	var next := navigation.get_node("%PageNext") as Button
+	_expect(previous.disabled and is_equal_approx(previous.modulate.a, 0.35) and is_equal_approx(next.modulate.a, 1.0), "Disabled pagination must be subdued to 35 percent while enabled arrows remain opaque.")
+	var third := grid.get_child(2) as AppreciationVisualCard
+	third.grab_focus()
+	_expect(third.get_node("Highlight").visible and third.get_node("Panel/StateTint").visible, "Focused card must have a bright outline and subtle highlight.")
+	var down := InputEventKey.new()
+	down.keycode = KEY_DOWN
+	down.pressed = true
+	root.push_input(down)
+	await process_frame
+	_expect((grid.get_child(6) as Control).has_focus(), "Keyboard Down must navigate 003 to 007.")
+	down.pressed = false
+	root.push_input(down)
+	var joy_down := InputEventJoypadButton.new()
+	joy_down.button_index = JOY_BUTTON_DPAD_DOWN
+	joy_down.pressed = true
+	root.push_input(joy_down)
+	await process_frame
+	_expect((grid.get_child(10) as Control).has_focus(), "Controller D-pad Down must navigate 007 to 011.")
+	joy_down.pressed = false
+	root.push_input(joy_down)
+	var last := grid.get_child(11) as Control
+	_expect(last.find_valid_focus_neighbor(SIDE_BOTTOM) == navigation.get_node("%BackToTitle"), "Bottom-right card must navigate naturally to Return to Title.")
+	var tab := gallery.get_node("%Group01") as Control
+	_expect(tab.find_valid_focus_neighbor(SIDE_RIGHT) == gallery.get_node("%Group02"), "Character tabs must preserve native left/right order.")
+	root.gui_release_focus()
+	root.notify_mouse_entered()
+	var point := third.get_global_rect().get_center()
+	var motion := InputEventMouseMotion.new()
+	motion.position = point
+	root.push_input(motion, true)
+	await process_frame
+	_expect(third.get_node("Panel/StateTint").visible and not third.get_node("Highlight").visible, "Mouse hover must brighten the card without applying the keyboard focus outline.")
+	var press := InputEventMouseButton.new()
+	press.position = point
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	root.push_input(press, true)
+	await process_frame
+	_expect(third.modulate.r < 1.0 and third.size == Vector2(448, 224), "Pressed feedback must subtly dim the card without resizing it.")
+	# Release away from the card to avoid activating the viewer.
+	press.position = Vector2.ZERO
+	press.pressed = false
+	root.push_input(press, true)
+	(gallery.get_node("%Group02") as Button).pressed.emit()
+	var second_group := manifest.album_groups[1]
+	_expect((navigation.get_node("%CollectionStatus") as Label).text == "已收集：%d / %d" % [second_group.unlocked_card_count(profile), second_group.cards.size()], "Character changes must refresh collection counts from the profile and catalog.")
+	_expect((navigation.get_node("%PageNumber") as Label).text == "1 / %d" % maxi(1, ceili(float(second_group.cards.size()) / 12.0)), "Character changes must reset the page and refresh the category page count.")
+	page.free()
+	await process_frame
 
 
 func _test_exit_preference() -> void:

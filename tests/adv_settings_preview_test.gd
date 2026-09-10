@@ -2,7 +2,6 @@ extends SceneTree
 
 const PREVIEW_SCENE: PackedScene = preload("res://src/adv/preview/adv_settings_preview.tscn")
 const DIALOGUE_PATH := "res://src/adv/components/adv_dialogue_view.tscn"
-const THEME: Theme = preload("res://assets/themes/yosuga_theme.tres")
 
 var _failures: Array[String] = []
 
@@ -61,8 +60,8 @@ func _test_structure(preview: AdvSettingsPreview) -> void:
 	_expect(preview.find_children("*", "AudioStreamPlayer", true, false).is_empty(), "Preview must not instantiate even idle audio players.")
 	_expect(preview.find_children("*", "VideoStreamPlayer", true, false).is_empty(), "Preview must not instantiate a movie player.")
 	_expect((preview.get_node("%Background") as TextureRect).texture.resource_path == "res://assets/content/event_1920/EA01E.png", "Preview must use the existing train CG directly.")
-	_expect((view.get_node("%SpeakerLabel") as Label).text == "穹", "Sample speaker must remain fixed.")
-	_expect((view.get_node("%SpeakerNameImage") as TextureRect).texture == AdvSettingsPreview.SAMPLE_NAME, "Sample must reuse the imported speaker-name texture.")
+	var speaker_name := view.get_node("%SpeakerName") as AdvSpeakerName
+	_expect(speaker_name.speaker_text() == "穹" and speaker_name.reading_text() == "SORA", "Sample speaker and reading must remain fixed live text.")
 	_expect((view.get_node("%MessageLabel") as RichTextLabel).text == AdvSettingsPreview.SAMPLE_MESSAGE, "Sample text must be deterministic.")
 	_expect(AdvSettingsPreview.SAMPLE_MESSAGE.length() >= 30 and AdvSettingsPreview.SAMPLE_MESSAGE.length() <= 55, "The speed demo needs a longer, bounded sample.")
 
@@ -71,9 +70,8 @@ func _test_settings(preview: AdvSettingsPreview, settings: Dictionary) -> void:
 	var view := preview.get_node("%DialogueView") as AdvDialogueView
 	var label := view.get_node("%MessageLabel") as RichTextLabel
 	var portrait := view.get_node("%Portrait") as TextureRect
-	var panel := view.get_node("%MessagePanel") as PanelContainer
-	var style := panel.get_theme_stylebox("panel") as StyleBoxTexture
-	_expect(is_equal_approx(style.modulate_color.a, 0.37), "Pre-tree configure must apply opacity on ready.")
+	var backdrop := view.get_node("%MessageBackdrop") as AdvDialogueBackdrop
+	_expect(is_equal_approx(backdrop.frame_opacity(), 0.37), "Pre-tree configure must apply opacity on ready.")
 	_expect(portrait.texture == AdvSettingsPreview.SAMPLE_PORTRAIT and portrait.visible, "Initial sample must display the fixed portrait.")
 	_expect(label.get_theme_color("default_color") == AdvDialogueAppearance.READ_COLOR, "Fixed sample must be treated as already read.")
 	settings["portrait_visible"] = false
@@ -82,8 +80,7 @@ func _test_settings(preview: AdvSettingsPreview, settings: Dictionary) -> void:
 	preview.apply_settings(settings)
 	_expect(not portrait.visible and portrait.texture == null, "Portrait-off must remove the supplied portrait.")
 	_expect(label.get_theme_color("default_color") == AdvDialogueAppearance.UNREAD_COLOR, "Read-color off must use the gameplay unread color.")
-	_expect(is_equal_approx(style.modulate_color.a, 0.25) and label.modulate == Color.WHITE and portrait.modulate == Color.WHITE, "Only the frame texture should fade.")
-	_expect(style != THEME.get_stylebox("panel", "AdvMessagePanel"), "Preview must own its mutable StyleBox.")
+	_expect(is_equal_approx(backdrop.frame_opacity(), 0.25) and label.modulate == Color.WHITE and portrait.modulate == Color.WHITE, "Only the code-drawn backdrop should fade.")
 	for font_type in range(6):
 		settings["font_type"] = font_type
 		preview.apply_settings(settings)

@@ -7,22 +7,31 @@ extends Control
 signal hide_requested
 signal frame_gui_input(event: InputEvent)
 signal reveal_finished
+signal voice_replay_requested
+signal voice_favorite_requested
+signal settings_preview_requested(settings: Dictionary)
+signal settings_commit_requested(settings: Dictionary)
 
 const HIDE_OFFSET := Vector2(0.0, 120.0)
 
 @onready var _message_panel: PanelContainer = %MessagePanel
-@onready var _speaker_label: Label = %SpeakerLabel
-@onready var _speaker_name_image: TextureRect = %SpeakerNameImage
+@onready var _message_backdrop: AdvDialogueBackdrop = %MessageBackdrop
+@onready var _speaker_name: AdvSpeakerName = %SpeakerName
 @onready var _message_label: RichTextLabel = %MessageLabel
 @onready var _portrait: TextureRect = %Portrait
-@onready var _hide_button: TextureButton = %MessageHideButton
+@onready var _voice_replay_button: AdvDialogueIconButton = %VoiceReplayButton
+@onready var _voice_favorite_button: AdvDialogueIconButton = %VoiceFavoriteButton
+@onready var _voice_settings_button: AdvDialogueIconButton = %VoiceSettingsButton
+@onready var _text_settings_button: AdvDialogueIconButton = %TextSettingsButton
+@onready var _hide_button: AdvDialogueIconButton = %MessageHideButton
+@onready var _quick_settings: AdvQuickSettingsPopovers = %QuickSettingsPopovers
 @onready var _message_focus_mode := _message_label.focus_mode
 @onready var _message_scrollbar: VScrollBar = _message_label.get_v_scroll_bar()
 @onready var _scrollbar_focus_mode := _message_scrollbar.focus_mode
 @onready var _scrollbar_mouse_filter := _message_scrollbar.mouse_filter
 
-var _frame_style: StyleBoxTexture
 var _interactive := true
+var _voice_actions_available := false
 var _reveal_tween: Tween
 var _revealing := false
 var _milliseconds_per_character := 5
@@ -34,38 +43,109 @@ var _rest_modulate := Color.WHITE
 
 
 func _ready() -> void:
-	# Only the frame texture fades with window_depth, not its text/portrait.
-	# Never modify the shared Theme used by another game or preview instance.
-	_frame_style = _message_panel.get_theme_stylebox("panel").duplicate() as StyleBoxTexture
-	_message_panel.add_theme_stylebox_override("panel", _frame_style)
 	_rest_position = _message_panel.position
 	_rest_modulate = _message_panel.modulate
+	_voice_replay_button.pressed.connect(_on_voice_replay_pressed)
+	_voice_favorite_button.pressed.connect(_on_voice_favorite_pressed)
+	_voice_settings_button.pressed.connect(_on_voice_settings_pressed)
+	_text_settings_button.pressed.connect(_on_text_settings_pressed)
 	_hide_button.pressed.connect(_on_hide_pressed)
+	_quick_settings.settings_preview_requested.connect(settings_preview_requested.emit)
+	_quick_settings.settings_commit_requested.connect(settings_commit_requested.emit)
 	_message_panel.gui_input.connect(_on_frame_gui_input)
+	_refresh_action_buttons()
 
 
 func _exit_tree() -> void:
+	if is_instance_valid(_quick_settings):
+		_quick_settings.flush_pending_commit()
 	cancel_reveal()
 	_cancel_frame_transition()
 
 
 func set_interactive(enabled: bool) -> void:
 	_interactive = enabled
-	_hide_button.disabled = not enabled
-	_hide_button.focus_mode = Control.FOCUS_CLICK if enabled else Control.FOCUS_NONE
-	_hide_button.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+	_quick_settings.set_interactive(enabled)
+	_refresh_action_buttons()
 	_message_panel.mouse_filter = Control.MOUSE_FILTER_PASS if enabled else Control.MOUSE_FILTER_IGNORE
 	(%MessageColumn as Control).mouse_filter = _message_panel.mouse_filter
-	_speaker_label.mouse_filter = _message_panel.mouse_filter
+	_speaker_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# RichTextLabel owns an internal scrollbar even when scrolling is disabled.
 	_message_label.focus_mode = _message_focus_mode if enabled else Control.FOCUS_NONE
 	_message_scrollbar.focus_mode = _scrollbar_focus_mode if enabled else Control.FOCUS_NONE
 	_message_scrollbar.mouse_filter = _scrollbar_mouse_filter if enabled else Control.MOUSE_FILTER_IGNORE
 
 
+func set_voice_actions_enabled(enabled: bool) -> void:
+	_voice_actions_available = enabled
+	if is_node_ready():
+		_refresh_action_buttons()
+
+
+func _refresh_action_buttons() -> void:
+	var voice_enabled := _interactive and _voice_actions_available
+	_voice_replay_button.set_action_enabled(voice_enabled)
+	_voice_favorite_button.set_action_enabled(voice_enabled)
+	_voice_settings_button.set_action_enabled(_interactive)
+	_text_settings_button.set_action_enabled(_interactive)
+	_hide_button.set_action_enabled(_interactive)
+	for button in _action_buttons():
+		button.focus_mode = Control.FOCUS_CLICK if not button.disabled else Control.FOCUS_NONE
+		button.mouse_filter = (
+			Control.MOUSE_FILTER_STOP if _interactive else Control.MOUSE_FILTER_IGNORE
+		)
+
+
+func _action_buttons() -> Array[AdvDialogueIconButton]:
+	return [
+		_voice_replay_button,
+		_voice_favorite_button,
+		_voice_settings_button,
+		_text_settings_button,
+		_hide_button,
+	]
+
+
+func _on_voice_replay_pressed() -> void:
+	if _interactive and _voice_actions_available:
+		voice_replay_requested.emit()
+
+
+func _on_voice_favorite_pressed() -> void:
+	if _interactive and _voice_actions_available:
+		voice_favorite_requested.emit()
+
+
+func _on_voice_settings_pressed() -> void:
+	if _interactive:
+		_quick_settings.toggle_audio()
+
+
+func _on_text_settings_pressed() -> void:
+	if _interactive:
+		_quick_settings.toggle_text()
+
+
 func _on_hide_pressed() -> void:
 	if _interactive:
+		_quick_settings.close()
 		hide_requested.emit()
+
+
+func sync_quick_settings(settings: Dictionary) -> void:
+	_quick_settings.sync_from(settings)
+
+
+func has_quick_settings_open() -> bool:
+	return _quick_settings.has_open()
+
+
+func close_quick_settings() -> bool:
+	return _quick_settings.close()
+
+
+func quick_settings_popovers() -> AdvQuickSettingsPopovers:
+	return _quick_settings
 
 
 func _on_frame_gui_input(event: InputEvent) -> void:
@@ -74,11 +154,9 @@ func _on_frame_gui_input(event: InputEvent) -> void:
 		frame_gui_input.emit(event)
 
 
-func set_speaker(text: String, texture: Texture2D, show_name: bool) -> void:
-	_speaker_label.text = text
-	_speaker_label.visible = show_name and texture == null
-	_speaker_name_image.texture = texture
-	_speaker_name_image.visible = show_name and texture != null
+func set_speaker(text: String, show_name: bool) -> void:
+	_speaker_name.set_speaker(text)
+	_speaker_name.visible = show_name
 
 
 func set_portrait(texture: Texture2D) -> void:
@@ -99,7 +177,11 @@ func set_message_color(color: Color) -> void:
 
 
 func set_frame_opacity(alpha: float) -> void:
-	_frame_style.modulate_color.a = clampf(alpha, 0.0, 1.0)
+	_message_backdrop.set_frame_opacity(alpha)
+
+
+func frame_opacity() -> float:
+	return _message_backdrop.frame_opacity()
 
 
 ## Replace the line fully revealed without completing the previous animation.
@@ -192,11 +274,15 @@ func set_frame_position(value: Vector2) -> void:
 
 ## Change only the display flag, preserving a scenario fade's current alpha.
 func set_frame_displayed(value: bool) -> void:
+	if not value:
+		_quick_settings.close()
 	_message_panel.visible = value
 
 
 func restore_frame_state(frame_position_value: Vector2, alpha: float, visible_value: bool) -> void:
 	_cancel_frame_transition()
+	if not visible_value:
+		_quick_settings.close()
 	_message_panel.position = frame_position_value
 	_message_panel.modulate.a = alpha
 	_message_panel.visible = visible_value
@@ -216,6 +302,8 @@ func apply_frame_type(frame_type: String) -> void:
 ## Script show/hide and initial dialogue use a fade, without manual sliding.
 func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 	_cancel_frame_transition()
+	if not value:
+		_quick_settings.close()
 	_message_panel.position = _rest_position
 	_message_panel.visible = true
 	var alpha := 1.0 if value else 0.0
@@ -236,6 +324,8 @@ func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 func set_chrome_visible(value: bool, duration: float = 0.3) -> void:
 	# Temporary slide offsets never become the resting frame state.
 	finish_frame_transition()
+	if not value:
+		_quick_settings.close()
 	if value:
 		_message_panel.visible = true
 		_message_panel.position = _rest_position
