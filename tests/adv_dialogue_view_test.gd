@@ -62,9 +62,6 @@ func _test_presentation(view: AdvDialogueView, other: AdvDialogueView) -> void:
 	var voice_settings := view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
 	var text_settings := view.get_node("%TextSettingsButton") as AdvDialogueIconButton
 	var hide := view.get_node("%MessageHideButton") as AdvDialogueIconButton
-	var quick_settings := view.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
-	var audio_popover := quick_settings.get_node("%AudioQuickSettingsPanel") as Control
-	var text_popover := quick_settings.get_node("%TextQuickSettingsPanel") as Control
 	_expect(view.size == Vector2(1920, 1080), "The component must fill its design surface.")
 	_expect(panel.position == Vector2(0, 760) and panel.size == Vector2(1920, 320), "Extraction must retain the bottom frame layout.")
 	_expect(panel.z_index == 1100 and portrait.z_index == 2, "Extraction must retain frame and portrait ordering.")
@@ -108,25 +105,11 @@ func _test_presentation(view: AdvDialogueView, other: AdvDialogueView) -> void:
 			and icon_button.texture_pressed == null
 			and icon_button.texture_disabled == null,
 			"Each dialogue shortcut must scale one 2x SVG import into its logical icon rect; code tint owns every interaction state."
-		)
+	)
 	_expect(panel.theme_type_variation == &"AdvMessagePanel" and label.theme_type_variation == &"AdvMessageLabel", "Dialogue must reuse the existing Theme variations.")
 	_expect(
-		audio_popover.position == Vector2(665, -236)
-		and audio_popover.size == Vector2(647, 266)
-		and text_popover.position == Vector2(709, -183)
-		and text_popover.size == Vector2(647, 213),
-		"The source-sized quick-settings panels must align to their corresponding shortcut and open above the frame."
-	)
-	_expect(
-		quick_settings.get_node("%master_volume") is SettingsKnobSlider
-		and quick_settings.get_node("%bgm_volume") is SettingsKnobSlider
-		and quick_settings.get_node("%voice_volume") is SettingsKnobSlider
-		and quick_settings.get_node("%se_volume") is SettingsKnobSlider
-		and quick_settings.get_node("%env_se_volume") is SettingsKnobSlider
-		and quick_settings.get_node("%message_speed") is SettingsKnobSlider
-		and quick_settings.get_node("%auto_speed") is SettingsKnobSlider
-		and quick_settings.get_node("%window_depth") is SettingsKnobSlider,
-		"Both popovers must keep all source controls as fixed native sliders."
+		view.get_node_or_null("%QuickSettingsPopovers") == null,
+		"The presentation-only dialogue view must not own Settings UI or SettingsModel state."
 	)
 	var texture := GradientTexture2D.new()
 	view.set_speaker("穹", true)
@@ -157,21 +140,20 @@ func _test_input_seam(view: AdvDialogueView) -> void:
 	var events: Array[InputEvent] = []
 	var replayed: Array[bool] = []
 	var favorited: Array[bool] = []
-	var previews: Array[Dictionary] = []
-	var commits: Array[Dictionary] = []
+	var audio_settings_requests: Array[bool] = []
+	var text_settings_requests: Array[bool] = []
 	view.hide_requested.connect(func() -> void: hidden.append(true))
 	view.frame_gui_input.connect(func(event: InputEvent) -> void: events.append(event))
 	view.voice_replay_requested.connect(func() -> void: replayed.append(true))
 	view.voice_favorite_requested.connect(func() -> void: favorited.append(true))
-	view.settings_preview_requested.connect(func(settings: Dictionary) -> void: previews.append(settings))
-	view.settings_commit_requested.connect(func(settings: Dictionary) -> void: commits.append(settings))
+	view.audio_settings_requested.connect(func() -> void: audio_settings_requests.append(true))
+	view.text_settings_requested.connect(func() -> void: text_settings_requests.append(true))
 	var button := view.get_node("%MessageHideButton") as AdvDialogueIconButton
 	var replay := view.get_node("%VoiceReplayButton") as AdvDialogueIconButton
 	var favorite := view.get_node("%VoiceFavoriteButton") as AdvDialogueIconButton
 	var voice_settings := view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
 	var text_settings := view.get_node("%TextSettingsButton") as AdvDialogueIconButton
 	var panel := view.get_node("%MessagePanel") as PanelContainer
-	var quick_settings := view.quick_settings_popovers()
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = true
@@ -181,43 +163,14 @@ func _test_input_seam(view: AdvDialogueView) -> void:
 	_expect(replay.disabled and favorite.disabled and replay.mouse_filter == Control.MOUSE_FILTER_STOP and favorite.mouse_filter == Control.MOUSE_FILTER_STOP and not voice_settings.disabled and not text_settings.disabled, "Voice-dependent shortcuts must start disabled without resolved dialogue voice data while still consuming their icon hit areas.")
 	voice_settings.pressed.emit()
 	_expect(
-		view.has_quick_settings_open()
-		and quick_settings.active_panel_name() == &"AudioQuickSettingsPanel"
-		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible,
-		"The voice-settings shortcut must open its inline volume panel."
+		audio_settings_requests.size() == 1 and text_settings_requests.is_empty(),
+		"The voice-settings shortcut must emit an intent without owning Settings state."
 	)
 	text_settings.pressed.emit()
 	_expect(
-		quick_settings.active_panel_name() == &"TextQuickSettingsPanel"
-		and not (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).visible
-		and (quick_settings.get_node("%TextQuickSettingsPanel") as Control).visible,
-		"The two inline panels must be mutually exclusive."
+		text_settings_requests.size() == 1,
+		"The text-settings shortcut must emit its own presentation intent."
 	)
-	var supplied := SettingsModel.defaults()
-	supplied["message_speed"] = 23
-	supplied["auto_speed"] = 4200
-	supplied["window_depth"] = 64
-	view.sync_quick_settings(supplied)
-	_expect(
-		is_equal_approx((quick_settings.get_node("%message_speed") as SettingsKnobSlider).value, 77.0)
-		and is_equal_approx((quick_settings.get_node("%auto_speed") as SettingsKnobSlider).value, 58.0)
-		and is_equal_approx((quick_settings.get_node("%window_depth") as SettingsKnobSlider).value, 64.0),
-		"Text quick settings must preserve the source inverse speed mapping and direct opacity mapping."
-	)
-	(quick_settings.get_node("%message_speed") as SettingsKnobSlider).value = 68.0
-	(quick_settings.get_node("%SkipAllChoice") as CheckBox).pressed.emit()
-	quick_settings.flush_pending_commit()
-	_expect(
-		previews.size() == 2
-		and int(previews[0].message_speed) == 32
-		and not bool(previews[1].read_skip)
-		and commits.size() == 1
-		and int(commits[0].message_speed) == 32
-		and not bool(commits[0].read_skip),
-		"Quick controls must emit complete preview and persistent settings snapshots using source value semantics."
-	)
-	text_settings.pressed.emit()
-	_expect(not view.has_quick_settings_open(), "Pressing the active shortcut again must close its panel.")
 	view.set_voice_actions_enabled(true)
 	replay.pressed.emit()
 	favorite.pressed.emit()
@@ -233,7 +186,7 @@ func _test_input_seam(view: AdvDialogueView) -> void:
 	voice_settings.pressed.emit()
 	text_settings.pressed.emit()
 	panel.gui_input.emit(event)
-	_expect(hidden.size() == 1 and events.size() == 1 and replayed.size() == 1 and favorited.size() == 1 and not view.has_quick_settings_open() and button.disabled and replay.disabled and favorite.disabled and voice_settings.disabled and text_settings.disabled and panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Read-only mode must suppress every dialogue shortcut and frame input request.")
+	_expect(hidden.size() == 1 and events.size() == 1 and replayed.size() == 1 and favorited.size() == 1 and audio_settings_requests.size() == 1 and text_settings_requests.size() == 1 and button.disabled and replay.disabled and favorite.disabled and voice_settings.disabled and text_settings.disabled and panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Read-only mode must suppress every dialogue shortcut and frame input request.")
 	view.set_interactive(true)
 	_expect(not button.disabled and not replay.disabled and not favorite.disabled and not voice_settings.disabled and not text_settings.disabled and button.focus_mode == Control.FOCUS_CLICK and panel.mouse_filter == Control.MOUSE_FILTER_PASS, "Interactive mode must restore original button/panel input behavior and the prior voice availability.")
 

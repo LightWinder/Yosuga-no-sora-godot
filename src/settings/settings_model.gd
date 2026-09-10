@@ -121,6 +121,32 @@ static func apply_patch(current: Dictionary, patch: Dictionary) -> Dictionary:
 	return normalize(result)
 
 
+## Shared source-value mappings used by both the full Settings pages and ADV's
+## inline controls. Keeping them here prevents the two surfaces drifting apart.
+static func volume_to_slider(value: Variant) -> float:
+	return clampf(float(value), 0.0, 1.0) * 100.0
+
+
+static func volume_from_slider(value: float) -> float:
+	return clampf(value, 0.0, 100.0) / 100.0
+
+
+static func message_speed_to_slider(value: Variant) -> float:
+	return 100.0 - clampf(float(value), 0.0, 100.0)
+
+
+static func message_speed_from_slider(value: float) -> int:
+	return clampi(roundi(100.0 - value), 0, 100)
+
+
+static func auto_speed_to_slider(value: Variant) -> float:
+	return 100.0 - clampf(float(value), 0.0, 10000.0) / 100.0
+
+
+static func auto_speed_from_slider(value: float) -> int:
+	return clampi(roundi((100.0 - value) * 100.0), 0, 10000)
+
+
 static func _voice_detail_array(value: Variant) -> Array[float]:
 	var source: Array[float] = []
 	if value is Array:

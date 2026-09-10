@@ -68,12 +68,10 @@ func _exit_tree() -> void:
 func sync_from(settings: Dictionary) -> void:
 	_settings = SettingsModel.normalize(settings)
 	for key in AUDIO_KEYS:
-		_audio_sliders[key].set_value_silent(float(_settings.get(key, 1.0)) * 100.0)
+		_audio_sliders[key].set_value_silent(SettingsModel.volume_to_slider(_settings.get(key, 1.0)))
 	# The source frame stores both speed values in the inverse direction.
-	_message_speed_slider.set_value_silent(100.0 - float(_settings.get("message_speed", 5)))
-	_auto_speed_slider.set_value_silent(
-		100.0 - float(_settings.get("auto_speed", 5000)) / 100.0
-	)
+	_message_speed_slider.set_value_silent(SettingsModel.message_speed_to_slider(_settings.get("message_speed", 5)))
+	_auto_speed_slider.set_value_silent(SettingsModel.auto_speed_to_slider(_settings.get("auto_speed", 5000)))
 	var depth := float(_settings.get("window_depth", 50))
 	_window_depth_slider.set_value_silent(depth)
 	_skip_read_choice.set_pressed_no_signal(bool(_settings.get("read_skip", true)))
@@ -201,15 +199,15 @@ func _kill_panel_tween() -> void:
 
 
 func _on_audio_value_changed(value: float, key: StringName) -> void:
-	_apply_value(key, value / 100.0)
+	_apply_value(key, SettingsModel.volume_from_slider(value))
 
 
 func _on_message_speed_changed(value: float) -> void:
-	_apply_value(&"message_speed", int(100.0 - value))
+	_apply_value(&"message_speed", SettingsModel.message_speed_from_slider(value))
 
 
 func _on_auto_speed_changed(value: float) -> void:
-	_apply_value(&"auto_speed", int((100.0 - value) * 100.0))
+	_apply_value(&"auto_speed", SettingsModel.auto_speed_from_slider(value))
 
 
 func _on_window_depth_changed(value: float) -> void:

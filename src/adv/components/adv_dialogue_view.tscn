@@ -9,7 +9,6 @@
 [ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-14.svg" id="7_voice_settings"]
 [ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-15.svg" id="8_text_settings"]
 [ext_resource type="Texture2D" path="res://assets/content/adv/ui/DHK-65.svg" id="9_message_hide"]
-[ext_resource type="PackedScene" path="res://src/adv/components/adv_quick_settings_popovers.tscn" id="10_quick_settings"]
 
 [node name="AdvDialogueView" type="Control"]
 layout_mode = 3
@@ -111,10 +110,6 @@ texture_normal = ExtResource("8_text_settings")
 ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_icon_button")
-
-[node name="QuickSettingsPopovers" parent="MessagePanel/MessageColumn" instance=ExtResource("10_quick_settings")]
-unique_name_in_owner = true
-layout_mode = 1
 
 [node name="MessageLabel" type="RichTextLabel" parent="MessagePanel/MessageColumn" unique_id=1305213446]
 unique_name_in_owner = true

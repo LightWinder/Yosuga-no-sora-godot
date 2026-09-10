@@ -44,6 +44,7 @@ const PRESENTATION_TAGS: Array[StringName] = [
 @onready var _eye_catch_bottom_band: ColorRect = %EyeCatchBottomBand
 @onready var _eye_catch_logo: TextureRect = %EyeCatchLogo
 @onready var _dialogue_view: AdvDialogueView = %DialogueView
+@onready var _quick_settings: AdvQuickSettingsPopovers = %QuickSettingsPopovers
 @onready var _system_menu: Control = %SystemMenu
 @onready var _system_menu_recall_button: TextureButton = %SystemMenuRecallButton
 @onready var _system_menu_auto_hide_timer: Timer = %SystemMenuAutoHideTimer
@@ -188,6 +189,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if is_instance_valid(_quick_settings):
+		_quick_settings.flush_pending_commit()
 	if _pending_autosave_snapshot != null and is_instance_valid(_save_service):
 		_save_service.save_autosave(_pending_autosave_snapshot)
 		_pending_autosave_snapshot = null
@@ -246,9 +249,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_history()
 			get_viewport().set_input_as_handled()
 		return
-	if _dialogue_view.has_quick_settings_open():
+	if _quick_settings.has_open():
 		if StartupInput.is_advance_event(event) or StartupInput.is_cancel_event(event):
-			_dialogue_view.close_quick_settings()
+			_quick_settings.close()
 			get_viewport().set_input_as_handled()
 		return
 	if _menu_chrome_tween != null and _menu_chrome_tween.is_valid():
@@ -354,8 +357,10 @@ func _connect_controls() -> void:
 	_dialogue_view.reveal_finished.connect(_try_schedule_auto_advance)
 	_dialogue_view.voice_replay_requested.connect(_replay_current_voice)
 	_dialogue_view.voice_favorite_requested.connect(_favorite_current_voice)
-	_dialogue_view.settings_preview_requested.connect(_preview_quick_settings)
-	_dialogue_view.settings_commit_requested.connect(_commit_quick_settings)
+	_dialogue_view.audio_settings_requested.connect(_quick_settings.toggle_audio)
+	_dialogue_view.text_settings_requested.connect(_quick_settings.toggle_text)
+	_quick_settings.settings_preview_requested.connect(_preview_quick_settings)
+	_quick_settings.settings_commit_requested.connect(_commit_quick_settings)
 	_settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	_menu_lock_button.toggled.connect(_on_system_menu_lock_toggled)
 	_title_button.pressed.connect(_request_title)
@@ -476,22 +481,19 @@ func _on_dialogue_ready(
 	)
 	_pending_font_size = 0
 	if _jumping_to_next_choice:
-		_dialogue_view.set_frame_displayed(false)
-		_suspend_system_menu()
+		_apply_player_chrome_presence(false)
 		_schedule_choice_jump_continue()
 		return
 	var restored_navigation := _restoring_navigation_checkpoint
 	_restoring_navigation_checkpoint = false
-	_dialogue_view.set_frame_displayed(true)
-	_system_menu.visible = true
-	_show_system_menu(true)
+	var chrome_presented := _apply_player_chrome_presence(true)
 	_present_current_dialogue(false)
 	if not restored_navigation:
 		_append_history(speaker, message)
 	_play_voice(voice_id)
 	if not restored_navigation:
 		_write_autosave()
-	if reveal_initial_dialogue:
+	if reveal_initial_dialogue and chrome_presented:
 		# Source MessageFrame starts hidden; outputMessage reveals it over 300 ms
 		# alongside the first CG update. Save the settled frame before animating.
 		_dialogue_view.restore_frame_state(_dialogue_view.frame_position(), 0.0, true)
@@ -616,9 +618,8 @@ func _restore_choice_jump_dialogue() -> void:
 		_menu_visibility_tween.kill()
 	_menu_visibility_tween = null
 	_dialogue_view.restore_frame_state(_dialogue_view.frame_position(), 1.0, true)
-	_system_menu.visible = true
 	_system_menu.modulate.a = 1.0
-	_show_system_menu(true)
+	_apply_player_chrome_presence(true)
 	_present_current_dialogue(true)
 
 
@@ -659,9 +660,7 @@ func _select_choice(index: int) -> void:
 	_choice_tween = null
 	_choice_overlay.visible = false
 	_choice_overlay.modulate.a = 1.0
-	_dialogue_view.set_frame_displayed(true)
-	_system_menu.visible = true
-	_show_system_menu(true)
+	_apply_player_chrome_presence(true)
 	_clear_choice_buttons()
 	if _choice_history_position < _choice_checkpoints.size() - 1:
 		_choice_checkpoints.resize(_choice_history_position + 1)
@@ -1465,15 +1464,22 @@ func _try_schedule_auto_advance() -> void:
 
 
 func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstruction = null) -> void:
+	if not show_message:
+		_quick_settings.close()
 	if _menu_visibility_tween != null and _menu_visibility_tween.is_valid():
 		_menu_visibility_tween.kill()
 	_menu_visibility_tween = null
-	_system_menu.visible = true
-	if show_message:
-		_show_system_menu(true)
+	if _player_chrome_visibility_suppressed():
+		if _player_chrome_overlay_depth > 0:
+			_restore_player_chrome_after_overlay = show_message
+		_suspend_system_menu()
 	else:
-		_system_menu_auto_hide_timer.stop()
-		_system_menu_recall_button.visible = false
+		_system_menu.visible = true
+		if show_message:
+			_show_system_menu(true)
+		else:
+			_system_menu_auto_hide_timer.stop()
+			_system_menu_recall_button.visible = false
 	var target_alpha := 1.0 if show_message else 0.0
 	# Next-choice navigation executes presentation commands without exposing their
 	# intermediate frames. Commit the final visibility immediately so no tween can
@@ -1481,24 +1487,18 @@ func _set_message_visible(show_message: bool, instruction: KrkrScenarioInstructi
 	if _jumping_to_next_choice:
 		_dialogue_view.set_frame_visible(show_message, 0.0)
 		_system_menu.modulate.a = target_alpha
-		_system_menu.visible = show_message
-		if show_message:
-			_show_system_menu(true)
-		else:
-			_suspend_system_menu()
+		_apply_player_chrome_presence(show_message)
 		return
 	_dialogue_view.set_frame_visible(show_message)
+	if _player_chrome_visibility_suppressed():
+		_dialogue_view.set_frame_displayed(false)
 	_menu_visibility_tween = create_tween()
 	_menu_visibility_tween.tween_property(_system_menu, "modulate:a", target_alpha, 0.3)
 	_menu_visibility_tween.finished.connect(
 		func() -> void:
 			_menu_visibility_tween = null
 			_dialogue_view.finish_frame_transition()
-			_system_menu.visible = show_message
-			if show_message:
-				_show_system_menu(true)
-			else:
-				_suspend_system_menu()
+			_apply_player_chrome_presence(show_message)
 			_runtime.resume_external(&"message")
 	)
 	if instruction != null and instruction.has_flag("wait"):
@@ -1528,8 +1528,7 @@ func _start_eye_catch(instruction: KrkrScenarioInstruction) -> void:
 		return
 	_eye_catch_is_date = instruction.string_argument("type").to_upper() == "DATE"
 	_eye_catch_stage_committed = false
-	_dialogue_view.set_frame_displayed(false)
-	_suspend_system_menu()
+	_apply_player_chrome_presence(false)
 	_reset_eye_catch_visuals()
 	_eye_catch_overlay.visible = true
 	_runtime.suspend_external(&"eyecatch", true)
@@ -1825,8 +1824,9 @@ func _enter_player_chrome_overlay() -> void:
 			and _dialogue_view.frame_alpha() > 0.0
 			and not _player_chrome_manually_hidden
 		)
-		if _restore_player_chrome_after_overlay:
-			_set_player_chrome_visible(false, 0.0)
+		# Always enforce the physical hidden state. The restore flag records only
+		# whether the latest scenario state should be shown after the overlay leaves.
+		_set_player_chrome_visible(false, 0.0)
 	_player_chrome_overlay_depth += 1
 
 
@@ -1849,7 +1849,39 @@ func _stop_player_chrome_automation() -> void:
 	_skip_button.set_pressed_no_signal(false)
 
 
+func _player_chrome_visibility_suppressed() -> bool:
+	return (
+		_player_chrome_overlay_depth > 0
+		or _player_chrome_manually_hidden
+		or _route_exiting
+	)
+
+
+## Applies the scenario's desired chrome presence through the current modal and
+## manual-hide state. This is the synchronous render seam for non-animated paths.
+func _apply_player_chrome_presence(desired_visible: bool) -> bool:
+	if _player_chrome_overlay_depth > 0:
+		_restore_player_chrome_after_overlay = desired_visible
+	var should_present := desired_visible and not _player_chrome_visibility_suppressed()
+	if not should_present:
+		_quick_settings.close()
+	_dialogue_view.set_frame_displayed(should_present)
+	if should_present:
+		_system_menu.visible = true
+		_show_system_menu(true)
+	else:
+		_suspend_system_menu()
+	return should_present
+
+
 func _set_player_chrome_visible(show_chrome: bool, duration: float) -> void:
+	if show_chrome and _player_chrome_visibility_suppressed():
+		if _player_chrome_overlay_depth > 0:
+			_restore_player_chrome_after_overlay = true
+		show_chrome = false
+		duration = 0.0
+	if not show_chrome:
+		_quick_settings.close()
 	_kill_tween(_menu_chrome_tween)
 	_menu_chrome_tween = null
 	_system_menu_auto_hide_timer.stop()
@@ -2026,12 +2058,9 @@ func _restore_presentation(presentation: Dictionary) -> void:
 		float(presentation.get("message_frame_alpha", 1.0)),
 		bool(presentation.get("message_frame_visible", true))
 	)
-	_system_menu.visible = _dialogue_view.is_frame_visible()
+	var restored_chrome_visible := _dialogue_view.is_frame_visible()
 	_system_menu.modulate.a = _dialogue_view.frame_alpha()
-	if _dialogue_view.is_frame_visible():
-		_show_system_menu(true)
-	else:
-		_suspend_system_menu()
+	_apply_player_chrome_presence(restored_chrome_visible)
 	_stop_bgm(0)
 	var bgm: Variant = presentation.get("bgm", {})
 	if bgm is Dictionary:
@@ -2121,9 +2150,12 @@ func _on_system_menu_lock_toggled(unlocked: bool) -> void:
 
 
 func _set_system_menu_locked(locked: bool) -> void:
+	var changed := locked != _system_menu_locked
 	_system_menu_locked = locked
 	_menu_lock_button.set_pressed_no_signal(not locked)
 	_menu_lock_button.tooltip_text = "解锁系统菜单" if locked else "锁定系统菜单"
+	if not changed:
+		return
 	if locked:
 		_show_system_menu()
 	else:
@@ -2141,6 +2173,9 @@ func _on_system_menu_mouse_exited() -> void:
 
 
 func _show_system_menu(instant := false) -> void:
+	if _player_chrome_visibility_suppressed():
+		_suspend_system_menu()
+		return
 	_system_menu_auto_hide_timer.stop()
 	_system_menu_recall_button.visible = false
 	_kill_tween(_system_menu_slide_tween)
@@ -2245,21 +2280,49 @@ func _can_skip_current_message() -> bool:
 
 
 func _apply_runtime_settings(settings: Dictionary) -> void:
-	_runtime_settings = SettingsModel.normalize(settings)
-	_dialogue_view.sync_quick_settings(_runtime_settings)
-	_message_speed_milliseconds = int(_runtime_settings.get("message_speed", 5))
-	_dialogue_view.set_reveal_speed(_message_speed_milliseconds)
-	_auto_wait_seconds = float(_runtime_settings.get("auto_speed", 5000)) / 1000.0
-	_allow_unread_skip = not bool(_runtime_settings.get("read_skip", true))
-	_stop_voice_on_advance = bool(_runtime_settings.get("voice_stop_on_click", false))
-	_preserve_skip_after_choice = bool(_runtime_settings.get("lock_skip", false))
-	_preserve_auto_after_choice = bool(_runtime_settings.get("lock_auto", false))
-	_set_system_menu_locked(bool(_runtime_settings.get("system_menu_lock", true)))
-	_route_guide_enabled = bool(_runtime_settings.get("route_guide", true))
-	_update_portrait(_current_speaker)
-	_refresh_message_appearance()
-	if is_instance_valid(_stage_director):
+	var normalized := SettingsModel.normalize(settings)
+	if normalized == _runtime_settings:
+		return
+	var previous := _runtime_settings
+	_runtime_settings = normalized
+	_quick_settings.sync_from(_runtime_settings)
+	if _runtime_setting_changed(previous, "message_speed"):
+		_message_speed_milliseconds = int(_runtime_settings.get("message_speed", 5))
+		_dialogue_view.set_reveal_speed(_message_speed_milliseconds)
+	if _runtime_setting_changed(previous, "auto_speed"):
+		_auto_wait_seconds = float(_runtime_settings.get("auto_speed", 5000)) / 1000.0
+	if _runtime_setting_changed(previous, "read_skip"):
+		_allow_unread_skip = not bool(_runtime_settings.get("read_skip", true))
+	if _runtime_setting_changed(previous, "voice_stop_on_click"):
+		_stop_voice_on_advance = bool(_runtime_settings.get("voice_stop_on_click", false))
+	if _runtime_setting_changed(previous, "lock_skip"):
+		_preserve_skip_after_choice = bool(_runtime_settings.get("lock_skip", false))
+	if _runtime_setting_changed(previous, "lock_auto"):
+		_preserve_auto_after_choice = bool(_runtime_settings.get("lock_auto", false))
+	if _runtime_setting_changed(previous, "system_menu_lock"):
+		_set_system_menu_locked(bool(_runtime_settings.get("system_menu_lock", true)))
+	if _runtime_setting_changed(previous, "route_guide"):
+		_route_guide_enabled = bool(_runtime_settings.get("route_guide", true))
+	if _runtime_setting_changed(previous, "portrait_visible"):
+		_update_portrait(_current_speaker)
+	if _any_runtime_setting_changed(previous, ["window_depth", "font_type", "read_color"]):
+		_refresh_message_appearance()
+	if (
+		is_instance_valid(_stage_director)
+		and _runtime_setting_changed(previous, "screen_effect")
+	):
 		_stage_director.set_screen_effects_enabled(bool(_runtime_settings.get("screen_effect", true)))
+
+
+func _runtime_setting_changed(previous: Dictionary, key: String) -> bool:
+	return previous.is_empty() or previous.get(key) != _runtime_settings.get(key)
+
+
+func _any_runtime_setting_changed(previous: Dictionary, keys: Array[String]) -> bool:
+	for key in keys:
+		if _runtime_setting_changed(previous, key):
+			return true
+	return false
 
 
 func _preview_quick_settings(settings: Dictionary) -> void:

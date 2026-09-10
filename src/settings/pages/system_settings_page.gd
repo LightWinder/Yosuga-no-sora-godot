@@ -52,8 +52,8 @@ func sync_from(settings: Dictionary) -> void:
 	for index in SYSTEM_TOGGLE_KEYS.size():
 		_system_toggle_choices[index].select_value(_ui_enabled_for_system_toggle(index, settings))
 	# Source maps slider trim inversely: speed = range - trim.
-	_message_speed_slider.set_value_silent(100.0 - float(settings.get("message_speed", 5)))
-	_auto_speed_slider.set_value_silent(100.0 - float(settings.get("auto_speed", 5000)) / 100.0)
+	_message_speed_slider.set_value_silent(SettingsModel.message_speed_to_slider(settings.get("message_speed", 5)))
+	_auto_speed_slider.set_value_silent(SettingsModel.auto_speed_to_slider(settings.get("auto_speed", 5000)))
 	var confirmations: Dictionary = settings.get("confirmations", {})
 	for index in SettingsModel.CONFIRMATION_KEYS.size():
 		_set_confirmation_visual(index, bool(confirmations.get(SettingsModel.CONFIRMATION_KEYS[index], true)))
@@ -100,11 +100,11 @@ func _on_system_toggle_selected(enabled: Variant, index: int) -> void:
 
 
 func _on_message_speed_changed(value: float) -> void:
-	emit_patch({"message_speed": int(100.0 - value)})
+	emit_patch({"message_speed": SettingsModel.message_speed_from_slider(value)})
 
 
 func _on_auto_speed_changed(value: float) -> void:
-	emit_patch({"auto_speed": int((100.0 - value) * 100.0)})
+	emit_patch({"auto_speed": SettingsModel.auto_speed_from_slider(value)})
 
 
 func _on_confirmation_toggled(enabled: bool, index: int) -> void:

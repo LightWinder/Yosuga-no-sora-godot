@@ -190,9 +190,9 @@ func _capture() -> void:
 	if screen_name == &"adv" and arguments.size() >= 4:
 		var dialogue := (screen as AdvScreen).get_node("%DialogueView") as AdvDialogueView
 		if arguments[3] == "quick_audio":
-			dialogue.quick_settings_popovers().toggle_audio()
+			((screen as AdvScreen).get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers).toggle_audio()
 		elif arguments[3] == "quick_text":
-			dialogue.quick_settings_popovers().toggle_text()
+			((screen as AdvScreen).get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers).toggle_text()
 	# Keep captures deterministic and prevent the host pointer from leaving a
 	# random card in hover/tooltip state.
 	Input.warp_mouse(Vector2(12.0, 12.0))

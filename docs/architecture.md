@@ -288,6 +288,8 @@ ADV 只发出中立的语音收藏意图；`StartupFlow` 按需创建该服务�
 
 它不应把固定界面结构重新改成脚本动态创建。
 
+对话框和右侧系统菜单共同组成 player chrome。它们的实际显隐必须通过 `AdvScreen` 的统一应用入口，并服从路由浮层、手动隐藏和页面退出状态；Settings 实时预览或剧情计时完成不得绕过该入口在浮层下重新显示任一部分。
+
 ### `AdvDialogueView`
 
 `src/adv/components/adv_dialogue_view.tscn` 拥有单个对话框的视觉和局部交互。
@@ -341,7 +343,7 @@ ADV runtime 通过项目内 resolver 查找 `res://` 资源。
 
 应用级的 Settings 集成由组合根完成，而不是由 Title 或 ADV 直接拥有另一个功能的内部实现。
 
-ADV 对话框上的音量与文本快捷入口属于 ADV 自身的轻量悬浮控件，不切换到完整 Settings route。它们复用 `SettingsModel` 的值语义，并通过注入给 `AdvScreen` 的 `SettingsRepository` 做即时预览与持久化；不得另建一份设置文件或绕过设置仓储。
+ADV 对话框上的音量与文本快捷入口属于 ADV 自身的轻量悬浮控件，不切换到完整 Settings route。`AdvDialogueView` 只发送快捷入口意图，悬浮控件及其设置状态由 `AdvScreen` 持有；它们复用 `SettingsModel` 的值语义，并通过注入给 `AdvScreen` 的 `SettingsRepository` 做即时预览与持久化，不得另建一份设置文件或绕过设置仓储。运行时消费者应比较规范化快照，只应用真正发生变化的设置域；重复广播同一份快照不得触发菜单显隐等命令式副作用。
 
 ### Settings ADV Preview
 

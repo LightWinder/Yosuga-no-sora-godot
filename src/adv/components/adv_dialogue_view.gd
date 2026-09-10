@@ -9,8 +9,8 @@ signal frame_gui_input(event: InputEvent)
 signal reveal_finished
 signal voice_replay_requested
 signal voice_favorite_requested
-signal settings_preview_requested(settings: Dictionary)
-signal settings_commit_requested(settings: Dictionary)
+signal audio_settings_requested
+signal text_settings_requested
 
 const HIDE_OFFSET := Vector2(0.0, 120.0)
 
@@ -24,7 +24,6 @@ const HIDE_OFFSET := Vector2(0.0, 120.0)
 @onready var _voice_settings_button: AdvDialogueIconButton = %VoiceSettingsButton
 @onready var _text_settings_button: AdvDialogueIconButton = %TextSettingsButton
 @onready var _hide_button: AdvDialogueIconButton = %MessageHideButton
-@onready var _quick_settings: AdvQuickSettingsPopovers = %QuickSettingsPopovers
 @onready var _message_focus_mode := _message_label.focus_mode
 @onready var _message_scrollbar: VScrollBar = _message_label.get_v_scroll_bar()
 @onready var _scrollbar_focus_mode := _message_scrollbar.focus_mode
@@ -50,22 +49,17 @@ func _ready() -> void:
 	_voice_settings_button.pressed.connect(_on_voice_settings_pressed)
 	_text_settings_button.pressed.connect(_on_text_settings_pressed)
 	_hide_button.pressed.connect(_on_hide_pressed)
-	_quick_settings.settings_preview_requested.connect(settings_preview_requested.emit)
-	_quick_settings.settings_commit_requested.connect(settings_commit_requested.emit)
 	_message_panel.gui_input.connect(_on_frame_gui_input)
 	_refresh_action_buttons()
 
 
 func _exit_tree() -> void:
-	if is_instance_valid(_quick_settings):
-		_quick_settings.flush_pending_commit()
 	cancel_reveal()
 	_cancel_frame_transition()
 
 
 func set_interactive(enabled: bool) -> void:
 	_interactive = enabled
-	_quick_settings.set_interactive(enabled)
 	_refresh_action_buttons()
 	_message_panel.mouse_filter = Control.MOUSE_FILTER_PASS if enabled else Control.MOUSE_FILTER_IGNORE
 	(%MessageColumn as Control).mouse_filter = _message_panel.mouse_filter
@@ -118,34 +112,17 @@ func _on_voice_favorite_pressed() -> void:
 
 func _on_voice_settings_pressed() -> void:
 	if _interactive:
-		_quick_settings.toggle_audio()
+		audio_settings_requested.emit()
 
 
 func _on_text_settings_pressed() -> void:
 	if _interactive:
-		_quick_settings.toggle_text()
+		text_settings_requested.emit()
 
 
 func _on_hide_pressed() -> void:
 	if _interactive:
-		_quick_settings.close()
 		hide_requested.emit()
-
-
-func sync_quick_settings(settings: Dictionary) -> void:
-	_quick_settings.sync_from(settings)
-
-
-func has_quick_settings_open() -> bool:
-	return _quick_settings.has_open()
-
-
-func close_quick_settings() -> bool:
-	return _quick_settings.close()
-
-
-func quick_settings_popovers() -> AdvQuickSettingsPopovers:
-	return _quick_settings
 
 
 func _on_frame_gui_input(event: InputEvent) -> void:
@@ -274,15 +251,11 @@ func set_frame_position(value: Vector2) -> void:
 
 ## Change only the display flag, preserving a scenario fade's current alpha.
 func set_frame_displayed(value: bool) -> void:
-	if not value:
-		_quick_settings.close()
 	_message_panel.visible = value
 
 
 func restore_frame_state(frame_position_value: Vector2, alpha: float, visible_value: bool) -> void:
 	_cancel_frame_transition()
-	if not visible_value:
-		_quick_settings.close()
 	_message_panel.position = frame_position_value
 	_message_panel.modulate.a = alpha
 	_message_panel.visible = visible_value
@@ -302,8 +275,6 @@ func apply_frame_type(frame_type: String) -> void:
 ## Script show/hide and initial dialogue use a fade, without manual sliding.
 func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 	_cancel_frame_transition()
-	if not value:
-		_quick_settings.close()
 	_message_panel.position = _rest_position
 	_message_panel.visible = true
 	var alpha := 1.0 if value else 0.0
@@ -324,8 +295,6 @@ func set_frame_visible(value: bool, duration: float = 0.3) -> void:
 func set_chrome_visible(value: bool, duration: float = 0.3) -> void:
 	# Temporary slide offsets never become the resting frame state.
 	finish_frame_transition()
-	if not value:
-		_quick_settings.close()
 	if value:
 		_message_panel.visible = true
 		_message_panel.position = _rest_position

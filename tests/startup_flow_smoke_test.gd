@@ -219,7 +219,7 @@ func _run() -> void:
 	)
 	_expect(voice_collection.count() == 1 and (adv.get_node("%Status") as Label).text == "该语音已收藏", "Duplicate ADV favorite clicks must retain one entry and report the source-style result.")
 	(gameplay_view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton).pressed.emit()
-	var quick_settings := gameplay_view.quick_settings_popovers()
+	var quick_settings := adv.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
 	_expect(
 		quick_settings.active_panel_name() == &"AudioQuickSettingsPanel"
 		and adv_message_panel.visible
@@ -252,7 +252,7 @@ func _run() -> void:
 		"Inline text edits must preserve source speed polarity and apply the selected skip range immediately."
 	)
 	(gameplay_view.get_node("%TextSettingsButton") as AdvDialogueIconButton).pressed.emit()
-	_expect(not gameplay_view.has_quick_settings_open(), "Pressing the active inline-settings shortcut again must close it.")
+	_expect(not quick_settings.has_open(), "Pressing the active inline-settings shortcut again must close it.")
 	adv.settings_requested.emit()
 	await create_timer(0.4, true, false, true).timeout
 	var adv_settings := startup_flow.open_settings()
@@ -277,6 +277,14 @@ func _run() -> void:
 	adv_preview.apply_settings(preview_settings)
 	_expect_preview_connection(adv_settings)
 	_test_preview_settings_flow(adv_settings)
+	var adv_system_menu := adv.get_node("%SystemMenu") as Control
+	var adv_system_menu_recall := adv.get_node("%SystemMenuRecallButton") as Control
+	_expect(
+		not adv_message_panel.visible
+		and not adv_system_menu.visible
+		and not adv_system_menu_recall.visible,
+		"Live Settings changes above ADV must not reveal any player chrome beneath the blurred overlay."
+	)
 	_expect(adv_preview != null and (adv_preview.get_node("%DialogueView").get_node("%MessageLabel") as RichTextLabel).text == sample_message, "In-game Settings must show the same fixed dialogue as Title, never current gameplay.")
 	_expect((adv_preview.get_node("%DialogueView").get_node("%MessagePanel") as Control).visible, "The fixed preview dialogue must remain visible while gameplay chrome is hidden.")
 	var preview_background := adv_preview.get_node("%Background") as TextureRect

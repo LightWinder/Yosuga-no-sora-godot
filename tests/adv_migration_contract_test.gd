@@ -220,7 +220,7 @@ func _test_scene_and_animation_contract() -> void:
 	var voice_favorite_button := dialogue_view.get_node("%VoiceFavoriteButton") as AdvDialogueIconButton
 	var voice_settings_button := dialogue_view.get_node("%VoiceSettingsButton") as AdvDialogueIconButton
 	var text_settings_button := dialogue_view.get_node("%TextSettingsButton") as AdvDialogueIconButton
-	var quick_settings := dialogue_view.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
+	var quick_settings := screen.get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers
 	_expect(
 		voice_replay_button != null
 		and voice_favorite_button != null
@@ -231,6 +231,9 @@ func _test_scene_and_animation_contract() -> void:
 	)
 	_expect(
 		quick_settings != null
+		and quick_settings.get_parent() == screen.get_node("VisualCanvas")
+		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).global_position == Vector2(665, 524)
+		and (quick_settings.get_node("%TextQuickSettingsPanel") as Control).global_position == Vector2(709, 577)
 		and (quick_settings.get_node("%AudioQuickSettingsPanel") as Control).size == Vector2(647, 266)
 		and (quick_settings.get_node("%TextQuickSettingsPanel") as Control).size == Vector2(647, 213)
 		and quick_settings.get_node("%master_volume") is SettingsKnobSlider
@@ -243,7 +246,7 @@ func _test_scene_and_animation_contract() -> void:
 		and quick_settings.get_node("%window_depth") is SettingsKnobSlider
 		and quick_settings.get_node("%SkipReadChoice") is CheckBox
 		and quick_settings.get_node("%SkipAllChoice") is CheckBox,
-		"The inline panels must retain the source five-channel and text/skip control set as native scene content."
+		"AdvScreen must own the correctly aligned inline panels and retain their source control set as native scene content."
 	)
 	var message_before_disabled_voice_click := screen.current_message()
 	_send_primary_click(voice_replay_button.get_global_rect().get_center())
@@ -296,7 +299,7 @@ func _test_scene_and_animation_contract() -> void:
 		"Inline settings must be mutually exclusive and persist source-mapped values through the injected repository."
 	)
 	text_settings_button.pressed.emit()
-	_expect(not dialogue_view.has_quick_settings_open(), "DHK-15 must toggle its active inline panel closed.")
+	_expect(not quick_settings.has_open(), "DHK-15 must toggle its active inline panel closed.")
 	screen._set_auto_enabled(true)
 	_expect(voice_replay_button.disabled and voice_favorite_button.disabled, "Auto mode must disable replay and favorite like the source frame.")
 	screen._set_auto_enabled(false)
@@ -350,6 +353,30 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.current_message() == message_before_manual_hide,
 		"The first stage click after a manual hide must restore the dialogue chrome without advancing text."
 	)
+	var system_menu := screen.get_node("VisualCanvas/SystemMenu") as Control
+	var system_menu_recall := screen.get_node("VisualCanvas/SystemMenuRecallButton") as Control
+	screen.set_route_overlay_active(true)
+	settings_repository.preview_settings({"master_volume": 0.62})
+	_expect(
+		not message_panel.visible and not system_menu.visible and not system_menu_recall.visible,
+		"Route overlays must suppress every player-chrome surface while live settings are previewed."
+	)
+	screen.runtime().configure(FIXTURE_DIRECTORY)
+	_expect(screen.runtime().start_scenario("overlay_wait"), "Overlay wait fixture must start.")
+	await create_timer(0.08).timeout
+	await process_frame
+	_expect(
+		screen.current_message() == "浮层等待完成"
+		and not message_panel.visible
+		and not system_menu.visible
+		and not system_menu_recall.visible,
+		"A scenario timer completing beneath a route overlay must update content without revealing player chrome."
+	)
+	screen.set_route_overlay_active(false)
+	_expect(
+		message_panel.visible and system_menu.visible and not system_menu_recall.visible,
+		"Leaving the route overlay must restore the latest dialogue chrome exactly once."
+	)
 	_expect(
 		screen.get_node_or_null("VisualCanvas/SystemMenu/PreviousChoiceButton") is TextureButton
 		and screen.get_node_or_null("VisualCanvas/SystemMenu/NextChoiceButton") is TextureButton
@@ -400,7 +427,6 @@ func _test_scene_and_animation_contract() -> void:
 		and screen.get_node_or_null("VisualCanvas/EyeCatchOverlay/EyeCatchContent/EyeCatchLogo") is TextureRect,
 		"Source time/date eye-catch layers must remain fixed scene-owned controls."
 	)
-	var system_menu := screen.get_node("VisualCanvas/SystemMenu") as Control
 	_expect(
 		system_menu.position.is_equal_approx(Vector2(1602.0, 870.0))
 		and screen.get_node_or_null("VisualCanvas/SystemMenu/SaveButton") is TextureButton

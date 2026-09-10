@@ -901,6 +901,15 @@ func _test_title_state() -> void:
 	var source_defaults := SettingsModel.defaults()
 	_expect(is_equal_approx(float(source_defaults.get("bgm_volume", 0.0)), 0.5) and is_equal_approx(float(source_defaults.get("se_volume", 0.0)), 0.7), "Audio defaults must match the source System.tjs gains.")
 	_expect(int(source_defaults.get("window_depth", -1)) == 50 and int(source_defaults.get("message_speed", -1)) == 5, "Screen/system defaults must preserve source units.")
+	_expect(
+		is_equal_approx(SettingsModel.volume_to_slider(0.37), 37.0)
+		and is_equal_approx(SettingsModel.volume_from_slider(37.0), 0.37)
+		and is_equal_approx(SettingsModel.message_speed_to_slider(23), 77.0)
+		and SettingsModel.message_speed_from_slider(77.0) == 23
+		and is_equal_approx(SettingsModel.auto_speed_to_slider(6400), 36.0)
+		and SettingsModel.auto_speed_from_slider(36.0) == 6400,
+		"Full and inline Settings must share one reversible slider-value mapping."
+	)
 	var normalized_edges := SettingsModel.normalize({"window_mode": "borderless", "window_width": 1500, "font_type": 99, "mute_master": 1})
 	_expect(str(normalized_edges.get("window_mode", "")) == "windowed" and int(normalized_edges.get("window_width", 0)) == 1600, "Unsupported desktop modes and widths must normalize to source HD choices.")
 	_expect(int(normalized_edges.get("font_type", -1)) == 5 and normalized_edges.get("mute_master", false) == true, "Font and mute values must be clamped/normalized before persistence.")

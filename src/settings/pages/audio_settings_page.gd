@@ -64,7 +64,7 @@ func sync_from(settings: Dictionary) -> void:
 		_detail_volumes.append(float(source_details[index]) if index < source_details.size() else 1.0)
 	_refresh_voice_selection()
 	for key in _channel_sliders:
-		_channel_sliders[key].set_value_silent(float(settings.get(key, 1.0)) * 100.0)
+		_channel_sliders[key].set_value_silent(SettingsModel.volume_to_slider(settings.get(key, 1.0)))
 
 
 func select_voice(index: int) -> void:
@@ -94,7 +94,7 @@ func _refresh_voice_selection() -> void:
 	_voice_choices.select_value(_selected_voice)
 	_voice_portrait.texture = VOICE_PORTRAITS[_selected_voice]
 	var detail := selected_voice_detail_index()
-	_voice_slider.set_value_silent(_detail_volumes[detail] * 100.0 if detail < _detail_volumes.size() else 100.0)
+	_voice_slider.set_value_silent(SettingsModel.volume_to_slider(_detail_volumes[detail]) if detail < _detail_volumes.size() else 100.0)
 
 
 func _on_voice_selected(value: Variant) -> void:
@@ -106,7 +106,7 @@ func _on_voice_volume_changed(value: float) -> void:
 	if detail >= _detail_volumes.size():
 		return
 	var details := _detail_volumes.duplicate()
-	details[detail] = value / 100.0
+	details[detail] = SettingsModel.volume_from_slider(value)
 	_detail_volumes = details
 	emit_patch({"voice_detail_volumes": details})
 
@@ -118,4 +118,4 @@ func _on_voice_drag_ended(_value_changed: bool) -> void:
 
 
 func _on_channel_changed(value: float, key: StringName) -> void:
-	emit_patch({key: value / 100.0})
+	emit_patch({key: SettingsModel.volume_from_slider(value)})

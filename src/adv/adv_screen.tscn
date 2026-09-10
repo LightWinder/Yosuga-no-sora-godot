@@ -22,6 +22,7 @@
 [ext_resource type="Texture2D" uid="uid://dwqvlkl6farw1" path="res://assets/content/adv/ui/DHK-58.png" id="21_menu_recall"]
 [ext_resource type="PackedScene" path="res://src/adv/components/adv_dialogue_view.tscn" id="22_dialogue"]
 [ext_resource type="Script" path="res://src/adv/components/adv_system_menu_button.gd" id="23_system_button"]
+[ext_resource type="PackedScene" path="res://src/adv/components/adv_quick_settings_popovers.tscn" id="24_quick_settings"]
 
 [sub_resource type="AtlasTexture" id="Atlas_auto_indicator"]
 atlas = ExtResource("17_auto_indicator")
@@ -278,6 +279,12 @@ stretch_mode = 5
 [node name="DialogueView" parent="VisualCanvas" instance=ExtResource("22_dialogue")]
 unique_name_in_owner = true
 layout_mode = 1
+
+[node name="QuickSettingsPopovers" parent="VisualCanvas" instance=ExtResource("24_quick_settings")]
+unique_name_in_owner = true
+z_index = 1100
+layout_mode = 1
+offset_top = 760.0
 
 [node name="SystemMenu" type="Control" parent="VisualCanvas" unique_id=823633183]
 unique_name_in_owner = true

@@ -386,7 +386,15 @@ require_pattern 'name="MessageBackdrop" type="Control"' "$project_root/src/adv/c
 require_pattern 'adv_dialogue_backdrop\.gd' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV message backdrop must use its vector drawing component."
 require_pattern 'name="SpeakerName" type="Control"' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV code-drawn speaker name must remain scene-owned."
 require_pattern 'adv_speaker_name\.gd' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV speaker name must use its vector text component."
-require_pattern 'adv_quick_settings_popovers\.tscn' "$project_root/src/adv/components/adv_dialogue_view.tscn" "ADV dialogue must instance the source-style inline settings panels."
+require_pattern 'adv_quick_settings_popovers\.tscn' "$project_root/src/adv/adv_screen.tscn" "AdvScreen must own the source-style inline settings panels."
+if rg -q 'AdvQuickSettingsPopovers|QuickSettingsPopovers|settings_(preview|commit)_requested' \
+		"$project_root/src/adv/components/adv_dialogue_view.gd" \
+		"$project_root/src/adv/components/adv_dialogue_view.tscn"; then
+	echo "Dialogue presentation must emit shortcut intents without owning Settings UI or state." >&2
+	exit 1
+fi
+require_pattern 'audio_settings_requested\.connect\(_quick_settings\.toggle_audio\)' "$project_root/src/adv/adv_screen.gd" "AdvScreen must route the dialogue audio shortcut to its inline panel."
+require_pattern 'text_settings_requested\.connect\(_quick_settings\.toggle_text\)' "$project_root/src/adv/adv_screen.gd" "AdvScreen must route the dialogue text shortcut to its inline panel."
 require_pattern 'name="AudioQuickSettingsPanel" type="Control"' "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV volume quick settings must remain fixed scene content."
 require_pattern 'name="TextQuickSettingsPanel" type="Control"' "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV text quick settings must remain fixed scene content."
 for quick_slider in master_volume bgm_volume voice_volume se_volume env_se_volume message_speed auto_speed window_depth; do
@@ -395,7 +403,7 @@ done
 for quick_choice in SkipReadChoice SkipAllChoice; do
 	require_pattern "name=\"$quick_choice\" type=\"CheckBox\"" "$project_root/src/adv/components/adv_quick_settings_popovers.tscn" "ADV inline skip choice must remain native scene content: $quick_choice."
 done
-if rg -q 'voice_settings_requested|text_settings_requested|settings_section_requested|_open_adv_settings_section' \
+if rg -q 'settings_section_requested|_open_adv_settings_section' \
 		"$project_root/src/adv" "$project_root/src/app/startup_flow.gd"; then
 	echo "ADV dialogue quick settings must stay inline instead of routing to the full Settings screen." >&2
 	exit 1
