@@ -13,18 +13,26 @@ const WINDOW_MODE_KEY := &"window_mode"
 const WINDOW_WIDTH_KEY := &"window_width"
 const FONT_TYPE_KEY := &"font_type"
 const WINDOW_DEPTH_KEY := &"window_depth"
+const LANGUAGE_KEY := &"language"
 const PORTRAIT_VISIBLE_KEY := &"portrait_visible"
 const READ_COLOR_KEY := &"read_color"
 const SCREEN_EFFECT_KEY := &"screen_effect"
 
+const LANGUAGES: Array[String] = ["zh", "ja"]
+
 var _window_mode_choices := SettingsChoiceGroup.new()
 var _resolution_choices := SettingsChoiceGroup.new()
 var _font_choices := SettingsChoiceGroup.new()
+var _language_choices := SettingsChoiceGroup.new()
 var _toggle_choices: Dictionary[StringName, SettingsChoiceGroup] = {}
 
 @onready var _window_mode_buttons: Array[SettingsChoiceButton] = [
 	%FullscreenChoice,
 	%WindowedChoice,
+]
+@onready var _language_buttons: Array[SettingsChoiceButton] = [
+	%ChineseLanguageChoice,
+	%JapaneseLanguageChoice,
 ]
 @onready var _resolution_buttons: Array[SettingsChoiceButton] = [
 	%Resolution1920Choice,
@@ -74,6 +82,7 @@ func _ready() -> void:
 	super._ready()
 	_preview_artwork.visibility_changed.connect(_sync_preview_visibility)
 	_configure_window_choices()
+	_configure_language_choices()
 	_configure_font_choices()
 	_configure_screen_toggles()
 	register_setting_slider(_opacity_slider)
@@ -90,6 +99,7 @@ func _sync_preview_visibility() -> void:
 
 func sync_from(settings: Dictionary) -> void:
 	_window_mode_choices.select_value(str(settings.get(WINDOW_MODE_KEY, "windowed")))
+	_language_choices.select_value(str(settings.get(LANGUAGE_KEY, "zh")))
 	_resolution_choices.select_value(int(settings.get(WINDOW_WIDTH_KEY, 1280)))
 	_font_choices.select_value(int(settings.get(FONT_TYPE_KEY, 0)))
 	for key in _toggle_choices:
@@ -100,6 +110,11 @@ func sync_from(settings: Dictionary) -> void:
 func select_window_mode(mode: String) -> void:
 	var normalized := "fullscreen" if mode == "fullscreen" else "windowed"
 	emit_patch({WINDOW_MODE_KEY: normalized}, true)
+
+
+func select_language(language: String) -> void:
+	if LANGUAGES.has(language):
+		emit_patch({LANGUAGE_KEY: language}, true)
 
 
 func select_resolution(width: int) -> void:
@@ -129,6 +144,13 @@ func _configure_window_choices() -> void:
 	_resolution_choices.value_selected.connect(_on_resolution_selected)
 
 
+func _configure_language_choices() -> void:
+	assert(_language_buttons.size() == LANGUAGES.size())
+	for index in _language_buttons.size():
+		_language_choices.add_choice(_language_buttons[index], LANGUAGES[index])
+	_language_choices.value_selected.connect(_on_language_selected)
+
+
 func _configure_font_choices() -> void:
 	assert(_font_buttons.size() == FONT_TYPES.size())
 	for index in _font_buttons.size():
@@ -153,6 +175,10 @@ func _create_boolean_group(key: StringName, buttons: Array[SettingsChoiceButton]
 
 func _on_window_mode_selected(value: Variant) -> void:
 	emit_patch({WINDOW_MODE_KEY: str(value)}, true)
+
+
+func _on_language_selected(value: Variant) -> void:
+	emit_patch({LANGUAGE_KEY: str(value)}, true)
 
 
 func _on_resolution_selected(value: Variant) -> void:

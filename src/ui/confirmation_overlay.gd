@@ -10,6 +10,11 @@ signal canceled
 signal always_toggled(checked: bool)
 
 const CONFIRM_ROOT := "res://assets/content/confirm/"
+const CANVAS_HEIGHT := 1080.0
+const MIN_BAND_HEIGHT := 313.0
+const MAX_BAND_HEIGHT := 620.0
+const CONTENT_VERTICAL_PADDING := 104.0
+const MESSAGE_WIDTH := 1000.0
 
 var always_checked := true
 var _return_focus: Control
@@ -18,6 +23,9 @@ var _return_focus: Control
 @onready var _confirm_button: TextActionButton = $Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Confirm
 @onready var _cancel_button: TextActionButton = $Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Cancel
 @onready var _always_button: ImageCheckButton = $Layout/VisualCanvas/DialogContent/AlwaysAsk
+@onready var _backdrop: TextureRect = $Layout/VisualCanvas/BackdropArtwork
+@onready var _center: CenterContainer = $Layout/VisualCanvas/DialogContent/Center
+@onready var _main: VBoxContainer = $Layout/VisualCanvas/DialogContent/Center/Main
 
 
 func _ready() -> void:
@@ -52,6 +60,7 @@ func open(
 	if not is_open():
 		_return_focus = get_viewport().gui_get_focus_owner()
 	_message.text = message
+	_update_layout(message)
 	_confirm_button.text = confirm_text
 	_cancel_button.text = cancel_text
 	always_checked = always_enabled
@@ -72,6 +81,30 @@ func open(
 		control.focus_neighbor_bottom = next
 	show_modal()
 	_cancel_button.grab_focus()
+
+
+func _update_layout(message: String) -> void:
+	var font := _message.get_theme_font("font")
+	var font_size := _message.get_theme_font_size("font_size")
+	var measured := font.get_multiline_string_size(
+		message,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		MESSAGE_WIDTH,
+		font_size
+	)
+	var message_height := maxf(60.0, ceilf(measured.y) + 12.0)
+	_message.custom_minimum_size = Vector2(MESSAGE_WIDTH, message_height)
+	var content_height := message_height + float(_main.get_theme_constant("separation")) + 60.0
+	var band_height := clampf(content_height + CONTENT_VERTICAL_PADDING, MIN_BAND_HEIGHT, MAX_BAND_HEIGHT)
+	var band_top := roundf((CANVAS_HEIGHT - band_height) * 0.5)
+	var band_bottom := band_top + band_height
+	_blur_layer.position.y = band_top
+	_blur_layer.size.y = band_height
+	_backdrop.position.y = band_top
+	_backdrop.size.y = band_height
+	_center.position.y = band_top + CONTENT_VERTICAL_PADDING * 0.5
+	_center.size.y = band_height - CONTENT_VERTICAL_PADDING
+	_always_button.position.y = band_bottom - 33.0
 
 
 func close() -> void:

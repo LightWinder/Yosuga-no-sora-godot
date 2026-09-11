@@ -197,6 +197,7 @@ func _run() -> void:
 	_expect(adv.current_message().begins_with("蔚蓝的天空"), "ADV route must restore real UTF-8 source dialogue.")
 	_expect(path_only_request.save_data != null and path_only_request.instruction_anchor == "hitret:1", "StartupFlow must resolve path-only voice/save jump requests through SaveService.")
 	var adv_message_panel := adv.get_node("VisualCanvas/DialogueView/MessagePanel") as Control
+	var adv_message_rest_position := adv_message_panel.position
 	var gameplay_view := adv.get_node("%DialogueView") as AdvDialogueView
 	var source_message := adv.current_message()
 	_expect(source_message != sample_message, "The gameplay fixture must differ from the fixed Settings sample.")
@@ -261,6 +262,11 @@ func _run() -> void:
 		"Opening route-level Settings above ADV must hide dialogue chrome from the live blurred backdrop."
 	)
 	_expect(adv_settings.settings_page().current_tab() == SettingsChrome.Tab.DISPLAY, "The full system-menu Settings action must keep its normal default tab.")
+	_expect(
+		(adv_settings.get_node("SettingsPage/VisualCanvas/Chrome/FooterPrimary/ReturnGame") as Button).visible
+		and (adv_settings.get_node("SettingsPage/VisualCanvas/Chrome/FooterPrimary/CloseSettings") as Button).visible,
+		"In-game Settings must expose the original separate return-game and return-title buttons."
+	)
 	var adv_preview := adv_settings.settings_page().display_page().preview_content() as AdvSettingsPreview
 	var preview_view := adv_preview.get_node("%DialogueView") as AdvDialogueView
 	_expect(gameplay_view.scene_file_path == preview_view.scene_file_path and preview_view.scene_file_path == "res://src/adv/components/adv_dialogue_view.tscn", "Gameplay and preview must reuse the same unmodified dialogue scene.")
@@ -295,28 +301,43 @@ func _run() -> void:
 	adv_settings.back_requested.emit()
 	await create_timer(0.7, true, false, true).timeout
 	_expect(
-		adv_message_panel.visible and overlay_host.get_child_count() == 0,
-		"Returning from ADV Settings must restore dialogue chrome synchronously after the overlay closes."
+		adv_message_panel.visible
+		and adv_message_panel.position.is_equal_approx(adv_message_rest_position)
+		and overlay_host.get_child_count() == 0,
+		"Returning from ADV Settings must restore dialogue chrome at its exact resting position without a final-frame jump."
 	)
 	_expect(adv.current_message() == source_message, "Closing Settings must preserve the real dialogue instead of applying the preview sample to gameplay.")
-	adv.title_exit_seconds = 0.01
+	Engine.time_scale = 1.0
+	# Let the frame that changes time_scale drain before timing the exit tween.
+	await process_frame
+	await process_frame
+	adv.title_exit_seconds = 0.5
 	adv.title_exit_audio_seconds = 0.01
 	adv.title_exit_chrome_seconds = 0.01
-	adv.title_requested.emit()
-	_expect(adv.is_route_exiting(), "Returning from ADV must start the source-style deferred exit instead of replacing the scene immediately.")
+	adv.settings_requested.emit()
+	await create_timer(0.4, true, false, true).timeout
+	var title_route_settings := startup_flow.open_settings()
+	var title_route_page := title_route_settings.settings_page()
+	(title_route_settings.get_node("SettingsPage/VisualCanvas/Chrome/FooterPrimary/CloseSettings") as Button).pressed.emit()
+	_expect(
+		title_route_page.is_confirm_visible() and not adv.is_route_exiting(),
+		"Settings return-title must honor the title confirmation preference instead of closing back to ADV."
+	)
+	title_route_page.confirm_pending_action()
+	await create_timer(0.32, true, false, true).timeout
+	_expect(
+		adv.is_route_exiting() and overlay_host.get_child_count() == 0,
+		"Confirming Settings return-title must close Settings and start the ADV title exit."
+	)
 	var exit_cover := adv.get_node("VisualCanvas/RouteExitCover") as ColorRect
 	_expect(
 		exit_cover.visible and exit_cover.z_index < adv_message_panel.z_index,
 		"ADV route exit must blacken the stage below the separately departing dialogue chrome."
 	)
-	await create_timer(0.1, true, false, true).timeout
+	await create_timer(0.55, true, false, true).timeout
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "ADV must construct Title only after its black exit completes.")
 	var returned_title := screen_host.get_child(0) as TitleScreen
 	_expect(returned_title != null, "ADV return must create the scene-owned Title screen.")
-	Engine.time_scale = 1.0
-	# The frame that changes time_scale can still carry the old scaled delta.
-	await process_frame
-	await process_frame
 	returned_title.game_exit_seconds = 0.25
 	(returned_title.get_node("%NewGame") as BaseButton).pressed.emit()
 	_expect(startup_flow.current_stage == StartupFlow.Stage.TITLE, "New Game must keep Title alive during its deferred departure.")

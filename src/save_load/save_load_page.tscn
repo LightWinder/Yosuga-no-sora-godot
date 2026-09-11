@@ -130,11 +130,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_default_cursor_shape = 2
 theme_type_variation = &"SettingsTabButton"
-theme_override_font_sizes/font_size = 64
 toggle_mode = true
 button_pressed = true
 button_group = SubResource("ButtonGroup_modes")
-text = "• 读取 •"
 script = ExtResource("5_tab")
 tab_label = "读取"
 

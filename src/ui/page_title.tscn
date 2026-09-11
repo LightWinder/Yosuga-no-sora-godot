@@ -122,7 +122,6 @@ theme_override_constants/shadow_offset_y = 5
 theme_override_constants/shadow_outline_size = 0
 theme_override_fonts/font = ExtResource("3_title_font")
 theme_override_font_sizes/font_size = 92
-text = "设"
 vertical_alignment = 2
 
 [node name="SecondChar" type="Label" parent="TextRow/ChineseTitle" unique_id=1653575429]
@@ -138,7 +137,6 @@ theme_override_constants/shadow_offset_y = 5
 theme_override_constants/shadow_outline_size = 0
 theme_override_fonts/font = ExtResource("3_title_font")
 theme_override_font_sizes/font_size = 92
-text = "置"
 vertical_alignment = 2
 
 [node name="SubtitleSlot" type="Control" parent="TextRow" unique_id=698857201]

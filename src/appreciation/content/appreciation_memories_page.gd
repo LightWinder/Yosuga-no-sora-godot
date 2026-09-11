@@ -135,7 +135,7 @@ func _refresh_entries(animate := false, direction := 0) -> void:
 	for memory in selected:
 		if memory.unlocked(_profile):
 			collected += 1
-	_status.text = "已收集：%d / %d" % [collected, selected.size()]
+	_status.text = tr("已收集：%d / %d") % [collected, selected.size()]
 	if animate:
 		_gallery.play_page_transition(_entry_list, direction)
 
@@ -166,7 +166,7 @@ func _add_memory_card(memory: AppreciationMemoryEntry, number: int) -> void:
 
 func _select_memory(memory: AppreciationMemoryEntry) -> void:
 	if not memory.unlocked(_profile):
-		_status.text = "“%s”尚未解锁。" % memory.title
+		_status.text = tr("“%s”尚未解锁。") % memory.title
 		return
 	var request := AppreciationContentRequest.for_memory(memory)
 	content_requested.emit(request)
@@ -185,7 +185,7 @@ func _select_memory(memory: AppreciationMemoryEntry) -> void:
 
 func _play_video(memory: AppreciationMemoryEntry) -> void:
 	if not ResourceLoader.exists(memory.video_path):
-		_status.text = "缺少视频资源：%s" % memory.video_path
+		_status.text = tr("缺少视频资源：%s") % memory.video_path
 		return
 	var stream := load(memory.video_path) as VideoStream
 	if stream == null:

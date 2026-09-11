@@ -454,6 +454,7 @@ TitleMenuButton/constants/subtitle_outline_size = 1
 TitleMenuButton/constants/text_glow_radius = 6
 TitleMenuButton/constants/tile_center_y = 32
 TitleMenuButton/constants/tile_glow_layers = 16
+TitleMenuButton/constants/tile_gap = 3
 TitleMenuButton/constants/tile_inset = 6
 TitleMenuButton/constants/tile_size = 44
 TitleMenuButton/font_sizes/font_size = 42

@@ -40,6 +40,7 @@ var _glow_phase := 0.0
 func _ready() -> void:
 	tooltip_text = display_name
 	_refresh_pivot()
+	_sync_min_width()
 	resized.connect(_refresh_pivot)
 	mouse_entered.connect(_sync_glow_animation)
 	mouse_exited.connect(_sync_glow_animation)
@@ -67,18 +68,43 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_sync_min_width()
+		queue_redraw()
+
+
+## Tiles keep the themed size no matter how many glyphs the caption has; the
+## button hugs its caption so the centered container rows render every title
+## at one uniform tile size across languages. The themed gap keeps adjacent
+## rotated tiles from touching, preserving the staggered hand-placed look.
+func _sync_min_width() -> void:
+	var caption_text := tr(caption)
+	var inset := float(get_theme_constant(&"tile_inset"))
+	var tile_size := float(get_theme_constant(&"tile_size"))
+	if caption_text.is_empty() or tile_size <= 0.0:
+		return
+	var glyph_count := caption_text.length()
+	custom_minimum_size.x = inset * 2.0 + tile_size * glyph_count + _tile_gap() * (glyph_count - 1)
+
+
+func _tile_gap() -> float:
+	return float(get_theme_constant(&"tile_gap"))
+
+
 ## Keep every glyph, its tilted square, and the English subtitle live at 4K.
 ## Theme owns typography/colors; the caption determines the drawn glyph count.
 func _draw() -> void:
-	if caption.is_empty():
+	var caption_text := tr(caption)
+	if caption_text.is_empty():
 		return
 	var visually_disabled := disabled and _show_disabled_visual
 	var font := get_theme_font(&"font")
 	var font_size := get_theme_font_size(&"font_size")
 	var inset := float(get_theme_constant(&"tile_inset"))
-	var advance := (size.x - inset * 2.0) / caption.length()
-	var edge := minf(float(get_theme_constant(&"tile_size")), advance)
-	var glyph_size := mini(font_size, int(edge - 2.0))
+	var tile_size := float(get_theme_constant(&"tile_size"))
+	var tile_gap := _tile_gap()
+	var glyph_size := mini(font_size, int(tile_size - 2.0))
 	var center_y := float(get_theme_constant(&"tile_center_y"))
 	var highlighted := is_visually_highlighted()
 	var color_name: StringName = &"tile_color"
@@ -99,17 +125,17 @@ func _draw() -> void:
 		text_glow.a *= 0.94 + pulse * 0.06
 	# Draw all soft square shadows first, keeping neighboring glyphs crisp.
 	if not visually_disabled:
-		for index in caption.length():
-			var center := Vector2(inset + advance * (index + 0.5), center_y)
+		for index in caption_text.length():
+			var center := Vector2(inset + tile_size * (index + 0.5) + tile_gap * index, center_y)
 			var angle := deg_to_rad(tile_angles[index % tile_angles.size()]) if not tile_angles.is_empty() else 0.0
 			draw_set_transform(center, angle)
-			_draw_tile_glow(edge, glow_radius, glow_color)
-	for index in caption.length():
-		var center := Vector2(inset + advance * (index + 0.5), center_y)
+			_draw_tile_glow(tile_size, glow_radius, glow_color)
+	for index in caption_text.length():
+		var center := Vector2(inset + tile_size * (index + 0.5) + tile_gap * index, center_y)
 		var angle := deg_to_rad(tile_angles[index % tile_angles.size()]) if not tile_angles.is_empty() else 0.0
 		draw_set_transform(center, angle)
-		_draw_tile(edge, tile_color)
-		var glyph := caption.substr(index, 1)
+		_draw_tile(tile_size, tile_color)
+		var glyph := caption_text.substr(index, 1)
 		var width := font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, glyph_size).x
 		var baseline := font.get_ascent(glyph_size) - font.get_height(glyph_size) * 0.5
 		if not visually_disabled:

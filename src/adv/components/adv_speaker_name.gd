@@ -19,11 +19,14 @@ const MIN_NAME_FONT_SIZE := 24
 const READINGS := {
 	"穹": "SORA",
 	"奈绪": "NAO",
+	"奈緒": "NAO",
 	"瑛": "AKIRA",
 	"一叶": "KAZUHA",
+	"一葉": "KAZUHA",
 	"初佳": "MOTOKA",
 	"亮平": "RYOUHEI",
 	"八寻": "YAHIRO",
+	"八尋": "YAHIRO",
 	"梢": "KOZUE",
 	"悠": "HARUKA",
 }

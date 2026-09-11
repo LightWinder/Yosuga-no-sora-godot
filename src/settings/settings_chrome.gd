@@ -9,6 +9,7 @@ signal tab_selected(index: int)
 signal reset_settings_requested
 signal reset_read_requested
 signal close_requested
+signal return_title_requested
 signal confirmation_accepted(action: StringName)
 signal confirmation_canceled(action: StringName)
 signal confirmation_preference_changed(action: StringName, checked: bool)
@@ -22,16 +23,18 @@ enum Tab {
 var _current_tab := Tab.DISPLAY
 var _confirmation_action: StringName = &""
 var _confirmation_return_focus: Control
+var _gameplay_context := false
 
 @onready var _tabs: Array[SettingsTabButton] = [
 	%DisplayTab,
 	%SystemTab,
 	%AudioTab,
 ]
-@onready var _reset_settings_button: SettingsTextButton = $ResetSettings
-@onready var _reset_read_button: SettingsTextButton = $ResetRead
-@onready var _open_key_popup_button: SettingsTextButton = $OpenKeyPopup
-@onready var _close_settings_button: SettingsTextButton = $CloseSettings
+@onready var _reset_settings_button: SettingsTextButton = $FooterActions/ResetSettings
+@onready var _reset_read_button: SettingsTextButton = $FooterActions/ResetRead
+@onready var _open_key_popup_button: SettingsTextButton = $FooterActions/OpenKeyPopup
+@onready var _return_game_button: SettingsTextButton = $FooterPrimary/ReturnGame
+@onready var _close_settings_button: SettingsTextButton = $FooterPrimary/CloseSettings
 @onready var _status_label: Label = $SettingsStatus
 @onready var _status_clear_timer: Timer = $StatusClearTimer
 @onready var _key_popup: SettingsKeyPopup = $KeyPopup
@@ -43,7 +46,8 @@ func _ready() -> void:
 	_reset_settings_button.pressed.connect(func() -> void: reset_settings_requested.emit())
 	_reset_read_button.pressed.connect(func() -> void: reset_read_requested.emit())
 	_open_key_popup_button.pressed.connect(_on_key_popup_requested)
-	_close_settings_button.pressed.connect(func() -> void: close_requested.emit())
+	_return_game_button.pressed.connect(func() -> void: close_requested.emit())
+	_close_settings_button.pressed.connect(_on_title_button_pressed)
 	_status_clear_timer.timeout.connect(func() -> void: _status_label.text = "")
 	_key_popup.close_requested.connect(close_key_popup)
 	_key_popup.closed.connect(_on_key_popup_closed)
@@ -52,6 +56,13 @@ func _ready() -> void:
 	_confirm_dialog.always_toggled.connect(_on_confirmation_preference_changed)
 	_confirm_dialog.closed.connect(_on_confirmation_closed)
 	select_tab(Tab.DISPLAY)
+	_apply_route_context()
+
+
+func set_gameplay_context(gameplay_context: bool) -> void:
+	_gameplay_context = gameplay_context
+	if is_node_ready():
+		_apply_route_context()
 
 
 func select_tab(index: int) -> void:
@@ -93,7 +104,13 @@ func is_key_popup_active() -> bool:
 
 func open_confirmation(action: StringName, message: String, always_enabled: bool) -> void:
 	_confirmation_action = action
-	_confirmation_return_focus = _reset_settings_button if action == &"reset_settings" else _reset_read_button
+	match action:
+		&"reset_settings":
+			_confirmation_return_focus = _reset_settings_button
+		&"reset_read":
+			_confirmation_return_focus = _reset_read_button
+		&"return_title":
+			_confirmation_return_focus = _close_settings_button
 	_confirm_dialog.open(message, "确认", "取消", true, always_enabled)
 
 
@@ -133,6 +150,17 @@ func _on_tab_button_pressed(button: BaseButton) -> void:
 
 func _on_key_popup_requested() -> void:
 	open_key_popup()
+
+
+func _on_title_button_pressed() -> void:
+	if _gameplay_context:
+		return_title_requested.emit()
+	else:
+		close_requested.emit()
+
+
+func _apply_route_context() -> void:
+	_return_game_button.visible = _gameplay_context
 
 
 func _on_key_popup_closed() -> void:

@@ -106,39 +106,33 @@ grow_vertical = 2
 theme_type_variation = &"SettingsFooterPrimaryButton"
 text = "返回标题"
 script = ExtResource("3")
-[node name="Album" type="Button" parent="."]
-unique_name_in_owner = true
-offset_left = 1120.0
-offset_top = 64.0
-offset_right = 1310.0
-offset_bottom = 138.0
-theme_type_variation = &"SettingsTabButton"
-script = ExtResource("2")
-tab_label = "CG"
-[node name="Memories" type="Button" parent="."]
-unique_name_in_owner = true
-offset_left = 1310.0
-offset_top = 64.0
-offset_right = 1500.0
-offset_bottom = 138.0
-theme_type_variation = &"SettingsTabButton"
-script = ExtResource("2")
-tab_label = "回想"
-[node name="Music" type="Button" parent="."]
-unique_name_in_owner = true
-offset_left = 1500.0
-offset_top = 64.0
-offset_right = 1690.0
-offset_bottom = 138.0
-theme_type_variation = &"SettingsTabButton"
-script = ExtResource("2")
-tab_label = "音乐"
-[node name="Voice" type="Button" parent="."]
-unique_name_in_owner = true
-offset_left = 1690.0
+[node name="TabRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 700.0
 offset_top = 64.0
 offset_right = 1880.0
 offset_bottom = 138.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 2
+
+[node name="Album" type="Button" parent="TabRow"]
+unique_name_in_owner = true
+theme_type_variation = &"SettingsTabButton"
+script = ExtResource("2")
+tab_label = "CG"
+[node name="Memories" type="Button" parent="TabRow"]
+unique_name_in_owner = true
+theme_type_variation = &"SettingsTabButton"
+script = ExtResource("2")
+tab_label = "回想"
+[node name="Music" type="Button" parent="TabRow"]
+unique_name_in_owner = true
+theme_type_variation = &"SettingsTabButton"
+script = ExtResource("2")
+tab_label = "音乐"
+[node name="Voice" type="Button" parent="TabRow"]
+unique_name_in_owner = true
 theme_type_variation = &"SettingsTabButton"
 script = ExtResource("2")
 tab_label = "语音"

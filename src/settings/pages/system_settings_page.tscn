@@ -300,77 +300,77 @@ columns = 3
 
 [node name="LoadConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=282084891 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "读档"
 
 [node name="OverwriteConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=186125944 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "存档"
 
 [node name="DeleteConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=446778325 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "删除存档"
 
 [node name="CopyConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=949107614 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "复制存档"
 
 [node name="MoveConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1284327111 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "移动存档"
 
 [node name="TitleConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=160770737 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "回到标题"
 
 [node name="EndConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1127266528 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "结束游戏"
 
 [node name="SelectJumpConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1699892854 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "跳转至选项"
 
 [node name="LogJumpConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=549743653 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "跳转至已读文本"
 
 [node name="DefaultConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=85053688 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "初始化设定"
 
 [node name="ClearReadConfirmation" parent="MainColumns/ConfirmationCard/BusinessContent/ConfirmationGrid" unique_id=1728491161 instance=ExtResource("7_check_choice")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(287, 112)
+custom_minimum_size = Vector2(0, 112)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "初始化已读文本"

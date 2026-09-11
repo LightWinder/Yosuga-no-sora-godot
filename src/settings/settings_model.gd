@@ -46,6 +46,7 @@ static func defaults() -> Dictionary:
 		"voice_detail_volumes": voice_details,
 		"window_mode": "windowed",
 		"window_width": 1280,
+		"language": "zh",
 		"window_depth": 50,
 		"font_type": 0,
 		"portrait_visible": true,
@@ -89,6 +90,9 @@ static func normalize(raw: Dictionary) -> Dictionary:
 	# values readable, but do not persist an unsupported third mode as if it
 	# were a user-facing setting.
 	result["window_mode"] = "fullscreen" if str(result.get("window_mode", "windowed")) == "fullscreen" else "windowed"
+	# Only the shipped UI languages are accepted; anything else falls back to the
+	# Chinese base corpus language instead of persisting an unsupported value.
+	result["language"] = "ja" if str(result.get("language", "zh")) == "ja" else "zh"
 	result["message_speed"] = clampi(int(result.get("message_speed", 5)), 0, 100)
 	result["auto_speed"] = clampi(int(result.get("auto_speed", 5000)), 0, 10000)
 	for key in [

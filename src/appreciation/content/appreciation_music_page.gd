@@ -85,7 +85,7 @@ func _refresh() -> void:
 			var track := _manifest.music_tracks[index]
 			_add_track_button(index, track)
 	_status.text = ""
-	(get_node("VisualCanvas/AppreciationNavigation/%CollectionStatus") as Label).text = "曲目：%d" % track_count()
+	(get_node("VisualCanvas/AppreciationNavigation/%CollectionStatus") as Label).text = tr("曲目：%d") % track_count()
 	_refresh_selected_buttons()
 
 
@@ -112,11 +112,11 @@ func _select_track(track: AppreciationMusicTrack) -> void:
 		_player.stream = null
 	if not ResourceLoader.exists(track.stream_path):
 		_playing = false
-		_status.text = "缺少音乐资源：%s" % track.stream_path
+		_status.text = tr("缺少音乐资源：%s") % track.stream_path
 		return
 	var stream := load(track.stream_path) as AudioStreamOggVorbis
 	if stream == null:
-		_status.text = "无法加载音乐资源：%s" % track.stream_path
+		_status.text = tr("无法加载音乐资源：%s") % track.stream_path
 		return
 	# Imported Ogg resources are cached by Godot.  Reusing that resource avoids
 	# duplicate packet-sequence graphs (which otherwise survive page teardown on
@@ -145,4 +145,4 @@ func _on_finished() -> void:
 		_playing = false
 		_selected = null
 		_refresh_selected_buttons()
-	status_changed.emit("音乐播放结束。" if not _playing else "")
+	status_changed.emit(tr("音乐播放结束。") if not _playing else "")

@@ -164,9 +164,9 @@ func _box_frame(index: int) -> AtlasTexture:
 func _play(favorite: VoiceFavorite) -> void:
 	if _service.play_favorite(favorite.favorite_id):
 		content_requested.emit(AppreciationContentRequest.for_voice(favorite))
-		_status.text = "正在播放：%s" % favorite.display_name
+		_status.text = tr("正在播放：%s") % favorite.display_name
 	else:
-		_status.text = "播放失败：%s" % _service.last_error
+		_status.text = tr("播放失败：%s") % _service.last_error
 	status_changed.emit(_status.text)
 
 
@@ -174,7 +174,7 @@ func _delete(favorite_id: String) -> void:
 	if _service.remove_favorite(favorite_id):
 		_status.text = "已删除语音收藏。"
 	else:
-		_status.text = "删除失败：%s" % _service.last_error
+		_status.text = tr("删除失败：%s") % _service.last_error
 	status_changed.emit(_status.text)
 
 

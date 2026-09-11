@@ -25,7 +25,7 @@ class BackgroundLayer extends Control:
 			return
 		var active := (
 			not source_button.disabled
-			and (source_button.button_pressed or source_button.is_hovered() or source_button.has_focus())
+			and (source_button.button_pressed or source_button.is_hovered())
 		)
 		draw_style_box(active_style if active else normal_style, Rect2(Vector2.ZERO, size))
 
@@ -40,6 +40,10 @@ class BackgroundLayer extends Control:
 
 
 var _background_layer: BackgroundLayer
+
+
+func is_visually_active() -> bool:
+	return not disabled and (button_pressed or is_hovered())
 
 
 func _ready() -> void:

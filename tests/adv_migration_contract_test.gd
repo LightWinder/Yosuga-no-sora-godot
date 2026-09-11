@@ -248,6 +248,26 @@ func _test_scene_and_animation_contract() -> void:
 		and quick_settings.get_node("%SkipAllChoice") is CheckBox,
 		"AdvScreen must own the correctly aligned inline panels and retain their source control set as native scene content."
 	)
+	var quick_volume_bounds := {
+		"master_volume": ["MasterMin", "MasterMax"],
+		"bgm_volume": ["BgmMin", "BgmMax"],
+		"voice_volume": ["VoiceMin", "VoiceMax"],
+		"se_volume": ["SeMin", "SeMax"],
+		"env_se_volume": ["EnvSeMin", "EnvSeMax"],
+	}
+	for slider_name in quick_volume_bounds:
+		var slider := quick_settings.get_node("%%%s" % slider_name) as HSlider
+		var min_label := slider.get_parent().get_node(quick_volume_bounds[slider_name][0]) as Label
+		var max_label := slider.get_parent().get_node(quick_volume_bounds[slider_name][1]) as Label
+		var grabber_half_width := maxf(
+			float(slider.get_theme_icon("grabber").get_width()),
+			float(slider.get_theme_icon("grabber_highlight").get_width())
+		) * 0.5
+		_expect(
+			slider.get_global_rect().position.x - min_label.get_global_rect().end.x >= grabber_half_width
+			and max_label.get_global_rect().position.x - slider.get_global_rect().end.x >= grabber_half_width,
+			"Quick volume slider %s must reserve enough endpoint clearance for its full thumb." % slider_name
+		)
 	var message_before_disabled_voice_click := screen.current_message()
 	_send_primary_click(voice_replay_button.get_global_rect().get_center())
 	await process_frame
@@ -314,12 +334,36 @@ func _test_scene_and_animation_contract() -> void:
 	)
 	_expect(stage_fallback.color.is_equal_approx(Color.BLACK), "The initial ADV stage must use the source black backing, never a blue placeholder.")
 	_expect(message_panel.modulate.a < 1.0, "New Game must begin with a gradual dialogue reveal.")
+	screen._append_history("穹", "履历语音操作测试", "SR000001")
 	screen._open_history()
-	_expect(not message_panel.visible, "Opening history during the initial fade must hide dialogue immediately.")
+	var history_view := screen.get_node("%HistoryOverlay") as AdvHistoryView
+	var history_panel := history_view.get_node("Panel") as PanelContainer
+	var history_rows := history_view.get_node("%HistoryList") as VBoxContainer
+	_expect(
+		not message_panel.visible
+		and history_view.visible
+		and is_zero_approx(history_panel.modulate.a)
+		and history_rows.get_child_count() >= 2
+		and history_rows.find_children("*", "Button", true, false).size() >= 2,
+		"History must open with motion and expose code-drawn replay, favorite, and jump actions when applicable."
+	)
 	await create_timer(0.35).timeout
-	_expect(not message_panel.visible, "The initial reveal must not finish underneath an active overlay and show dialogue again.")
+	_expect(
+		not message_panel.visible
+		and is_equal_approx(history_panel.modulate.a, 1.0)
+		and history_panel.position.is_equal_approx(Vector2(170.0, 62.0)),
+		"History open motion must settle without revealing player chrome underneath."
+	)
 	screen._close_history()
-	_expect(message_panel.visible and is_equal_approx(message_panel.modulate.a, 1.0), "Closing an early overlay must restore full dialogue opacity, not a partial fade value.")
+	_expect(
+		message_panel.visible
+		and is_equal_approx(message_panel.modulate.a, 1.0)
+		and history_view.visible
+		and history_view.is_closing(),
+		"History close motion must run above the synchronously restored full-opacity dialogue."
+	)
+	await create_timer(0.18).timeout
+	_expect(not history_view.visible, "History close motion must remove the overlay after its fade completes.")
 	_expect(
 		screen.get_node_or_null("VisualCanvas/DialogueView/MessagePanel/MessageColumn/AdvanceIndicator") == null,
 		"The removed blinking advance arrow must not remain in the dialogue scene."
@@ -467,6 +511,13 @@ func _test_scene_and_animation_contract() -> void:
 			root.gui_get_hovered_control() == system_button,
 			"The right-side system-menu button %s must own its GUI hit area." % button_name
 		)
+		_send_pointer_motion(Vector2(12.0, 12.0))
+		system_button.grab_focus()
+		await process_frame
+		_expect(
+			not (system_button as AdvSystemMenuButton).is_visually_active(),
+			"System-menu button %s must not retain its pressed tint from keyboard focus alone." % button_name
+		)
 	var settings_requests: Array[bool] = []
 	screen.settings_requested.connect(func() -> void: settings_requests.append(true))
 	var settings_button := screen.get_node("VisualCanvas/SystemMenu/SettingsButton") as TextureButton
@@ -509,8 +560,17 @@ func _test_scene_and_animation_contract() -> void:
 		feature_layer.visible and not message_panel.visible,
 		"The in-game Save/Load overlay must use the same temporary dialogue-hide state."
 	)
+	var in_game_save_page := screen.get("_active_save_load") as SaveLoadPage
 	screen._close_save_load()
-	_expect(message_panel.visible, "Closing Save/Load must restore dialogue chrome immediately.")
+	_expect(
+		message_panel.visible and feature_layer.visible and in_game_save_page.is_closing(),
+		"Closing Save/Load must restore dialogue chrome beneath the page while its close animation remains visible."
+	)
+	await create_timer(0.32).timeout
+	_expect(
+		not feature_layer.visible and screen.get("_active_save_load") == null,
+		"The in-game Save/Load page must be removed only after its close animation completes."
+	)
 	screen._request_title()
 	_expect(
 		confirmation_layer.visible and not message_panel.visible,
@@ -1188,6 +1248,16 @@ func _test_confirmation_navigation() -> void:
 	await create_timer(0.35).timeout
 	screen._request_title()
 	_expect(title_requests.size() == 1 and not dialog.is_open(), "Disabled title confirmation emits once")
+	screen._quick_save()
+	await process_frame
+	var quick_save_notice := screen.get_node("%Status") as Label
+	_expect(
+		quick_save_notice.visible
+		and quick_save_notice.text == "已快速存档"
+		and not (screen.get_node("%StatusClearTimer") as Timer).is_stopped()
+		and quick_save_notice.get_theme_stylebox("normal") is StyleBoxFlat,
+		"Quick Save must show a timed, code-drawn confirmation notice."
+	)
 	var saved := screen._build_save_snapshot()
 	service.save_quick(saved)
 	screen._quick_load()

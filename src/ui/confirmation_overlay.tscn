@@ -101,13 +101,13 @@ mouse_filter = 2
 
 [node name="Center" type="CenterContainer" parent="Layout/VisualCanvas/DialogContent"]
 layout_mode = 0
-offset_top = 450.0
+offset_top = 420.0
 offset_right = 1920.0
-offset_bottom = 600.0
+offset_bottom = 660.0
 
 [node name="Main" type="VBoxContainer" parent="Layout/VisualCanvas/DialogContent/Center"]
 layout_mode = 2
-theme_override_constants/separation = 100
+theme_override_constants/separation = 52
 
 [node name="Message" type="Label" parent="Layout/VisualCanvas/DialogContent/Center/Main"]
 custom_minimum_size = Vector2(900, 60)

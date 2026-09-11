@@ -56,6 +56,10 @@ vn_confirm={
 ]
 }
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://assets/locales/ui.zh.translation", "res://assets/locales/ui.ja.translation")
+
 [rendering]
 
 renderer/rendering_method="mobile"

@@ -5,6 +5,7 @@ extends Control
 ## Route-level owner for the settings UI. It binds the editor to the
 ## feature-owned repository while SettingsPage remains persistence-agnostic.
 signal back_requested
+signal title_requested
 signal read_flags_reset_requested
 signal open_transition_finished
 
@@ -20,10 +21,20 @@ var _page_rest_position := Vector2.ZERO
 var _closing := false
 var _start_hidden := false
 var _activated := false
+var _gameplay_context := false
 
 
-func configure(settings_repository: SettingsRepository) -> void:
+func configure(settings_repository: SettingsRepository, gameplay_context := false) -> void:
 	_settings_repository = settings_repository
+	_gameplay_context = gameplay_context
+	if is_node_ready():
+		_settings_page.set_gameplay_context(_gameplay_context)
+
+
+func set_gameplay_context(gameplay_context: bool) -> void:
+	_gameplay_context = gameplay_context
+	if is_node_ready():
+		_settings_page.set_gameplay_context(_gameplay_context)
 
 
 func is_closing() -> bool:
@@ -43,9 +54,11 @@ func _ready() -> void:
 	if _settings_repository == null:
 		_settings_repository = SettingsRepository.new()
 	_settings_page.configure(_settings_repository.read_settings())
+	_settings_page.set_gameplay_context(_gameplay_context)
 	_settings_page.settings_preview_changed.connect(_on_settings_preview)
 	_settings_page.settings_commit_requested.connect(_on_settings_commit)
 	_settings_page.close_requested.connect(func() -> void: back_requested.emit())
+	_settings_page.return_title_requested.connect(func() -> void: title_requested.emit())
 	_settings_page.read_flags_reset_requested.connect(func() -> void: read_flags_reset_requested.emit())
 	_page_rest_position = _settings_page.position
 	if not _start_hidden:
@@ -124,4 +137,4 @@ func _on_settings_commit(settings: Dictionary) -> void:
 	# failed write was saved.
 	var persisted := _settings_repository.read_settings()
 	_settings_page.configure(persisted)
-	_settings_page.report_error("设置保存失败：%s" % write_error)
+	_settings_page.report_error(tr("设置保存失败：%s") % write_error)

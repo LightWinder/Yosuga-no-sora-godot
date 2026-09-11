@@ -126,7 +126,7 @@ func _refresh() -> void:
 		_counter.text = ""
 		return
 	_image.texture = load(current.texture_path) as Texture2D
-	_status.text = current.variant_id if _image.texture != null else "缺少资源：%s" % current.texture_path
+	_status.text = current.variant_id if _image.texture != null else tr("缺少资源：%s") % current.texture_path
 	_counter.text = "%d / %d" % [_index + 1, _variants.size()]
 	_previous.disabled = _variants.size() <= 1
 	_next.disabled = _variants.size() <= 1

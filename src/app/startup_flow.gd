@@ -48,6 +48,7 @@ var _route_transitioning := false
 var _load_transition_tween: Tween
 var _voice_collection_service: VoiceCollectionService
 var _screen_settings := DisplaySettingsService.new()
+var _language_settings := LanguageSettingsService.new()
 var _settings_repository := SettingsRepository.new()
 
 
@@ -55,11 +56,14 @@ func _ready() -> void:
 	InputActions.ensure_actions()
 	_settings_repository.settings_changed.connect(_audio.apply_settings)
 	_settings_repository.settings_changed.connect(_screen_settings.apply)
+	_settings_repository.settings_changed.connect(_language_settings.apply)
 	_settings_repository.settings_preview_changed.connect(_audio.apply_settings)
 	_settings_repository.settings_preview_changed.connect(_screen_settings.apply)
+	_settings_repository.settings_preview_changed.connect(_language_settings.apply)
 	var settings := _settings_repository.read_settings()
 	_audio.apply_settings(settings)
 	_screen_settings.apply(settings)
+	_language_settings.apply(settings)
 	_show_brand_movie()
 
 
@@ -125,6 +129,7 @@ func open_settings() -> SettingsScreen:
 	if is_instance_valid(_appreciation_overlay) or is_instance_valid(_title_load_overlay) or _route_transitioning:
 		return null
 
+	var gameplay_context := _current_screen is AdvScreen
 	_set_adv_route_overlay_active(true)
 	_settings_return_focus = get_viewport().gui_get_focus_owner()
 	get_viewport().gui_release_focus()
@@ -136,8 +141,10 @@ func open_settings() -> SettingsScreen:
 	else:
 		_settings_prepared_once = true
 		_settings_overlay = SETTINGS_SCENE.instantiate() as SettingsScreen
-		_settings_overlay.configure(_settings_repository)
+		_settings_overlay.configure(_settings_repository, gameplay_context)
+	_settings_overlay.set_gameplay_context(gameplay_context)
 	_settings_overlay.back_requested.connect(func() -> void: _close_settings_overlay(), CONNECT_ONE_SHOT)
+	_settings_overlay.title_requested.connect(_return_to_title_from_settings, CONNECT_ONE_SHOT)
 	_settings_overlay.read_flags_reset_requested.connect(_clear_read_flags)
 	if _settings_overlay.get_parent() != _overlay_host:
 		_overlay_host.add_child(_settings_overlay)
@@ -260,6 +267,9 @@ func _close_settings_overlay(restore_focus := true) -> void:
 
 func _close_settings_overlay_animated() -> void:
 	var overlay := _settings_overlay
+	# Restore gameplay below the fading settings window so the embedded preview
+	# cannot appear to jump into the real dialogue frame on the final close frame.
+	_set_adv_route_overlay_active(false)
 	await overlay.play_close_transition()
 	if not is_instance_valid(overlay) or overlay != _settings_overlay:
 		return
@@ -280,6 +290,14 @@ func _close_settings_overlay_animated() -> void:
 	_settings_return_focus = null
 	if is_instance_valid(return_focus) and return_focus.is_visible_in_tree():
 		return_focus.call_deferred("grab_focus")
+
+
+func _return_to_title_from_settings() -> void:
+	if not is_instance_valid(_settings_overlay) or _route_transitioning:
+		return
+	await _close_settings_overlay_animated()
+	if _current_screen is AdvScreen:
+		_return_to_title_from_adv()
 
 
 func _discard_settings_overlay() -> void:
@@ -440,14 +458,14 @@ func _on_adv_voice_favorite_requested(
 	var service := _ensure_voice_collection_service()
 	var display_name := speaker.strip_edges()
 	if display_name.is_empty():
-		display_name = "语音 %s" % voice_id
+		display_name = tr("语音 %s") % voice_id
 	var favorite := VoiceFavorite.create(voice_id, voice_path, display_name, message)
 	if service.add_favorite(favorite):
 		adv.show_notice("已收藏语音")
 	elif service.last_error.is_empty():
 		adv.show_notice("该语音已收藏")
 	else:
-		adv.show_notice("语音收藏失败：%s" % service.last_error)
+		adv.show_notice(tr("语音收藏失败：%s") % service.last_error)
 
 
 func _ensure_voice_collection_service() -> VoiceCollectionService:

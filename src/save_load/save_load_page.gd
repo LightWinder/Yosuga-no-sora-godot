@@ -164,7 +164,7 @@ func _refresh_all() -> void:
 	_refresh_preview()
 	_refresh_actions()
 	if _transfer_source == null:
-		_set_status("已选择：%s" % _selected_name())
+		_set_status(tr("已选择：%s") % _selected_name())
 
 
 func _switch_mode(next_mode: Mode) -> void:
@@ -201,7 +201,7 @@ func _on_slot_pressed(id: int, auto: bool) -> void:
 	_slot_list.set_selection(id, auto)
 	_refresh_preview()
 	_refresh_actions()
-	_set_status("已选择：%s%s" % [_selected_name(), "（空）" if _selected_data == null else ""])
+	_set_status(tr("已选择：%s%s") % [_selected_name(), tr("（空）") if _selected_data == null else ""])
 
 
 func _on_slot_load_requested(id: int, auto: bool) -> void:
@@ -211,7 +211,7 @@ func _on_slot_load_requested(id: int, auto: bool) -> void:
 		return
 	if _selected_data == null:
 		return
-	_open_confirmation(PendingAction.LOAD, "要读取%s吗？" % _selected_name(), "读取")
+	_open_confirmation(PendingAction.LOAD, tr("要读取%s吗？") % _selected_name(), "读取")
 
 
 func _load_selected_slot() -> void:
@@ -227,10 +227,10 @@ func _load_selected_slot() -> void:
 
 func _selected_name() -> String:
 	if _selected_is_autosave:
-		return "自动存档"
+		return tr("自动存档")
 	if _selected_slot_id >= SaveService.MAX_SLOT_COUNT:
-		return "快速存档 %02d" % (_selected_slot_id - SaveService.MAX_SLOT_COUNT + 1)
-	return "手动存档 %03d" % (_selected_slot_id + 1)
+		return tr("快速存档 %02d") % (_selected_slot_id - SaveService.MAX_SLOT_COUNT + 1)
+	return tr("手动存档 %03d") % (_selected_slot_id + 1)
 
 
 func _is_manual_selection() -> bool:
@@ -273,7 +273,7 @@ func _on_primary_pressed() -> void:
 		return
 	_pending_slot_id = _selected_slot_id
 	if _selected_data != null:
-		_open_confirmation(PendingAction.OVERWRITE, "%s已有内容，确定覆盖吗？" % _selected_name(), "覆盖")
+		_open_confirmation(PendingAction.OVERWRITE, tr("%s已有内容，确定覆盖吗？") % _selected_name(), "覆盖")
 	else:
 		_save_selected_slot()
 
@@ -283,7 +283,7 @@ func _save_selected_slot() -> void:
 		save_completed.emit(_pending_slot_id)
 		_set_status("存档已保存。")
 	else:
-		_set_status("保存失败：%s" % _save_service.last_error)
+		_set_status(tr("保存失败：%s") % _save_service.last_error)
 
 
 func _request_delete() -> void:
@@ -291,7 +291,7 @@ func _request_delete() -> void:
 		return
 	_pending_slot_id = _selected_slot_id
 	_pending_is_autosave = _selected_is_autosave
-	_open_confirmation(PendingAction.DELETE, "确定删除%s吗？" % _selected_name(), "删除")
+	_open_confirmation(PendingAction.DELETE, tr("确定删除%s吗？") % _selected_name(), "删除")
 
 
 func _begin_transfer(move: bool) -> void:
@@ -308,7 +308,7 @@ func _begin_transfer(move: bool) -> void:
 	_transfer_is_move = move
 	_slot_list.set_transfer_mode(true)
 	_refresh_actions()
-	_set_status("%s %s → 请选择目标手动槽位" % ["移动" if move else "复制", _selected_name()])
+	_set_status(tr("%s %s → 请选择目标手动槽位") % [tr("移动") if move else tr("复制"), _selected_name()])
 	if not _is_manual_selection():
 		_slot_list.scroll_to_entry(0)
 
@@ -322,9 +322,9 @@ func _choose_transfer_destination(id: int, auto: bool) -> void:
 		_set_status("目标槽位已锁定，请先解锁。")
 		return
 	_pending_slot_id = id
-	var verb := "移动" if _transfer_is_move else "复制"
+	var verb := tr("移动") if _transfer_is_move else tr("复制")
 	_open_confirmation(PendingAction.MOVE if _transfer_is_move else PendingAction.COPY,
-		"%s到手动存档 %03d？%s" % [verb, id + 1, "\n目标已有存档，将被覆盖。" if destination != null else ""], verb)
+		tr("%s到手动存档 %03d？%s") % [verb, id + 1, tr("\n目标已有存档，将被覆盖。") if destination != null else ""], verb)
 
 
 func _end_transfer() -> void:
@@ -342,7 +342,7 @@ func _toggle_slot_lock(slot_id: int) -> void:
 	if data == null:
 		return
 	if not _save_service.set_slot_locked(slot_id, not data.locked):
-		_set_status("修改锁定状态失败：%s" % _save_service.last_error)
+		_set_status(tr("修改锁定状态失败：%s") % _save_service.last_error)
 
 
 func _save_comment(comment: String) -> void:
@@ -351,7 +351,7 @@ func _save_comment(comment: String) -> void:
 	if _save_service.set_slot_comment(_selected_slot_id, comment):
 		_set_status("存档文本已保存。")
 	else:
-		_set_status("存档文本保存失败：%s" % _save_service.last_error)
+		_set_status(tr("存档文本保存失败：%s") % _save_service.last_error)
 
 
 func _open_confirmation(action: PendingAction, message: String, confirm_text: String) -> void:
@@ -392,9 +392,9 @@ func _execute_pending_action() -> void:
 		if ok:
 			_on_slot_pressed(_pending_slot_id, false)
 	if ok:
-		_set_status("存档已删除。" if action == PendingAction.DELETE else "存档已%s。" % ("移动" if action == PendingAction.MOVE else "复制"))
+		_set_status(tr("存档已删除。") if action == PendingAction.DELETE else tr("存档已%s。") % (tr("移动") if action == PendingAction.MOVE else tr("复制")))
 	else:
-		_set_status("操作失败：%s" % _save_service.last_error)
+		_set_status(tr("操作失败：%s") % _save_service.last_error)
 
 
 func _cancel_pending_action() -> void:
@@ -479,4 +479,4 @@ func _confirmation_key(action: PendingAction) -> String:
 
 func _on_confirmation_preference_changed(enabled: bool) -> void:
 	if not _settings_repository.set_confirmation_enabled(_confirmation_key(_pending_action), enabled):
-		_set_status("确认设置保存失败：%s" % _settings_repository.last_error)
+		_set_status(tr("确认设置保存失败：%s") % _settings_repository.last_error)

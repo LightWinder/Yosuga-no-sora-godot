@@ -17,6 +17,7 @@ extends Control
 		_refresh_preview()
 
 var _font_size := 44
+var _display_caption := ""
 @onready var _strip: TextureRect = %GradientStrip
 @onready var _outer_keyline: Label = %OuterKeyline
 @onready var _foreground: Label = %Foreground
@@ -28,15 +29,16 @@ func _ready() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_THEME_CHANGED and is_node_ready():
+	if what in [NOTIFICATION_THEME_CHANGED, NOTIFICATION_TRANSLATION_CHANGED] and is_node_ready():
 		_refresh_preview()
 
 
 func _refresh_preview() -> void:
 	if not is_node_ready():
 		return
+	_display_caption = tr(caption)
 	for label in [_outer_keyline, _foreground]:
-		label.text = caption
+		label.text = _display_caption
 		if font_size_override > 0:
 			label.add_theme_font_size_override("font_size", font_size_override)
 		else:
@@ -54,7 +56,7 @@ func _layout_children() -> void:
 	var text_offset_x := float(get_theme_constant(&"text_offset_x"))
 	var fade_padding := float(get_theme_constant(&"strip_fade_padding"))
 	var strip_height := float(get_theme_constant(&"strip_height"))
-	var text_width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1.0, _font_size).x
+	var text_width := font.get_string_size(_display_caption, HORIZONTAL_ALIGNMENT_LEFT, -1.0, _font_size).x
 	var strip_width := minf(size.x, text_offset_x + text_width + fade_padding)
 	_strip.position = Vector2(0.0, floorf((size.y - strip_height) * 0.5) + 1.0)
 	_strip.size = Vector2(maxf(0.0, strip_width), strip_height)

@@ -133,7 +133,7 @@ func _refresh_cards(animate := false, direction := 0) -> void:
 	_next_page.visible = true
 	_previous_page.disabled = _page_index <= 0
 	_next_page.disabled = _page_index >= page_count - 1
-	_status.text = "已收集：%d / %d" % [group.unlocked_card_count(_profile), group.cards.size()]
+	_status.text = tr("已收集：%d / %d") % [group.unlocked_card_count(_profile), group.cards.size()]
 	if animate:
 		_gallery.play_page_transition(_card_list, direction)
 
@@ -168,7 +168,7 @@ func _add_card_card(group: AppreciationAlbumGroup, card: AppreciationAlbumCard, 
 func _open_card(group: AppreciationAlbumGroup, card: AppreciationAlbumCard) -> void:
 	var variants := card.unlocked_variants(_profile)
 	if variants.is_empty():
-		_status.text = "“%s”尚未解锁。" % card.card_id
+		_status.text = tr("“%s”尚未解锁。") % card.card_id
 		return
 	_viewer.configure(card, _profile)
 	_viewer.open_variant(variants[0])

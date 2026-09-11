@@ -64,12 +64,13 @@ const PRESENTATION_TAGS: Array[StringName] = [
 @onready var _title_button: BaseButton = %TitleButton
 @onready var _choice_overlay: Control = %ChoiceOverlay
 @onready var _choice_list: VBoxContainer = %ChoiceList
-@onready var _history_overlay: Control = %HistoryOverlay
+@onready var _history_overlay: AdvHistoryView = %HistoryOverlay
 @onready var _history_text: RichTextLabel = %HistoryText
 @onready var _history_close: Button = %HistoryClose
 @onready var _feature_overlay: Control = %FeatureOverlay
 @onready var _feature_host: Control = %FeatureHost
 @onready var _status: Label = %Status
+@onready var _status_clear_timer: Timer = %StatusClearTimer
 @onready var _title_confirmation: ConfirmationOverlay = %TitleConfirmation
 @onready var _movie_layer: Control = %MovieLayer
 @onready var _movie_player: VideoStreamPlayer = %MoviePlayer
@@ -97,6 +98,9 @@ var _skip_enabled := false
 var _auto_generation := 0
 var _history_entries: Array[String] = []
 var _history_checkpoints: Array[Dictionary] = []
+var _history_speakers: Array[String] = []
+var _history_messages: Array[String] = []
+var _history_voice_ids: Array[String] = []
 var _pending_confirmation: Callable
 var _pending_confirmation_key := ""
 var _active_save_load: SaveLoadPage
@@ -151,6 +155,7 @@ var _choice_jump_bgm_target: Dictionary = {}
 var _choice_jump_environment_target: Dictionary = {}
 var _choice_jump_stage_instructions: Array[KrkrScenarioInstruction] = []
 var _route_exit_tween: Tween
+var _notice_tween: Tween
 var _route_exiting := false
 
 
@@ -201,6 +206,8 @@ func _exit_tree() -> void:
 	_kill_tween(_system_menu_slide_tween)
 	_kill_tween(_menu_chrome_tween)
 	_kill_tween(_route_exit_tween)
+	_kill_tween(_notice_tween)
+	_status_clear_timer.stop()
 	_system_menu_auto_hide_timer.stop()
 	_auto_indicator_timer.stop()
 	_auto_generation += 1
@@ -244,7 +251,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cancel_title_confirmation()
 			get_viewport().set_input_as_handled()
 		return
-	if _history_overlay.visible:
+	if _history_overlay.visible and not _history_overlay.is_closing():
 		if StartupInput.is_cancel_event(event):
 			_close_history()
 			get_viewport().set_input_as_handled()
@@ -290,8 +297,40 @@ func current_voice_id() -> String:
 
 
 func show_notice(message: String) -> void:
+	_status_clear_timer.stop()
+	_kill_tween(_notice_tween)
+	_notice_tween = null
 	_status.text = message
 	_status.visible = not message.is_empty()
+	if message.is_empty():
+		return
+	_status.modulate.a = 0.0
+	_status.scale = Vector2(0.96, 0.96)
+	var tween := create_tween().set_parallel(true)
+	_notice_tween = tween
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_status, "modulate:a", 1.0, 0.18)
+	tween.tween_property(_status, "scale", Vector2.ONE, 0.18)
+	tween.finished.connect(func() -> void:
+		if _notice_tween == tween:
+			_notice_tween = null
+	)
+	_status_clear_timer.start()
+
+
+func _hide_notice() -> void:
+	_kill_tween(_notice_tween)
+	var tween := create_tween()
+	_notice_tween = tween
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(_status, "modulate:a", 0.0, 0.18)
+	tween.finished.connect(func() -> void:
+		if _notice_tween != tween:
+			return
+		_notice_tween = null
+		_status.visible = false
+		_status.scale = Vector2.ONE
+	)
 
 
 ## Reproduces ADVScreen.returnTo(): selection UI ends immediately, player
@@ -370,10 +409,15 @@ func _connect_controls() -> void:
 	_system_menu_recall_button.mouse_entered.connect(_show_system_menu)
 	_system_menu_auto_hide_timer.timeout.connect(_hide_system_menu)
 	_auto_indicator_timer.timeout.connect(_advance_auto_indicator)
-	_history_close.pressed.connect(_close_history)
+	_history_overlay.close_requested.connect(_close_history)
+	_history_overlay.title_requested.connect(_request_title)
+	_history_overlay.jump_requested.connect(_request_history_jump)
+	_history_overlay.voice_replay_requested.connect(_play_history_voice)
+	_history_overlay.voice_favorite_requested.connect(_favorite_history_voice)
 	_title_confirmation.confirmed.connect(_accept_game_confirmation)
 	_title_confirmation.always_toggled.connect(_on_game_confirmation_preference)
 	_history_text.meta_clicked.connect(_request_history_jump)
+	_status_clear_timer.timeout.connect(_hide_notice)
 	_title_confirmation.canceled.connect(_cancel_title_confirmation)
 	_movie_player.finished.connect(_finish_movie)
 	_movie_skip.pressed.connect(_finish_movie)
@@ -452,7 +496,7 @@ func _start_request() -> void:
 		_launch_request.start_label
 	)
 	if not started:
-		_status.text = "无法启动剧本 %s" % scenario_id
+		_status.text = tr("无法启动剧本 %s") % scenario_id
 		_status.visible = true
 
 
@@ -489,7 +533,7 @@ func _on_dialogue_ready(
 	var chrome_presented := _apply_player_chrome_presence(true)
 	_present_current_dialogue(false)
 	if not restored_navigation:
-		_append_history(speaker, message)
+		_append_history(speaker, message, voice_id)
 	_play_voice(voice_id)
 	if not restored_navigation:
 		_write_autosave()
@@ -605,7 +649,7 @@ func _populate_choice_buttons(choices: Array[Dictionary], show_route_hints: bool
 		_choice_list.add_child(button)
 		button.configure(
 			index,
-			str(choice.get("text", "选项 %d" % (index + 1))),
+			str(choice.get("text", tr("选项 %d") % (index + 1))),
 			str(choice.get("hint", "")),
 			show_route_hints
 		)
@@ -650,7 +694,7 @@ func _refresh_message_appearance() -> void:
 func _select_choice(index: int) -> void:
 	var selected_button := _choice_list.get_child(index) as AdvChoiceButton
 	if selected_button != null:
-		_append_history("■选项■", "选择了《%s》选项。" % selected_button.choice_text)
+		_append_history(tr("■选项■"), tr("选择了《%s》选项。") % selected_button.choice_text)
 	for child in _choice_list.get_children():
 		(child as Button).disabled = true
 	_kill_tween(_choice_tween)
@@ -1104,7 +1148,11 @@ func _favorite_current_voice() -> void:
 
 
 func _current_voice_entry() -> Dictionary:
-	for raw_id in _current_voice_id.split("/", false):
+	return _voice_entry_for_id(_current_voice_id)
+
+
+func _voice_entry_for_id(resource_id: String) -> Dictionary:
+	for raw_id in resource_id.split("/", false):
 		var voice_id := raw_id.strip_edges()
 		if voice_id.is_empty():
 			continue
@@ -1657,9 +1705,12 @@ func _finish_movie() -> void:
 	_runtime.resume_external(&"movie")
 
 
-func _append_history(speaker: String, message: String) -> void:
+func _append_history(speaker: String, message: String, voice_id := "") -> void:
 	var entry := message if speaker.is_empty() or speaker == "心の声" else "%s\n%s" % [speaker, message]
 	_history_entries.append(entry)
+	_history_speakers.append(speaker)
+	_history_messages.append(message)
+	_history_voice_ids.append(voice_id)
 	var checkpoint: Dictionary = {}
 	if _runtime.is_waiting_for_dialogue():
 		var runtime_checkpoint := _runtime.build_navigation_checkpoint()
@@ -1674,21 +1725,38 @@ func _append_history(speaker: String, message: String) -> void:
 	if _history_entries.size() > 200:
 		_history_entries.pop_front()
 		_history_checkpoints.pop_front()
+		_history_speakers.pop_front()
+		_history_messages.pop_front()
+		_history_voice_ids.pop_front()
 	_refresh_history_text()
 
 
 func _refresh_history_text() -> void:
 	_history_text.clear()
+	var view_entries: Array[Dictionary] = []
 	for index in _history_entries.size():
 		if index > 0:
 			_history_text.add_text("\n\n")
 		if not _history_checkpoints[index].is_empty():
 			_history_text.push_meta(index)
-			_history_text.add_text("[跳转到这里]")
+			_history_text.add_text(tr("[跳转到这里]"))
 			_history_text.pop()
 			_history_text.add_text("\n")
 		# add_text keeps scenario text literal, including brackets and BBCode.
 		_history_text.add_text(_history_entries[index])
+		view_entries.append({
+			"index": index,
+			"speaker": _history_speakers[index],
+			"message": _history_messages[index],
+			"voice_id": _history_voice_ids[index],
+			# The source does not offer a jump on the latest line or in recollection.
+			"can_jump": (
+				not _history_checkpoints[index].is_empty()
+				and index < _history_entries.size() - 1
+				and not _launch_request.is_recollection()
+			),
+		})
+	_history_overlay.set_entries(view_entries)
 
 
 func _request_history_jump(meta: Variant) -> void:
@@ -1704,7 +1772,7 @@ func _restore_history_checkpoint(index: int) -> void:
 	if index < 0 or index >= _history_checkpoints.size():
 		return
 	var checkpoint := _history_checkpoints[index]
-	_close_history()
+	_close_history(true)
 	_cancel_choice_jump()
 	_stop_player_chrome_automation()
 	_stop_voice()
@@ -1721,6 +1789,9 @@ func _restore_history_checkpoint(index: int) -> void:
 	if _runtime.restore_navigation_checkpoint(checkpoint["runtime"]):
 		_history_entries.resize(index + 1)
 		_history_checkpoints.resize(index + 1)
+		_history_speakers.resize(index + 1)
+		_history_messages.resize(index + 1)
+		_history_voice_ids.resize(index + 1)
 		_refresh_history_text()
 		_write_autosave()
 	else:
@@ -1730,20 +1801,38 @@ func _restore_history_checkpoint(index: int) -> void:
 
 
 func _open_history() -> void:
-	if _history_overlay.visible:
+	if _history_overlay.visible or _history_overlay.is_closing():
 		return
 	_enter_player_chrome_overlay()
-	_history_overlay.visible = true
-	_history_text.scroll_to_line(maxi(_history_text.get_line_count() - 1, 0))
-	_history_close.grab_focus()
+	_history_overlay.open()
 
 
-func _close_history() -> void:
+func _close_history(instant := false) -> void:
 	if not _history_overlay.visible:
 		return
-	_history_overlay.visible = false
 	_leave_player_chrome_overlay()
+	_history_overlay.close(instant)
 	_history_button.grab_focus()
+
+
+func _play_history_voice(voice_id: String) -> void:
+	if voice_id.is_empty() or _auto_enabled:
+		return
+	_play_voice(voice_id)
+
+
+func _favorite_history_voice(index: int) -> void:
+	if _auto_enabled or index < 0 or index >= _history_voice_ids.size():
+		return
+	var entry := _voice_entry_for_id(_history_voice_ids[index])
+	if entry.is_empty():
+		return
+	voice_favorite_requested.emit(
+		str(entry.get("id", "")),
+		str(entry.get("path", "")),
+		_history_speakers[index],
+		_history_messages[index]
+	)
 
 
 func _open_save_load(mode: SaveLoadPage.Mode) -> void:
@@ -1771,15 +1860,16 @@ func _quick_save() -> void:
 	var snapshot := _build_save_snapshot()
 	snapshot.preview_image = await _capture_save_preview()
 	_save_capture_busy = false
-	_status.text = "已快速存档" if _save_service.save_quick(snapshot) else "快速存档失败：%s" % _save_service.last_error
-	_status.visible = true
+	show_notice(
+		tr("已快速存档") if _save_service.save_quick(snapshot)
+		else tr("快速存档失败：%s") % _save_service.last_error
+	)
 
 
 func _quick_load() -> void:
 	var data := _save_service.load_quick()
 	if data == null:
-		_status.text = "没有可读取的快速存档"
-		_status.visible = true
+		show_notice("没有可读取的快速存档")
 		return
 	_request_game_confirmation("load", "快速读取确认", _load_from_save_page.bind(data, _save_service.quick_save_path()))
 
@@ -1787,12 +1877,23 @@ func _quick_load() -> void:
 func _close_save_load() -> void:
 	if not _feature_overlay.visible and not is_instance_valid(_active_save_load):
 		return
+	var page := _active_save_load
+	if is_instance_valid(page):
+		if page.is_closing():
+			return
+		# Let the restored ADV frame sit beneath the outgoing page, matching the
+		# route-level Settings crossfade and avoiding a blank final frame.
+		_leave_player_chrome_overlay()
+		await page.play_close_transition()
+		if not is_instance_valid(page) or page != _active_save_load:
+			return
 	_feature_overlay.visible = false
-	if is_instance_valid(_active_save_load):
-		_feature_host.remove_child(_active_save_load)
-		_active_save_load.queue_free()
+	if is_instance_valid(page):
+		_feature_host.remove_child(page)
+		page.queue_free()
 	_active_save_load = null
-	_leave_player_chrome_overlay()
+	if not is_instance_valid(page):
+		_leave_player_chrome_overlay()
 
 
 func _hide_player_chrome_manually() -> void:
@@ -1939,7 +2040,7 @@ func _finish_player_chrome_visibility(show_chrome: bool) -> void:
 
 
 func _load_from_save_page(data: SaveData, _path: String) -> void:
-	_close_save_load()
+	await _close_save_load()
 	_launch_request = ScenarioLaunchRequest.from_save(data)
 	_cancel_choice_jump()
 	_choice_checkpoints.clear()
@@ -1952,7 +2053,11 @@ func _load_from_save_page(data: SaveData, _path: String) -> void:
 	_stage_director.clear()
 	_history_entries.clear()
 	_history_checkpoints.clear()
+	_history_speakers.clear()
+	_history_messages.clear()
+	_history_voice_ids.clear()
 	_history_text.text = ""
+	_refresh_history_text()
 	_start_request()
 
 
@@ -2425,7 +2530,7 @@ func _cancel_title_confirmation() -> void:
 
 func _on_game_confirmation_preference(enabled: bool) -> void:
 	if not _settings_repository.set_confirmation_enabled(_pending_confirmation_key, enabled):
-		_status.text = "确认设置保存失败：%s" % _settings_repository.last_error
+		_status.text = tr("确认设置保存失败：%s") % _settings_repository.last_error
 		_status.visible = true
 
 
@@ -2448,7 +2553,7 @@ func _on_playback_finished() -> void:
 
 
 func _report_missing(kind: String, resource_id: String) -> void:
-	_status.text = "%s资源未导入：%s" % [kind, resource_id]
+	_status.text = tr("%s资源未导入：%s") % [kind, resource_id]
 	_status.visible = true
 
 

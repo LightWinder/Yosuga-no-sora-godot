@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" path="res://src/adv/components/adv_dialogue_view.tscn" id="22_dialogue"]
 [ext_resource type="Script" path="res://src/adv/components/adv_system_menu_button.gd" id="23_system_button"]
 [ext_resource type="PackedScene" path="res://src/adv/components/adv_quick_settings_popovers.tscn" id="24_quick_settings"]
+[ext_resource type="Script" path="res://src/adv/components/adv_history_view.gd" id="25_history_view"]
 
 [sub_resource type="AtlasTexture" id="Atlas_auto_indicator"]
 atlas = ExtResource("17_auto_indicator")
@@ -35,6 +36,42 @@ region = Rect2(0, 0, 8, 107)
 [sub_resource type="AtlasTexture" id="Atlas_menu_recall_hover"]
 atlas = ExtResource("21_menu_recall")
 region = Rect2(8, 0, 9, 107)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_history_panel"]
+content_margin_left = 34.0
+content_margin_top = 26.0
+content_margin_right = 34.0
+content_margin_bottom = 24.0
+bg_color = Color(0.018, 0.105, 0.14, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.58, 0.88, 0.94, 0.62)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0, 0, 0, 0.48)
+shadow_size = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_adv_notice"]
+content_margin_left = 26.0
+content_margin_top = 10.0
+content_margin_right = 26.0
+content_margin_bottom = 10.0
+bg_color = Color(0.025, 0.19, 0.24, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.66, 0.94, 1, 0.78)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_size = 10
 
 [node name="AdvScreen" type="Control" unique_id=1750354916]
 layout_mode = 3
@@ -508,14 +545,19 @@ stretch_mode = 3
 [node name="Status" type="Label" parent="VisualCanvas" unique_id=99240062]
 unique_name_in_owner = true
 visible = false
-z_index = 1110
+z_index = 1700
 layout_mode = 0
-offset_left = 32.0
-offset_top = 24.0
-offset_right = 590.0
-offset_bottom = 66.0
+offset_left = 660.0
+offset_top = 38.0
+offset_right = 1260.0
+offset_bottom = 100.0
+pivot_offset = Vector2(300, 31)
 theme_type_variation = &"AdvStatusLabel"
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBox_adv_notice")
 text = "SCENARIO"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ChoiceOverlay" type="Control" parent="VisualCanvas" unique_id=151839128]
 unique_name_in_owner = true
@@ -555,6 +597,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
+script = ExtResource("25_history_view")
 
 [node name="Shade" type="ColorRect" parent="VisualCanvas/HistoryOverlay" unique_id=1826906682]
 layout_mode = 1
@@ -563,42 +606,91 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.01, 0.04, 0.07, 0.76)
+color = Color(0.005, 0.035, 0.05, 0.88)
 
 [node name="Panel" type="PanelContainer" parent="VisualCanvas/HistoryOverlay" unique_id=1598394829]
 layout_mode = 0
-offset_left = 210.0
-offset_top = 90.0
-offset_right = 1710.0
-offset_bottom = 990.0
-theme_type_variation = &"AdvMessagePanel"
+offset_left = 170.0
+offset_top = 62.0
+offset_right = 1750.0
+offset_bottom = 1016.0
+theme_override_styles/panel = SubResource("StyleBox_history_panel")
 
 [node name="Column" type="VBoxContainer" parent="VisualCanvas/HistoryOverlay/Panel" unique_id=792757465]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=798951526]
+[node name="Header" type="HBoxContainer" parent="VisualCanvas/HistoryOverlay/Panel/Column"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VisualCanvas/HistoryOverlay/Panel/Column/Header" unique_id=798951526]
 layout_mode = 2
 theme_type_variation = &"AdvSpeakerLabel"
 text = "文本履历"
 
-[node name="HistoryText" type="RichTextLabel" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=352400037]
+[node name="HeaderSpacer" type="Control" parent="VisualCanvas/HistoryOverlay/Panel/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Hint" type="Label" parent="VisualCanvas/HistoryOverlay/Panel/Column/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.9, 0.94, 0.8)
+theme_override_font_sizes/font_size = 22
+text = "滚轮 / ↑↓ 浏览　Esc 返回"
+vertical_alignment = 1
+
+[node name="HeaderLine" type="HSeparator" parent="VisualCanvas/HistoryOverlay/Panel/Column"]
+layout_mode = 2
+
+[node name="HistoryScroll" type="ScrollContainer" parent="VisualCanvas/HistoryOverlay/Panel/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_type_variation = &"AdvMessageLabel"
-bbcode_enabled = true
-focus_mode = 2
-scroll_following = true
-autowrap_mode = 2
+horizontal_scroll_mode = 0
 
-[node name="HistoryClose" type="Button" parent="VisualCanvas/HistoryOverlay/Panel/Column" unique_id=1712948790]
+[node name="HistoryList" type="VBoxContainer" parent="VisualCanvas/HistoryOverlay/Panel/Column/HistoryScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="FooterLine" type="HSeparator" parent="VisualCanvas/HistoryOverlay/Panel/Column"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="VisualCanvas/HistoryOverlay/Panel/Column"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="HistoryTitle" type="Button" parent="VisualCanvas/HistoryOverlay/Panel/Column/Footer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 62)
 layout_mode = 2
-size_flags_horizontal = 8
+theme_type_variation = &"SharedPrimaryActionButton"
+text = "回到标题"
+
+[node name="FooterSpacer" type="Control" parent="VisualCanvas/HistoryOverlay/Panel/Column/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HistoryClose" type="Button" parent="VisualCanvas/HistoryOverlay/Panel/Column/Footer" unique_id=1712948790]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 62)
+layout_mode = 2
 theme_type_variation = &"SharedPrimaryActionButton"
 text = "返回剧情"
+
+[node name="HistoryText" type="RichTextLabel" parent="VisualCanvas/HistoryOverlay/Panel" unique_id=352400037]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 1.0
+offset_bottom = 1.0
+theme_type_variation = &"AdvMessageLabel"
+bbcode_enabled = true
+focus_mode = 0
+mouse_filter = 2
+scroll_following = true
+autowrap_mode = 2
 
 [node name="FeatureOverlay" type="Control" parent="VisualCanvas" unique_id=1843454353]
 unique_name_in_owner = true
@@ -690,6 +782,11 @@ wait_time = 0.07
 
 [node name="SystemMenuAutoHideTimer" type="Timer" parent="." unique_id=1242785794]
 unique_name_in_owner = true
+one_shot = true
+
+[node name="StatusClearTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 2.2
 one_shot = true
 
 [node name="StageDirector" type="Node" parent="." unique_id=88668032]

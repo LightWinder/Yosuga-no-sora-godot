@@ -478,7 +478,7 @@ func _show_exit_confirmation() -> void:
 		return
 	_ensure_exit_confirmation()
 	_exit_confirmation_visible = true
-	_exit_confirmation.open("要结束游戏吗？", "结束游戏", "取消", true, _settings_repository.confirmation_enabled("end"))
+	_exit_confirmation.open(tr("要结束游戏吗？"), tr("结束游戏"), tr("取消"), true, _settings_repository.confirmation_enabled("end"))
 	exit_confirmation_changed.emit(true)
 
 
@@ -501,8 +501,8 @@ func _show_autosave_info(button: TitleMenuButton) -> void:
 	var summary := _save_service.get_autosave_summary()
 	var comment := str(summary.get("comment", ""))
 	if comment.is_empty():
-		comment = str(summary.get("scenario_id", "自动存档"))
-	_autosave_info.text = "自动存档：%s" % comment
+		comment = str(summary.get("scenario_id", tr("自动存档")))
+	_autosave_info.text = tr("自动存档：%s") % comment
 	_autosave_info.visible = true
 
 

@@ -519,6 +519,19 @@ func _test_title_state() -> void:
 	_expect(exit_dialog != null and exit_dialog.scene_file_path.ends_with("confirmation_overlay.tscn"), "Exit confirmation must use the shared scene-owned overlay.")
 	_expect((exit_dialog.get_node("Layout/VisualCanvas/DialogContent/AlwaysAsk") as Control).visible, "Source confirmations expose the persisted always-ask preference.")
 	_expect(root.gui_get_focus_owner() == exit_dialog.get_node("Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Cancel"), "Shared confirmations must initially focus the cancel action.")
+	var confirm_backdrop := exit_dialog.get_node("Layout/VisualCanvas/BackdropArtwork") as TextureRect
+	var one_line_band_height := confirm_backdrop.size.y
+	exit_dialog.open("第一行\n第二行\n第三行\n第四行", "确定", "取消", true, true)
+	var confirm_action := exit_dialog.get_node("Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Confirm") as Button
+	var cancel_action := exit_dialog.get_node("Layout/VisualCanvas/DialogContent/Center/Main/Buttons/Cancel") as Button
+	var grown_band := confirm_backdrop.get_global_rect()
+	_expect(
+		confirm_backdrop.size.y > one_line_band_height
+		and grown_band.encloses(confirm_action.get_global_rect())
+		and grown_band.encloses(cancel_action.get_global_rect())
+		and is_equal_approx(confirm_action.global_position.y, cancel_action.global_position.y),
+		"Shared confirmation backgrounds must grow around multiline content while keeping both actions aligned."
+	)
 	var exit_escape := InputEventKey.new()
 	exit_escape.pressed = true
 	exit_escape.keycode = KEY_ESCAPE
@@ -850,10 +863,10 @@ func _test_title_state() -> void:
 	_expect(sora_voice != null and sora_voice.find_child("StateGlow", false, false) == null, "Audio voice choices must draw their own rounded keylines without the screen-choice glow band.")
 	_expect(audio_page.get_node_or_null("%VoicePortrait") is TextureRect, "Character portraits must remain scene-owned content artwork.")
 	var footer_labels := {
-		"ResetSettings": "初始化设置",
-		"ResetRead": "初始化已读文本",
-		"OpenKeyPopup": "快捷键",
-		"CloseSettings": "回到标题",
+		"FooterActions/ResetSettings": "初始化设置",
+		"FooterActions/ResetRead": "初始化已读文本",
+		"FooterActions/OpenKeyPopup": "快捷键",
+		"FooterPrimary/CloseSettings": "回到标题",
 	}
 	var chrome := settings_page.get_node("VisualCanvas/Chrome") as SettingsChrome
 	_expect(chrome != null and chrome.scene_file_path.ends_with("settings_chrome.tscn"), "Settings navigation and overlays must be owned by a static chrome scene.")
@@ -861,21 +874,79 @@ func _test_title_state() -> void:
 		var footer_button := chrome.get_node(button_name) as SettingsTextButton
 		_expect(footer_button != null and footer_button.text == footer_labels[button_name], "Settings footer action %s must be code-rendered text." % button_name)
 		_expect(footer_button != null and str(footer_button.theme_type_variation).begins_with("SettingsFooter"), "Settings footer action %s must use a semantic Theme variation." % button_name)
-		if button_name != "CloseSettings":
+		if not button_name.ends_with("CloseSettings"):
 			_expect(footer_button.get_theme_stylebox(&"normal") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"hover") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"pressed") is StyleBoxEmpty and footer_button.get_theme_stylebox(&"focus") is StyleBoxEmpty, "Text-only footer action %s must stay frameless in every interactive state." % button_name)
-	var close_settings := chrome.get_node("CloseSettings") as SettingsTextButton
+	var close_settings := chrome.get_node("FooterPrimary/CloseSettings") as SettingsTextButton
+	var return_game := chrome.get_node("FooterPrimary/ReturnGame") as SettingsTextButton
 	_expect(close_settings.theme_type_variation == &"SettingsFooterPrimaryButton", "Scene-specific Theme variations must survive script initialization and editor property reordering.")
+	_expect(
+		return_game != null and not return_game.visible,
+		"Title Settings must keep the source return-game action hidden."
+	)
+	var settings_back_requests: Array[bool] = []
+	var settings_title_requests: Array[bool] = []
+	settings.back_requested.connect(func() -> void: settings_back_requests.append(true))
+	settings.title_requested.connect(func() -> void: settings_title_requests.append(true))
+	settings.set_gameplay_context(true)
+	return_game.pressed.emit()
+	close_settings.pressed.emit()
+	_expect(
+		return_game.visible
+		and settings_back_requests.size() == 1
+		and settings_title_requests.is_empty()
+		and settings_page.is_confirm_visible(),
+		"ADV Settings must expose separate return-game and confirmed return-title actions."
+	)
+	settings_page.confirm_pending_action()
+	_expect(settings_title_requests.size() == 1, "Confirming the Settings title action must emit its dedicated route request.")
+	settings.set_gameplay_context(false)
 	var tabs_row := chrome.get_node("TabsRow") as HBoxContainer
 	var display_tab := chrome.get_node("%DisplayTab") as SettingsTabButton
 	var system_tab := chrome.get_node("%SystemTab") as SettingsTabButton
 	var audio_tab := chrome.get_node("%AudioTab") as SettingsTabButton
-	_expect(tabs_row.get_child_count() == 3 and tabs_row.get_theme_constant(&"separation") == 0, "Settings tabs must occupy three equal, gapless layout slots.")
-	var display_slot_width := (display_tab.get_parent() as Control).size.x
-	var system_slot_width := (system_tab.get_parent() as Control).size.x
-	var audio_slot_width := (audio_tab.get_parent() as Control).size.x
-	_expect(absf(display_slot_width - system_slot_width) <= 1.0 and absf(system_slot_width - audio_slot_width) <= 1.0, "Settings tab slots must remain equal width apart from unavoidable whole-pixel distribution.")
+	_expect(tabs_row.get_child_count() == 3 and tabs_row.get_theme_constant(&"separation") == 0, "Settings tabs must occupy one compact, gapless row.")
+	_expect(display_tab.get_parent() == tabs_row and system_tab.get_parent() == tabs_row and audio_tab.get_parent() == tabs_row, "Settings tabs must be direct neighbors so their bullet centers can share an edge coordinate.")
+	await process_frame
+	var reserved_widths := [display_tab.custom_minimum_size.x, system_tab.custom_minimum_size.x, audio_tab.custom_minimum_size.x]
+	var tab_centers := Vector3(display_tab.get_global_rect().get_center().x, system_tab.get_global_rect().get_center().x, audio_tab.get_global_rect().get_center().x)
+	var display_tab_rect := display_tab.get_global_rect()
+	var system_tab_rect := system_tab.get_global_rect()
+	var audio_tab_rect := audio_tab.get_global_rect()
+	_expect(is_equal_approx(display_tab_rect.end.x, system_tab_rect.position.x) and is_equal_approx(system_tab_rect.end.x, audio_tab_rect.position.x), "Adjacent settings tabs must share the exact edge coordinate used by either tab's selected bullet.")
+	_expect(reserved_widths.all(func(width: float) -> bool: return width > 0.0), "Every settings tab must reserve its selected bullet-center span up front.")
+	chrome.select_tab(1)
+	await process_frame
+	var selected_centers := Vector3(display_tab.get_global_rect().get_center().x, system_tab.get_global_rect().get_center().x, audio_tab.get_global_rect().get_center().x)
+	_expect(display_tab.custom_minimum_size.x == reserved_widths[0] and system_tab.custom_minimum_size.x == reserved_widths[1] and audio_tab.custom_minimum_size.x == reserved_widths[2], "Selecting a settings tab must never change its layout width.")
+	_expect(selected_centers.is_equal_approx(tab_centers), "The selected tab must enlarge around its own center without moving any tab center.")
+	chrome.select_tab(0)
 	_expect(display_tab.tab_label == "画面" and system_tab.tab_label == "系统" and audio_tab.tab_label == "音频", "Settings tabs must serialize localizable live text instead of texture artwork.")
-	_expect(display_tab.text == "• 画面 •" and system_tab.text == "系统" and audio_tab.text == "音频", "The selected settings tab decoration must be generated from live text.")
+	_expect(display_tab.visual_text() == "• 画面 •" and system_tab.visual_text() == "系统" and audio_tab.visual_text() == "音频", "The selected settings tab decoration must be generated from live text.")
+	_expect(display_tab.text.is_empty() and system_tab.text.is_empty() and audio_tab.text.is_empty(), "Native Button text must stay out of the tab layout minimum-size calculation.")
+	var previous_locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("ja")
+	await process_frame
+	await process_frame
+	var japanese_centers := Vector3(display_tab.get_global_rect().get_center().x, system_tab.get_global_rect().get_center().x, audio_tab.get_global_rect().get_center().x)
+	var japanese_widths := [display_tab.custom_minimum_size.x, system_tab.custom_minimum_size.x, audio_tab.custom_minimum_size.x]
+	display_tab_rect = display_tab.get_global_rect()
+	system_tab_rect = system_tab.get_global_rect()
+	audio_tab_rect = audio_tab.get_global_rect()
+	_expect(is_equal_approx(display_tab_rect.end.x, system_tab_rect.position.x) and is_equal_approx(system_tab_rect.end.x, audio_tab_rect.position.x), "Localized settings tabs must retain their shared bullet-edge coordinates.")
+	for tab_index in range(3):
+		chrome.select_tab(tab_index)
+		await process_frame
+		var current_centers := Vector3(display_tab.get_global_rect().get_center().x, system_tab.get_global_rect().get_center().x, audio_tab.get_global_rect().get_center().x)
+		_expect(current_centers.is_equal_approx(japanese_centers), "Japanese tab centers must remain fixed when selecting tab %d." % tab_index)
+		_expect([display_tab.custom_minimum_size.x, system_tab.custom_minimum_size.x, audio_tab.custom_minimum_size.x] == japanese_widths, "Japanese tab layout widths must remain independent of the selected state.")
+	display_tab.grab_focus()
+	chrome.select_tab(2)
+	await process_frame
+	_expect(display_tab.has_focus() and display_tab._current_font_color().is_equal_approx(display_tab.get_theme_color(&"font_color")), "Keyboard focus left on an inactive tab must not reuse the white selected text color.")
+	_expect(display_tab.visual_text() == "画面" and system_tab.visual_text() == "システム" and audio_tab.visual_text() == "• オーディオ •", "Japanese tabs must render translated live text and selected-state decoration.")
+	TranslationServer.set_locale(previous_locale)
+	chrome.select_tab(0)
+	await process_frame
 	_expect(display_tab.theme_type_variation == &"SettingsTabButton", "Settings tabs must obtain typography and interaction states from a semantic Theme variation.")
 	_expect(display_tab.button_group == system_tab.button_group and system_tab.button_group == audio_tab.button_group, "Settings tabs must use one native exclusive ButtonGroup.")
 	var key_popup := chrome.get_node("KeyPopup") as SettingsKeyPopup

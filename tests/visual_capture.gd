@@ -98,7 +98,7 @@ func _initialize() -> void:
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() < 3 or arguments.size() > 5:
-		push_error("Usage: -- <brand|warning|title|title_press|title_bonus|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|hitret:N|quick_audio|quick_text|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
+		push_error("Usage: -- <brand|warning|title|title_press|title_bonus|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|hitret:N|quick_audio|quick_text|history|title_confirm|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
@@ -193,6 +193,12 @@ func _capture() -> void:
 			((screen as AdvScreen).get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers).toggle_audio()
 		elif arguments[3] == "quick_text":
 			((screen as AdvScreen).get_node("%QuickSettingsPopovers") as AdvQuickSettingsPopovers).toggle_text()
+		elif arguments[3] == "history":
+			(screen as AdvScreen)._append_history("穹", "那片天空仿佛把盛夏的声音也收进了光里。", "SR000001")
+			(screen as AdvScreen)._append_history("悠", "嗯，我们再沿着这条路慢慢走一会儿吧。", "")
+			(screen as AdvScreen)._open_history()
+		elif arguments[3] == "title_confirm":
+			(screen as AdvScreen)._request_title()
 	# Keep captures deterministic and prevent the host pointer from leaving a
 	# random card in hover/tooltip state.
 	Input.warp_mouse(Vector2(12.0, 12.0))

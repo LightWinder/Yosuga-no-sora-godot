@@ -141,7 +141,7 @@ func _clear_thumbnail() -> void:
 func _tooltip(data: SaveData) -> String:
 	var slot_name := "自动存档" if is_autosave else ("快速存档 %02d" % (slot_id - SaveService.MAX_SLOT_COUNT + 1) if is_quick_save() else "手动存档 %03d" % (slot_id + 1))
 	if data == null:
-		return "%s（空）" % slot_name
+		return tr("%s（空）") % slot_name
 	return "%s\n%s\n%s" % [slot_name, _display_comment(data), data.instruction_anchor]
 
 

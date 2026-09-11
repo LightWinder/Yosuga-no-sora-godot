@@ -9,11 +9,13 @@ signal settings_preview_changed(settings: Dictionary)
 signal settings_commit_requested(settings: Dictionary)
 signal status_changed(message: String)
 signal close_requested
+signal return_title_requested
 signal read_flags_reset_requested
 
 const COMMIT_DELAY := 0.25
 const RESET_SETTINGS_ACTION := &"reset_settings"
 const RESET_READ_ACTION := &"reset_read"
+const RETURN_TITLE_ACTION := &"return_title"
 
 var _values: Dictionary = {}
 var _pending_commit := false
@@ -130,6 +132,10 @@ func report_error(message: String) -> void:
 	_set_status(message)
 
 
+func set_gameplay_context(gameplay_context: bool) -> void:
+	_chrome.set_gameplay_context(gameplay_context)
+
+
 func request_reset_settings() -> void:
 	if not _confirmation_enabled("default") and not Input.is_key_pressed(KEY_SHIFT):
 		_run_reset_settings()
@@ -142,6 +148,17 @@ func request_reset_read() -> void:
 		_run_reset_read()
 		return
 	_chrome.open_confirmation(RESET_READ_ACTION, "要初始化已读情报吗？", _confirmation_enabled("clear_read"))
+
+
+func request_return_title() -> void:
+	if not _confirmation_enabled("title") and not Input.is_key_pressed(KEY_SHIFT):
+		return_title_requested.emit()
+		return
+	_chrome.open_confirmation(
+		RETURN_TITLE_ACTION,
+		"确定返回标题吗？\n当前进度已写入自动存档。",
+		_confirmation_enabled("title")
+	)
 
 
 func confirm_pending_action() -> void:
@@ -159,6 +176,7 @@ func _connect_chrome() -> void:
 	_chrome.reset_settings_requested.connect(request_reset_settings)
 	_chrome.reset_read_requested.connect(request_reset_read)
 	_chrome.close_requested.connect(func() -> void: close_requested.emit())
+	_chrome.return_title_requested.connect(request_return_title)
 	_chrome.confirmation_accepted.connect(_run_action)
 	_chrome.confirmation_canceled.connect(_on_confirmation_canceled)
 	_chrome.confirmation_preference_changed.connect(_on_confirmation_preference_changed)
@@ -226,6 +244,8 @@ func _confirmation_key_for_action(action: StringName) -> String:
 			return "default"
 		RESET_READ_ACTION:
 			return "clear_read"
+		RETURN_TITLE_ACTION:
+			return "title"
 	return ""
 
 
@@ -245,6 +265,8 @@ func _run_action(action: StringName) -> void:
 			_run_reset_settings()
 		RESET_READ_ACTION:
 			_run_reset_read()
+		RETURN_TITLE_ACTION:
+			return_title_requested.emit()
 
 
 func _run_reset_settings() -> void:
