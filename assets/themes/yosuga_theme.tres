@@ -9,6 +9,9 @@
 [ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/hover.tres" id="8_footer_hover"]
 [ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/pressed.tres" id="10_footer_pressed"]
 [ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/primary_normal.tres" id="11_footer_primary_normal"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/primary_hover.tres" id="15_primary_hover"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/primary_pressed.tres" id="16_primary_pressed"]
+[ext_resource type="StyleBox" path="res://assets/themes/ui/action_button/primary_focus.tres" id="17_primary_focus"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/action_row.tres" id="12_popup_action"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/key_row.tres" id="13_popup_key"]
 [ext_resource type="StyleBox" path="res://assets/themes/settings/popup/panel.tres" id="14_popup_panel"]
@@ -235,9 +238,9 @@ SettingsChoiceButton/styles/hover = ExtResource("5_empty_style")
 SettingsChoiceButton/styles/normal = ExtResource("5_empty_style")
 SettingsChoiceButton/styles/pressed = ExtResource("5_empty_style")
 SettingsChoiceButtonCompact/base_type = &"SettingsChoiceButton"
-SettingsChoiceButtonCompact/font_sizes/font_size = 32
+SettingsChoiceButtonCompact/font_sizes/font_size = 34
 SettingsChoiceButtonConfirmation/base_type = &"SettingsChoiceButton"
-SettingsChoiceButtonConfirmation/font_sizes/font_size = 29
+SettingsChoiceButtonConfirmation/font_sizes/font_size = 34
 SettingsChoiceButtonFont/base_type = &"SettingsChoiceButton"
 SettingsChoiceButtonFont/font_sizes/font_size = 33
 SettingsChoiceButtonLarge/base_type = &"SettingsChoiceButton"
@@ -290,7 +293,7 @@ SettingsOptionLabel/base_type = &"Label"
 SettingsOptionLabel/colors/font_color = Color(0.96, 0.99, 1, 1)
 SettingsOptionLabel/colors/font_outline_color = Color(0.05, 0.4, 0.62, 1)
 SettingsOptionLabel/constants/outline_size = 5
-SettingsOptionLabel/font_sizes/font_size = 31
+SettingsOptionLabel/font_sizes/font_size = 34
 SettingsOptionLabel/fonts/font = ExtResource("2_choice_font")
 SettingsPopupAction/base_type = &"Label"
 SettingsPopupAction/colors/font_color = Color(0.1, 0.48, 0.67, 1)
@@ -427,10 +430,10 @@ SharedPrimaryActionButton/base_type = &"SharedActionButton"
 SharedPrimaryActionButton/colors/font_outline_color = Color(0.05, 0.42, 0.72, 1)
 SharedPrimaryActionButton/constants/outline_size = 6
 SharedPrimaryActionButton/styles/disabled = ExtResource("5_empty_style")
-SharedPrimaryActionButton/styles/focus = ExtResource("7_footer_focus")
-SharedPrimaryActionButton/styles/hover = ExtResource("8_footer_hover")
+SharedPrimaryActionButton/styles/focus = ExtResource("17_primary_focus")
+SharedPrimaryActionButton/styles/hover = ExtResource("15_primary_hover")
 SharedPrimaryActionButton/styles/normal = ExtResource("11_footer_primary_normal")
-SharedPrimaryActionButton/styles/pressed = ExtResource("10_footer_pressed")
+SharedPrimaryActionButton/styles/pressed = ExtResource("16_primary_pressed")
 SharedStatusLabel/base_type = &"Label"
 SharedStatusLabel/colors/font_color = Color(1, 1, 1, 1)
 SharedStatusLabel/colors/font_outline_color = Color(0.05, 0.08, 0.12, 0.9)

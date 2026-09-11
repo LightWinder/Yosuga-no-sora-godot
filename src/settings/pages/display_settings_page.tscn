@@ -368,9 +368,10 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 
 [node name="PortraitDisplayCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow" unique_id=1491744146]
-custom_minimum_size = Vector2(307, 220)
+custom_minimum_size = Vector2(270, 220)
 clip_contents = true
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("7_frame")
 
@@ -382,16 +383,16 @@ mouse_filter = 2
 layout_mode = 0
 offset_left = 2.0
 offset_top = -12.0
-offset_right = 312.0
+offset_right = 276.0
 offset_bottom = 58.0
-caption = "人物头像显示"
+caption = "头像显示"
 
 [node name="PortraitOnChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/PortraitDisplayCard/BusinessContent" unique_id=1140819247]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 76.0
+offset_left = 67.0
 offset_top = 59.0
-offset_right = 196.0
+offset_right = 187.0
 offset_bottom = 113.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "ON"
@@ -400,18 +401,19 @@ script = ExtResource("4_choice")
 [node name="PortraitOffChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/PortraitDisplayCard/BusinessContent" unique_id=330545114]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 76.0
+offset_left = 67.0
 offset_top = 131.0
-offset_right = 196.0
+offset_right = 187.0
 offset_bottom = 185.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "OFF"
 script = ExtResource("4_choice")
 
 [node name="ReadColorCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow" unique_id=1973196120]
-custom_minimum_size = Vector2(346, 220)
+custom_minimum_size = Vector2(315, 220)
 clip_contents = true
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("7_frame")
 
@@ -423,17 +425,16 @@ mouse_filter = 2
 layout_mode = 0
 offset_left = 2.0
 offset_top = -12.0
-offset_right = 347.0
+offset_right = 276.0
 offset_bottom = 58.0
-caption = "已读文本颜色变更"
-font_size_override = 38
+caption = "已读文本变色"
 
 [node name="ReadColorOnChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/ReadColorCard/BusinessContent" unique_id=1063026544]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 97.0
+offset_left = 67.0
 offset_top = 59.0
-offset_right = 217.0
+offset_right = 187.0
 offset_bottom = 113.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "ON"
@@ -442,18 +443,19 @@ script = ExtResource("4_choice")
 [node name="ReadColorOffChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/ReadColorCard/BusinessContent" unique_id=1160293715]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 97.0
+offset_left = 67.0
 offset_top = 131.0
-offset_right = 217.0
+offset_right = 187.0
 offset_bottom = 185.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "OFF"
 script = ExtResource("4_choice")
 
 [node name="ScreenEffectCard" type="PanelContainer" parent="MainColumns/RightColumn/LowerRow" unique_id=1328715247]
-custom_minimum_size = Vector2(197, 220)
+custom_minimum_size = Vector2(270, 220)
 clip_contents = true
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("7_frame")
 
@@ -465,17 +467,16 @@ mouse_filter = 2
 layout_mode = 0
 offset_left = 2.0
 offset_top = -12.0
-offset_right = 206.0
+offset_right = 276.0
 offset_bottom = 58.0
 caption = "动画效果"
-font_size_override = 39
 
 [node name="ScreenEffectOnChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/ScreenEffectCard/BusinessContent" unique_id=1323971374]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 23.0
+offset_left = 67.0
 offset_top = 59.0
-offset_right = 143.0
+offset_right = 187.0
 offset_bottom = 113.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "ON"
@@ -484,9 +485,9 @@ script = ExtResource("4_choice")
 [node name="ScreenEffectOffChoice" type="Button" parent="MainColumns/RightColumn/LowerRow/ScreenEffectCard/BusinessContent" unique_id=1047931351]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 23.0
+offset_left = 67.0
 offset_top = 131.0
-offset_right = 143.0
+offset_right = 187.0
 offset_bottom = 185.0
 theme_type_variation = &"SettingsChoiceButtonToggle"
 text = "OFF"

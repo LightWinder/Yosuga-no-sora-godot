@@ -8,6 +8,8 @@ extends Button
 ## truth for mouse, touch, keyboard focus and accessibility.
 var _outer_box_style := StyleBoxFlat.new()
 var _inner_box_style := StyleBoxFlat.new()
+var _source_text := ""
+var _display_text := ""
 
 @export var checked: bool:
 	get:
@@ -31,12 +33,51 @@ func _ready() -> void:
 	button_up.connect(queue_redraw)
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
+	_refresh_caption()
 	queue_redraw()
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_THEME_CHANGED:
+	if what in [NOTIFICATION_TRANSLATION_CHANGED, NOTIFICATION_THEME_CHANGED] and is_node_ready():
+		_refresh_caption()
 		queue_redraw()
+
+
+func _refresh_caption() -> void:
+	# Draw the caption ourselves so the "text + checkbox" pair stays one
+	# centered group; the native Button text would center on the full width
+	# and drift away from the checkbox. Keep the source string for
+	# retranslation and accessibility.
+	if not text.is_empty() and _source_text.is_empty():
+		_source_text = text
+		text = ""
+	_display_text = tr(_source_text)
+	accessibility_name = _source_text
+	# Clearing the native text also clears the Button's own minimum width, so
+	# reserve the group's span or grid columns collapse onto each other.
+	var font := get_theme_font(&"font")
+	if font != null:
+		var font_size := get_theme_font_size(&"font_size")
+		var text_width := font.get_string_size(_display_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+		var group_width := text_width + float(get_theme_constant(&"check_gap")) + float(get_theme_constant(&"check_size"))
+		custom_minimum_size = Vector2(
+			maxf(group_width, 0.0),
+			maxf(custom_minimum_size.y, 0.0)
+		)
+
+
+func _font_color() -> Color:
+	match get_draw_mode():
+		BaseButton.DRAW_DISABLED:
+			return get_theme_color(&"font_disabled_color")
+		BaseButton.DRAW_HOVER:
+			return get_theme_color(&"font_hover_color")
+		BaseButton.DRAW_PRESSED, BaseButton.DRAW_HOVER_PRESSED:
+			return get_theme_color(&"font_pressed_color")
+		_:
+			if has_focus():
+				return get_theme_color(&"font_focus_color")
+			return get_theme_color(&"font_color")
 
 
 func _draw() -> void:
@@ -44,12 +85,32 @@ func _draw() -> void:
 	var gap := float(get_theme_constant(&"check_gap"))
 	var font := get_theme_font(&"font")
 	var font_size := get_theme_font_size(&"font_size")
-	var text_width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
-	var text_center_x := (size.x - box_size - gap) * 0.5
-	var box_position := Vector2(
-		text_center_x + text_width * 0.5 + gap,
-		floorf((size.y - box_size) * 0.5)
+	var text_width := font.get_string_size(_display_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+	var group_left := floorf((size.x - text_width - gap - box_size) * 0.5)
+	var baseline := (size.y - font.get_height(font_size)) * 0.5 + font.get_ascent(font_size)
+	var origin := Vector2(group_left, baseline)
+	var outline_size := get_theme_constant(&"outline_size")
+	if outline_size > 0:
+		draw_string_outline(
+			font,
+			origin,
+			_display_text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			font_size,
+			outline_size,
+			get_theme_color(&"font_outline_color")
+		)
+	draw_string(
+		font,
+		origin,
+		_display_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1.0,
+		font_size,
+		_font_color()
 	)
+	var box_position := Vector2(group_left + text_width + gap, floorf((size.y - box_size) * 0.5))
 	_draw_checkbox(Rect2(box_position, Vector2.ONE * box_size))
 
 
