@@ -1,9 +1,24 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://src/settings/ui/settings_voice_choice_button.gd" id="1_voice_choice"]
+[ext_resource type="Texture2D" path="res://assets/themes/settings/choice/voice_choice_background.svg" id="2_background"]
 
 [node name="SettingsVoiceChoiceButton" type="Button"]
 custom_minimum_size = Vector2(230, 78)
 theme_type_variation = &"SettingsVoiceChoiceButton"
 text = "角色名称"
 script = ExtResource("1_voice_choice")
+
+[node name="Background" type="TextureRect" parent="."]
+unique_name_in_owner = true
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 0

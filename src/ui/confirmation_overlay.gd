@@ -60,7 +60,7 @@ func open(
 	if not is_open():
 		_return_focus = get_viewport().gui_get_focus_owner()
 	_message.text = message
-	_update_layout(message)
+	_update_layout(tr(message))
 	_confirm_button.text = confirm_text
 	_cancel_button.text = cancel_text
 	always_checked = always_enabled

@@ -2,8 +2,8 @@ class_name AudioSettingsPage
 extends SettingsPageBase
 
 
-## Audio-settings controller. All controls and layout are scene-owned; the
-## only retained artwork is the selected character portrait.
+## Audio-settings controller. All controls and layout are scene-owned; character
+## choices share vector chrome while the selected portrait remains content art.
 const VOICE_DETAIL_INDICES: Array[int] = [0, 2, 1, 3, 4, 5, 6, 7, 10]
 const VOICE_PORTRAITS: Array[Texture2D] = [
 	preload("res://assets/content/settings/voices/portraits/sora.png"),

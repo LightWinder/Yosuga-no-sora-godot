@@ -67,9 +67,9 @@ caption = "显示模式"
 
 [node name="ModeRow" type="HBoxContainer" parent="MainColumns/LeftColumn/DisplayModeCard/BusinessContent"]
 layout_mode = 0
-offset_left = 16.0
+offset_left = 48.0
 offset_top = 25.0
-offset_right = 946.0
+offset_right = 978.0
 offset_bottom = 83.0
 mouse_filter = 2
 theme_override_constants/separation = 60

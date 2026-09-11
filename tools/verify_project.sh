@@ -526,8 +526,8 @@ if rg -q '\.png|Texture2D|load\(|preload\(' "$project_root/src/settings/ui/setti
 	echo "System confirmation checkbox visuals must be drawn from Canvas primitives without image assets." >&2
 	exit 1
 fi
-if rg -q '\.png|Texture2D|load\(|preload\(' "$project_root/src/settings/ui/settings_voice_choice_button.gd" "$project_root/src/settings/ui/settings_voice_choice_button.tscn"; then
-	echo "Audio voice choice visuals must be drawn from Canvas primitives without image assets." >&2
+if rg -q '\.png|load\(|preload\(' "$project_root/src/settings/ui/settings_voice_choice_button.gd" "$project_root/src/settings/ui/settings_voice_choice_button.tscn"; then
+	echo "Audio voice choice visuals must use the shared vector background without raster or script-loaded assets." >&2
 	exit 1
 fi
 if rg -q 'SettingsVisualTokens|static var _.*(font|texture)|apply_(choice|footer|popup|section)' "$project_root/src/settings"; then
@@ -540,9 +540,10 @@ require_pattern 'SettingsPortraitFrame/base_type' "$project_root/assets/themes/y
 require_pattern 'SettingsCheckChoiceButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings code-drawn checkbox Theme variation is missing."
 require_pattern 'draw_style_box' "$project_root/src/settings/ui/settings_check_choice_button.gd" "Settings checkbox must draw its source-style box from Canvas primitives."
 require_pattern 'settings_check_choice_button\.tscn' "$project_root/src/settings/pages/system_settings_page.tscn" "System confirmations must instantiate the reusable code-drawn checkbox scene."
-require_pattern 'SettingsVoiceChoiceButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings code-drawn voice choice Theme variation is missing."
-require_pattern 'draw_style_box' "$project_root/src/settings/ui/settings_voice_choice_button.gd" "Audio voice choice must draw its rounded keylines from Canvas primitives."
-require_pattern 'settings_voice_choice_button\.tscn' "$project_root/src/settings/pages/audio_settings_page.tscn" "Audio character choices must instantiate the reusable code-drawn choice scene."
+require_pattern 'SettingsVoiceChoiceButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings voice choice Theme variation is missing."
+require_pattern 'voice_choice_background\.svg' "$project_root/src/settings/ui/settings_voice_choice_button.tscn" "Audio voice choices must use the shared vector background."
+require_pattern 'svg/scale=2\.0' "$project_root/assets/themes/settings/choice/voice_choice_background.svg.import" "Audio voice choice SVG must import at 2x scale."
+require_pattern 'settings_voice_choice_button\.tscn' "$project_root/src/settings/pages/audio_settings_page.tscn" "Audio character choices must instantiate the reusable vector-backed choice scene."
 require_pattern 'SettingsSectionTitleForeground/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings section title Theme variation is missing."
 require_pattern 'SettingsFooterButton/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Settings footer Theme variation is missing."
 require_pattern 'ConfirmationOverlayMessage/base_type' "$project_root/assets/themes/yosuga_theme.tres" "Shared confirmation-panel Theme variation is missing."

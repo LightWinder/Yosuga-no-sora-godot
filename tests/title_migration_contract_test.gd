@@ -858,9 +858,15 @@ func _test_title_state() -> void:
 	_expect(character_volume_card != null and character_volume_card.get_node_or_null("BusinessContent") != null, "Audio card content must be owned directly by the page scene.")
 	_expect(audio_page.find_child("CharacterVolumeTitle", true, false) is SettingsSectionTitle, "Audio headings must reuse the live-text section title.")
 	var sora_voice := audio_page.get_node_or_null("%SoraVoice") as SettingsVoiceChoiceButton
-	_expect(sora_voice != null, "Voice choices must use the reusable code-drawn audio option component.")
+	_expect(sora_voice != null, "Voice choices must use the reusable vector-backed audio option component.")
 	_expect(sora_voice != null and sora_voice.scene_file_path.ends_with("settings_voice_choice_button.tscn"), "Voice choices must be reusable scene instances instead of sliced name textures.")
-	_expect(sora_voice != null and sora_voice.find_child("StateGlow", false, false) == null, "Audio voice choices must draw their own rounded keylines without the screen-choice glow band.")
+	var voice_choice_background := sora_voice.get_node_or_null("%Background") as TextureRect
+	_expect(
+		voice_choice_background != null
+		and voice_choice_background.texture.resource_path.ends_with("voice_choice_background.svg")
+		and voice_choice_background.texture.get_size() == Vector2(460.0, 156.0),
+		"Audio voice choices must share the 230x78 vector background imported at 2x scale."
+	)
 	_expect(audio_page.get_node_or_null("%VoicePortrait") is TextureRect, "Character portraits must remain scene-owned content artwork.")
 	var footer_labels := {
 		"FooterActions/ResetSettings": "初始化设置",
