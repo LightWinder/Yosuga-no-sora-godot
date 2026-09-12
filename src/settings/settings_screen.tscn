@@ -30,7 +30,7 @@ mouse_filter = 2
 layout_mode = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
-color = Color(0.31764707, 0.627451, 0.8235294, 0.39215687)
+color = Color(5.7923665, 13.398697, 18.892157, 0.20392157)
 
 [node name="SettingsPage" parent="." unique_id=1925898205 instance=ExtResource("2_page")]
 layout_mode = 1

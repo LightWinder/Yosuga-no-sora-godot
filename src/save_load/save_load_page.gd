@@ -41,6 +41,8 @@ var _transfer_is_move := false
 @onready var _load_mode_button: Button = %LoadMode
 @onready var _preview_texture: TextureRect = %PreviewTexture
 @onready var _preview_empty: Control = %PreviewEmpty
+@onready var _preview_empty_name: Label = %PreviewEmptyName
+@onready var _preview_empty_caption: Label = %PreviewEmptyCaption
 @onready var _preview_date: Label = %PreviewDate
 @onready var _preview_location: Label = %PreviewLocation
 @onready var _slot_list: SaveSlotList = %SlotList
@@ -159,12 +161,18 @@ func _refresh_all() -> void:
 	(%QuickShortcut as Button).visible = mode == Mode.LOAD
 	(%AutoShortcut as Button).visible = mode == Mode.LOAD
 	_selected_data = _load_entry(_selected_slot_id, _selected_is_autosave)
+	if mode == Mode.LOAD and _selected_data == null:
+		_select_first_loadable_entry()
+	elif mode == Mode.SAVE and (_selected_slot_id < 0 or _selected_is_autosave):
+		_selected_slot_id = 0
+		_selected_is_autosave = false
+		_selected_data = _load_entry(0, false)
 	_slot_list.configure(_save_service, mode == Mode.LOAD)
 	_slot_list.set_selection(_selected_slot_id, _selected_is_autosave)
 	_refresh_preview()
 	_refresh_actions()
 	if _transfer_source == null:
-		_set_status(tr("已选择：%s") % _selected_name())
+		_set_status("暂无可读取存档。" if _has_no_load_selection() else tr("已选择：%s") % _selected_name())
 
 
 func _switch_mode(next_mode: Mode) -> void:
@@ -184,6 +192,8 @@ func _load_entry(id: int, auto: bool) -> SaveData:
 		return null
 	if auto:
 		return _save_service.load_autosave()
+	if id < 0:
+		return null
 	if id >= SaveService.MAX_SLOT_COUNT:
 		return _save_service.load_quick(id - SaveService.MAX_SLOT_COUNT)
 	return _save_service.load_slot(id)
@@ -195,9 +205,12 @@ func _on_slot_pressed(id: int, auto: bool) -> void:
 	if _transfer_source != null:
 		_choose_transfer_destination(id, auto)
 		return
+	var data := _slot_list.data_for(id, auto)
+	if mode == Mode.LOAD and data == null:
+		return
 	_selected_slot_id = id
 	_selected_is_autosave = auto
-	_selected_data = _load_entry(id, auto)
+	_selected_data = data
 	_slot_list.set_selection(id, auto)
 	_refresh_preview()
 	_refresh_actions()
@@ -226,6 +239,8 @@ func _load_selected_slot() -> void:
 
 
 func _selected_name() -> String:
+	if _has_no_load_selection():
+		return tr("未选择存档")
 	if _selected_is_autosave:
 		return tr("自动存档")
 	if _selected_slot_id >= SaveService.MAX_SLOT_COUNT:
@@ -239,14 +254,18 @@ func _is_manual_selection() -> bool:
 
 func _refresh_preview() -> void:
 	var data := _selected_data
+	var no_load_selection := _has_no_load_selection()
 	var texture := SaveThumbnail.texture_for(data)
 	_preview_texture.texture = texture
 	_preview_texture.visible = texture != null
 	_preview_empty.visible = texture == null
+	_preview_empty_name.text = "暂无可读取存档" if no_load_selection else "ヨスガノソラ"
+	_preview_empty_caption.text = "请先在游戏中创建存档" if no_load_selection else "YOSUGA NO SORA"
 	_preview_date.text = _format_date(data)
 	_comment_edit.text = data.comment if data != null else ""
+	_comment_edit.placeholder_text = "暂无可读取存档" if no_load_selection else "编辑存档文本 · Enter 保存"
 	if data == null:
-		_preview_location.text = "空槽位"
+		_preview_location.text = "暂无可读取存档" if no_load_selection else "空槽位"
 		return
 	var location := data.scenario_id
 	if not data.instruction_anchor.is_empty():
@@ -406,7 +425,40 @@ func _cancel_pending_action() -> void:
 
 func _focus_initial_slot() -> void:
 	if not Engine.is_editor_hint() and is_visible_in_tree():
-		_slot_list.scroll_to_entry(0, true)
+		var entry := SaveService.MAX_SLOT_COUNT + SaveService.QUICK_SAVE_COUNT if _selected_is_autosave else _selected_slot_id
+		if entry >= 0:
+			_slot_list.scroll_to_entry(entry, true)
+
+
+func _has_no_load_selection() -> bool:
+	return mode == Mode.LOAD and _selected_slot_id < 0 and not _selected_is_autosave
+
+
+func _select_first_loadable_entry() -> void:
+	_selected_slot_id = -1
+	_selected_is_autosave = false
+	_selected_data = null
+	if _save_service == null:
+		return
+	for summary in _save_service.list_slot_summaries():
+		var slot_id := int(summary.get("slot_id", -1))
+		var data := _save_service.load_slot(slot_id)
+		if data != null:
+			_selected_slot_id = slot_id
+			_selected_data = data
+			return
+	var quick_history := _save_service.load_quick_history()
+	for quick_index in quick_history.size():
+		var quick_data := quick_history[quick_index]
+		if quick_data != null:
+			_selected_slot_id = SaveService.MAX_SLOT_COUNT + quick_index
+			_selected_data = quick_data
+			return
+	var autosave := _save_service.load_autosave()
+	if autosave != null:
+		_selected_slot_id = -1
+		_selected_is_autosave = true
+		_selected_data = autosave
 
 
 func _on_save_changed(_id: int, _auto: bool) -> void:

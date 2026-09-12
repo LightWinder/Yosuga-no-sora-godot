@@ -9,6 +9,11 @@
 [ext_resource type="Material" path="res://assets/shaders/ui/settings_background_blur_material.tres" id="7_blur"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_mask.tres" id="8_mask"]
 [ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_panel.tres" id="9_preview_panel"]
+[ext_resource type="Texture2D" path="res://assets/themes/save_load/delete.svg" id="10_delete"]
+[ext_resource type="Texture2D" path="res://assets/themes/save_load/copy.svg" id="11_copy"]
+[ext_resource type="Texture2D" path="res://assets/themes/save_load/move.svg" id="12_move"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/action_group.tres" id="13_action_group"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_panel.tres" id="14_slot_panel"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_modes"]
 
@@ -44,7 +49,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.31764707, 0.627451, 0.8235294, 0.39215687)
+color = Color(0.84, 0.94, 1, 0.28)
 
 [node name="VisualCanvas" type="Control" parent="." unique_id=649448335]
 anchors_preset = 0
@@ -137,7 +142,7 @@ script = ExtResource("5_tab")
 tab_label = "读取"
 
 [node name="ContentMargin" type="MarginContainer" parent="VisualCanvas/PageLayout" unique_id=1974105123]
-custom_minimum_size = Vector2(0, 811)
+custom_minimum_size = Vector2(0, 823)
 layout_mode = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_right = 18
@@ -147,7 +152,7 @@ layout_mode = 2
 theme_override_constants/separation = 18
 
 [node name="PreviewPanel" type="PanelContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main" unique_id=13068280]
-custom_minimum_size = Vector2(510, 0)
+custom_minimum_size = Vector2(460, 0)
 layout_mode = 2
 theme_type_variation = &"SaveLoadPagePanel"
 theme_override_styles/panel = ExtResource("9_preview_panel")
@@ -160,7 +165,7 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="PreviewAspect" type="AspectRatioContainer" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn" unique_id=1359688660]
-custom_minimum_size = Vector2(0, 259)
+custom_minimum_size = Vector2(0, 230.625)
 layout_mode = 2
 ratio = 1.7777778
 stretch_mode = 0
@@ -193,14 +198,16 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = -8
 
-[node name="Name" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1314838676]
+[node name="PreviewEmptyName" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1314838676]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.55)
 theme_override_font_sizes/font_size = 46
 text = "ヨスガノソラ"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1473742008]
+[node name="PreviewEmptyCaption" type="Label" parent="VisualCanvas/PageLayout/ContentMargin/Main/PreviewPanel/PreviewMargin/PreviewColumn/PreviewAspect/PreviewFrame/RoundedClip/PreviewEmpty/EmptyMark" unique_id=1473742008]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.45)
 theme_override_font_sizes/font_size = 16
@@ -300,6 +307,7 @@ text = "自动"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadPagePanel"
+theme_override_styles/panel = ExtResource("14_slot_panel")
 
 [node name="SlotList" parent="VisualCanvas/PageLayout/ContentMargin/Main/SlotPanel" unique_id=1284170718 instance=ExtResource("3_slot")]
 unique_name_in_owner = true
@@ -329,31 +337,59 @@ text = "已选择：手动存档 001"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="Delete" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1938157881]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 73)
+[node name="ActionPanel" type="PanelContainer" parent="VisualCanvas/PageLayout/FooterMargin/Footer"]
+custom_minimum_size = Vector2(432, 73)
 layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("13_action_group")
+
+[node name="ActionRow" type="HBoxContainer" parent="VisualCanvas/PageLayout/FooterMargin/Footer/ActionPanel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Delete" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer/ActionPanel/ActionRow" unique_id=1938157881]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 73)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadActionButton"
+theme_override_constants/icon_max_width = 36
 disabled = true
 text = "删除"
+icon = ExtResource("10_delete")
+alignment = 0
+icon_alignment = 0
+expand_icon = false
 script = ExtResource("6_action")
 
-[node name="Copy" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=236384260]
+[node name="Copy" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer/ActionPanel/ActionRow" unique_id=236384260]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 73)
+custom_minimum_size = Vector2(128, 73)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadActionButton"
+theme_override_constants/icon_max_width = 28
 disabled = true
 text = "复制"
+icon = ExtResource("11_copy")
+alignment = 0
+icon_alignment = 0
+expand_icon = false
 script = ExtResource("6_action")
 
-[node name="Move" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=1705745183]
+[node name="Move" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer/ActionPanel/ActionRow" unique_id=1705745183]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 73)
+custom_minimum_size = Vector2(128, 73)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"SaveLoadActionButton"
+theme_override_constants/icon_max_width = 28
 disabled = true
 text = "移动"
+icon = ExtResource("12_move")
+alignment = 0
+icon_alignment = 0
+expand_icon = false
 script = ExtResource("6_action")
 
 [node name="Primary" type="Button" parent="VisualCanvas/PageLayout/FooterMargin/Footer" unique_id=2111406521]

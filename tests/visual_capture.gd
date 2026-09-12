@@ -25,6 +25,7 @@ class CaptureSaveService extends SaveService:
 	var capture_profile := ProfileData.create_empty("visual-capture")
 	var capture_autosave: SaveData
 	var capture_slots: Dictionary = {}
+	var capture_quick: Array[SaveData] = []
 
 	func _init() -> void:
 		capture_autosave = _sample_save("雨后的教室", "hitret:auto", 0, true)
@@ -35,6 +36,13 @@ class CaptureSaveService extends SaveService:
 				(slot_id + 1) * 3700,
 				slot_id % 3 != 1
 			)
+		for quick_index in QUICK_SAVE_COUNT:
+			capture_quick.append(_sample_save(
+				"快速记录 %02d" % (quick_index + 1),
+				"quick:%02d" % quick_index,
+				(quick_index + 1) * 900,
+				quick_index < 5
+			))
 
 	func _ready() -> void:
 		_ready_for_io = true
@@ -47,6 +55,12 @@ class CaptureSaveService extends SaveService:
 
 	func load_slot(slot_id: int) -> SaveData:
 		return capture_slots.get(slot_id) as SaveData
+
+	func load_quick(history_index: int = 0) -> SaveData:
+		return capture_quick[history_index] if history_index >= 0 and history_index < capture_quick.size() else null
+
+	func load_quick_history() -> Array[SaveData]:
+		return capture_quick.duplicate()
 
 	func save_autosave(data: SaveData) -> bool:
 		capture_autosave = data
@@ -98,7 +112,7 @@ func _initialize() -> void:
 func _capture() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() < 3 or arguments.size() > 5:
-		push_error("Usage: -- <brand|warning|title|title_press|title_bonus|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|hitret:N|quick_audio|quick_text|history|title_confirm|settings_tab:0|1|2|overlay:delete_confirm|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
+		push_error("Usage: -- <brand|warning|title|title_press|title_bonus|adv|adv_choice|album|music|memories|voice|settings|load|save> <output.png> <delay_seconds> [locked|hitret:N|quick_audio|quick_text|history|title_confirm|settings_tab:0|1|2|overlay:delete_confirm|load_confirm|quick_slots|overwrite_confirm] [settings_overlay:key_popup|key_popup_closing|reset_confirm|reset_confirm_closing]")
 		quit(2)
 		return
 
@@ -211,7 +225,7 @@ func _capture() -> void:
 				break
 	if screen_name == &"save":
 		var save_page := screen as SaveLoadPage
-		save_page.slot_cards()[1].pressed.emit()
+		(save_page.slot_cards()[1].get_node("%CardButton") as Button).pressed.emit()
 	await create_timer(float(arguments[2])).timeout
 	if screen_name == &"settings" and arguments.size() == 4:
 		var settings_page := (screen as SettingsScreen).settings_page()
@@ -252,18 +266,25 @@ func _capture() -> void:
 		var back := appreciation.get_node("Content/Back") as Control
 		print("Layout probe: content=", content.get_global_rect(), " entries=", entries.get_global_rect(), " back=", back.get_global_rect())
 	if screen_name == &"load" and arguments.size() >= 4:
-		if arguments[3] != "delete_confirm":
-			push_error("Unknown load overlay: %s" % arguments[3])
-			quit(2)
-			return
-		((screen as SaveLoadPage).get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Delete") as Button).pressed.emit()
+		match arguments[3]:
+			"delete_confirm":
+				((screen as SaveLoadPage).get_node("%Delete") as Button).pressed.emit()
+			"load_confirm":
+				var selected_card := (screen as SaveLoadPage).slot_cards()[0]
+				(selected_card.get_node("%CardButton") as Button).pressed.emit()
+			"quick_slots":
+				(screen as SaveLoadPage).scroll_to_entry(SaveService.MAX_SLOT_COUNT + SaveService.QUICK_SAVE_COUNT)
+			_:
+				push_error("Unknown load overlay: %s" % arguments[3])
+				quit(2)
+				return
 		await create_timer(0.25).timeout
 	if screen_name == &"save" and arguments.size() >= 4:
 		if arguments[3] != "overwrite_confirm":
 			push_error("Unknown save overlay: %s" % arguments[3])
 			quit(2)
 			return
-		((screen as SaveLoadPage).get_node("VisualCanvas/PageLayout/FooterMargin/Footer/Primary") as Button).pressed.emit()
+		((screen as SaveLoadPage).get_node("%Primary") as Button).pressed.emit()
 		await create_timer(0.25).timeout
 	if screen_name == &"title_press":
 		var title := screen as TitleScreen

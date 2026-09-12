@@ -319,6 +319,16 @@ func load_quick(history_index: int = 0) -> SaveData:
 	return _load_data(path) if not path.is_empty() else null
 
 
+## Reads and orders the complete bounded quick history in one storage pass.
+## Save/Load uses this for its virtualized tail instead of rescanning all nine
+## files once for every visible quick-save card.
+func load_quick_history() -> Array[SaveData]:
+	var history: Array[SaveData] = []
+	for record in _quick_records():
+		history.append(record["data"] as SaveData)
+	return history
+
+
 func quick_save_path(history_index: int = 0) -> String:
 	var records := _quick_records()
 	if history_index < 0 or history_index >= records.size():
@@ -331,7 +341,11 @@ func _quick_records() -> Array[Dictionary]:
 	for index in QUICK_SAVE_COUNT:
 		var data := _load_data(_quick_file_path(index))
 		if data != null:
-			records.append({"index": index, "sequence": int(data.autosave_meta.get("quick_sequence", 0))})
+			records.append({
+				"index": index,
+				"sequence": int(data.autosave_meta.get("quick_sequence", 0)),
+				"data": data,
+			})
 	records.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["sequence"]) > int(b["sequence"]))
 	return records
 

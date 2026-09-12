@@ -585,10 +585,10 @@ func _test_title_state() -> void:
 	_expect(load_page.slot_cards().size() == 12, "Load must initially show a 4×3 viewport with a bounded virtual pool.")
 	var load_select := load_page.slot_cards()[0]
 	_expect(load_select.slot_id == 0 and load_select.button_pressed, "Manual slot 001 must be selected initially.")
-	load_select.load_requested.emit(0, false)
+	load_select.pressed.emit()
 	_expect(load_page.is_confirmation_visible() and load_requests.is_empty(), "Load must wait for confirmation before routing.")
 	load_page.confirm_delete_confirmation()
-	_expect(load_requests.size() == 1, "The thumbnail action must emit a typed load route.")
+	_expect(load_requests.size() == 1, "Pressing an already-selected slot must emit a typed load route without an overlay button.")
 	var page_primary := load_page.get_node("%Primary") as Button
 	_expect(not page_primary.visible, "Load must not duplicate its thumbnail action in the footer.")
 	var page_delete := load_page.get_node("%Delete") as Button

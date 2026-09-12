@@ -4,12 +4,20 @@ var _failures: Array[String] = []
 var _test_root := "/tmp/yosuga-save-load-contract-%d" % Time.get_ticks_usec()
 
 
+class TrackingSaveService extends SaveService:
+	var quick_history_reads := 0
+
+	func load_quick_history() -> Array[SaveData]:
+		quick_history_reads += 1
+		return super.load_quick_history()
+
+
 func _initialize() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
-	var service := SaveService.new()
+	var service := TrackingSaveService.new()
 	service.name = "ContractSaveService"
 	service.configure_storage(_test_root)
 	root.add_child(service)
@@ -67,10 +75,17 @@ func _run() -> void:
 	_expect(service.load_quick(0).instruction_anchor == "quick:11", "Quick history starts with newest.")
 	_expect(service.load_quick(8).instruction_anchor == "quick:3", "Quick ring retains nine newest saves.")
 	_expect(service.load_quick(9) == null, "Quick ring is bounded.")
+	var quick_history := service.load_quick_history()
+	_expect(
+		quick_history.size() == SaveService.QUICK_SAVE_COUNT
+		and quick_history[0].instruction_anchor == "quick:11"
+		and quick_history[8].instruction_anchor == "quick:3",
+		"The complete quick history can be loaded in one ordered storage pass."
+	)
 	_expect(service.load_autosave().instruction_anchor == "hitret:2", "Quick save must not replace Continue autosave.")
 	_expect(service.load_path(service.quick_save_path()).instruction_anchor == "quick:11", "Quick paths resolve through the neutral service contract.")
 	service.free()
-	service = SaveService.new()
+	service = TrackingSaveService.new()
 	service.name = "ReopenedSaveService"
 	service.configure_storage(_test_root)
 	root.add_child(service)
@@ -112,14 +127,88 @@ func _test_page(service: SaveService) -> void:
 	_expect(details.global_position.y >= preview.global_position.y + preview.size.y * preview.get_global_transform().get_scale().y, "Aspect preview must reserve vertical space before its metadata.")
 	_expect(
 		move_button.get_parent() == copy_button.get_parent()
+		and move_button.get_parent().get_parent() is PanelContainer
 		and page.get_node_or_null("%Lock") == null,
-		"Move belongs with copy/delete in the footer, while locking is no longer a preview-panel action."
+		"Move belongs with copy/delete in the shared footer action panel, while locking remains card-owned."
+	)
+	var delete_button := page.get_node("%Delete") as Button
+	var action_row := move_button.get_parent() as HBoxContainer
+	_expect(
+		action_row.get_theme_constant("separation") > move_button.get_theme_constant("h_separation"),
+		"Footer buttons must sit farther apart than each icon sits from its label."
+	)
+	_expect(
+		delete_button.get_theme_constant("icon_max_width") == 36
+		and copy_button.get_theme_constant("icon_max_width") == 28
+		and move_button.get_theme_constant("icon_max_width") == 28
+		and delete_button.icon.get_width() >= 72
+		and copy_button.icon.get_width() >= 56
+		and move_button.icon.get_width() >= 56,
+		"Footer icons must use high-resolution sources with normalized visual widths."
+	)
+	var empty_card: SaveSlotCard
+	for card in page.slot_cards():
+		if card.slot_id == 2:
+			empty_card = card
+			break
+	_expect(
+		empty_card != null
+		and (empty_card.get_node("%EmptyPreview") as Control).visible
+		and not (empty_card.get_node("%Plus") as Label).visible
+		and empty_card.disabled
+		and not (empty_card.get_node("%MissingPreview") as Control).visible
+		and not (empty_card.get_node("%MetadataMargin") as Control).visible,
+		"Load mode must center a plain empty state without selecting it or showing a destination plus."
+	)
+	var occupied_card: SaveSlotCard
+	for card in page.slot_cards():
+		if card.slot_id == 1:
+			occupied_card = card
+			break
+	_expect(
+		occupied_card != null
+		and (occupied_card.get_node("%Thumbnail") as TextureRect).visible
+		and (occupied_card.get_node("%BlurredThumbnail") as TextureRect).visible
+		and (occupied_card.get_node("%MetadataMargin") as Control).visible
+		and occupied_card.get_node("%MetadataMargin").get_parent().get_parent() == occupied_card.get_node("%Thumbnail").get_parent()
+		and (occupied_card.get_node("%Thumbnail") as TextureRect).size.y
+			> (occupied_card.get_node("%Thumbnail") as TextureRect).size.x * 9.0 / 16.0
+		and (occupied_card.get_node("%Thumbnail") as TextureRect).stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		and (occupied_card.get_node("%MetadataMargin") as Control).position.y
+			> (occupied_card.get_node("%Thumbnail") as TextureRect).size.y * 0.5,
+		"Occupied slots must cover the taller image well and place metadata over its gradient-blurred lower edge."
+	)
+	_expect(
+		SaveThumbnail.texture_for(occupied_card.save_data) == (occupied_card.get_node("%Thumbnail") as TextureRect).texture,
+		"A bound save reuses its decoded thumbnail for the card and selected preview."
+	)
+	var occupied_preview := occupied_card.get_node("%PreviewFrame") as Control
+	_expect(
+		is_equal_approx(
+			occupied_preview.global_position.y - occupied_card.global_position.y,
+			occupied_preview.global_position.x - occupied_card.global_position.x
+		),
+		"Occupied slot images must reach the same card inset at the top and sides."
+	)
+	var first_card := page.slot_cards()[0]
+	var next_column := page.slot_cards()[1]
+	var next_row := page.slot_cards()[4]
+	var horizontal_gap := next_column.position.x - first_card.position.x - first_card.size.x
+	var vertical_gap := next_row.position.y - first_card.position.y - first_card.size.y
+	var slot_panel := page.get_node("VisualCanvas/PageLayout/ContentMargin/Main/SlotPanel") as Control
+	var top_margin := first_card.global_position.y - slot_panel.global_position.y
+	var bottom_margin := slot_panel.global_position.y + slot_panel.size.y - (page.slot_cards()[11].global_position.y + page.slot_cards()[11].size.y)
+	_expect(
+		is_equal_approx(horizontal_gap, vertical_gap)
+		and is_equal_approx(top_margin, bottom_margin),
+		"The 4×3 save grid must use equal row/column gaps and equal outer-panel top/bottom margins."
 	)
 	var comment_edit := page.get_node("%CommentEdit") as LineEdit
 	_expect(
-		comment_edit.text.is_empty()
+		page.selected_slot_id() >= 0
+		and comment_edit.text == service.load_slot(page.selected_slot_id()).comment
 		and comment_edit.max_length == SaveData.COMMENT_MAX_LENGTH,
-		"The preview exposes one source-compatible editable save-comment field."
+		"Load mode selects the first occupied entry and exposes its source-compatible comment."
 	)
 	page.scroll_to_entry(899)
 	await process_frame
@@ -131,28 +220,46 @@ func _test_page(service: SaveService) -> void:
 		if card.slot_id == 899:
 			var lock_button := card.get_node("%LockButton") as Button
 			var slot_number := card.get_node("%SlotNumber") as Label
+			var card_button := card.get_node("%CardButton") as Button
 			_expect(
 				lock_button.visible
-				and lock_button.global_position.x > slot_number.global_position.x,
-				"Occupied manual cards expose their lock action at the upper right."
+				and lock_button.global_position.x > slot_number.global_position.x
+				and lock_button.mouse_filter == Control.MOUSE_FILTER_STOP
+				and lock_button.get_parent() == card
+				and card_button.get_parent() == card
+				and card.focus_mode == Control.FOCUS_NONE
+				and card_button.focus_mode == Control.FOCUS_ALL
+				and lock_button.get_index() > card_button.get_index()
+				and absf(
+					slot_number.global_position.x - card.global_position.x
+					- (slot_number.global_position.y - card.global_position.y)
+				) < 0.5
+				and absf(
+					card.global_position.x + card.size.x
+					- (lock_button.global_position.x + lock_button.size.x)
+					- (lock_button.global_position.y - card.global_position.y)
+				) < 0.5,
+				"The lock and focusable full-card action must be sibling buttons, with the lock owning the upper-right hit area."
 			)
+			_expect(page.get("_selected_data") == card.save_data, "Selecting a visible slot reuses its loaded data instead of performing synchronous I/O again.")
 	(page.get_node("%Copy") as Button).pressed.emit()
 	page.scroll_to_entry(2)
 	for card in page.slot_cards():
 		if card.slot_id == 2:
-			card.pressed.emit()
+			_expect(not card.disabled and (card.get_node("%Plus") as Label).visible, "Transfer mode marks empty manual destinations with a plus and enables selection.")
+			(card.get_node("%CardButton") as Button).pressed.emit()
 	_expect(page.is_confirmation_visible(), "Copy destination requires a reviewable confirmation.")
 	page.cancel_delete_confirmation()
 	_expect(service.load_slot(2) == null, "Cancel must not write the copy destination.")
 	for card in page.slot_cards():
 		if card.slot_id == 2:
-			card.pressed.emit()
+			(card.get_node("%CardButton") as Button).pressed.emit()
 	page.confirm_delete_confirmation()
 	_expect(service.load_slot(2) != null and service.load_slot(899) != null, "UI copy writes the destination and preserves its source.")
 	(page.get_node("%Move") as Button).pressed.emit()
 	for card in page.slot_cards():
 		if card.slot_id == 3:
-			card.pressed.emit()
+			(card.get_node("%CardButton") as Button).pressed.emit()
 	page.confirm_delete_confirmation()
 	_expect(service.load_slot(2) == null and service.load_slot(3) != null, "UI move commits the target then removes its source.")
 	var requests: Array[String] = []
@@ -160,38 +267,80 @@ func _test_page(service: SaveService) -> void:
 	page.scroll_to_entry(3)
 	for card in page.slot_cards():
 		if card.slot_id == 3:
-			var play := card.get_node("%LoadButton") as Button
+			var card_button := card.get_node("%CardButton") as Button
+			var play_layer := card.get_node("%LoadActionLayer") as Control
+			var play_indicator := card.get_node("%LoadIndicator") as Control
+			var play_icon := card.get_node("%LoadIcon") as TextureRect
+			if card._load_action_tween != null:
+				card._load_action_tween.custom_step(0.11)
 			card.set_selected(false)
-			card.release_focus()
-			play.mouse_entered.emit()
-			_expect(not play.visible and play.disabled, "Unselected slots must not reveal a load action on hover.")
-			play.pressed.emit()
-			_expect(requests.is_empty(), "An unselected slot cannot trigger loading.")
-			card.set_selected(true)
-			_expect(play.visible and not play.disabled, "Selection reveals and enables the image load action.")
-			play.pressed.emit()
+			card_button.release_focus()
+			_expect(play_layer.visible and not card_button.disabled, "Deselecting fades the load cue while keeping the full-card selection action available.")
+			card._load_action_tween.custom_step(0.05)
+			_expect(play_layer.modulate.a > 0.0 and play_layer.modulate.a < 1.0, "The load action must fade out over time.")
+			card._load_action_tween.custom_step(0.06)
+			_expect(not play_layer.visible and is_zero_approx(play_layer.modulate.a), "The load action hides after its 100 ms fade-out.")
+			card_button.pressed.emit()
+			_expect(requests.is_empty(), "The first full-card activation selects an unselected slot without loading it.")
+			_expect(play_layer.visible and is_zero_approx(play_layer.modulate.a), "Selection starts the load cue from transparent.")
+			card._load_action_tween.custom_step(0.05)
+			_expect(play_layer.modulate.a > 0.0 and play_layer.modulate.a < 1.0, "The load action must fade in over time.")
+			card._load_action_tween.custom_step(0.06)
+			_expect(is_equal_approx(play_layer.modulate.a, 1.0), "The load action reaches full opacity after its 100 ms fade-in.")
+			_expect(
+				absf(
+					play_indicator.position.y + play_indicator.size.y * 0.5 + 5.0
+					- play_layer.size.y * 0.5
+				) < 0.5,
+				"The selected load icon must sit five pixels above the full-card center."
+			)
+			card_button.pressed.emit()
 	_expect(page.is_confirmation_visible() and requests.is_empty(), "Read waits for confirmation.")
 	page.confirm_delete_confirmation()
 	_expect(requests == [service.slot_path(3)], "The image action loads its own slot without a footer action.")
-	page.scroll_to_entry(450)
+	page.scroll_to_entry(899)
 	await process_frame
 	for card in page.slot_cards():
-		if card.slot_id == 450:
+		if card.slot_id == 899:
 			var right := InputEventAction.new()
 			right.action = &"ui_right"
 			right.pressed = true
-			card.gui_input.emit(right)
-	_expect(page.selected_slot_id() == 451, "Keyboard movement selects the next logical slot across a virtual list.")
+			right.device = 0
+			(card.get_node("%CardButton") as Button).gui_input.emit(right)
+	_expect(page.selected_slot_id() == SaveService.MAX_SLOT_COUNT, "Keyboard movement selects the next occupied logical slot across a virtual list.")
 	var list := page.get_node("%SlotList") as SaveSlotList
 	_expect(list.get_node("%Items").get_child_count() == 20, "900 slots must use a bounded 20-card pool.")
+	var quick_history_reads_before_scroll := int(service.get("quick_history_reads"))
 	page.scroll_to_entry(SaveService.MAX_SLOT_COUNT)
 	await process_frame
+	_expect(
+		int(service.get("quick_history_reads")) == quick_history_reads_before_scroll,
+		"Scrolling into quick saves reuses the page snapshot instead of rescanning storage."
+	)
+	var quick_badge_found := false
 	for card in page.slot_cards():
 		if card.is_quick_save():
+			var kind_badge := card.get_node("%KindBadge") as Label
+			quick_badge_found = quick_badge_found or (
+				kind_badge.visible
+				and kind_badge.text == "快速"
+				and kind_badge.get_theme_color("font_color").r > 0.95
+				and kind_badge.get_theme_color("font_color").g > 0.95
+				and kind_badge.get_theme_color("font_color").b > 0.95
+			)
 			_expect(
 				not (card.get_node("%LockButton") as Button).visible,
 				"Quick-save cards must not expose the manual-slot lock action."
 			)
+	_expect(quick_badge_found, "Quick-save cards label their kind in white at the upper right.")
+	page.scroll_to_entry(SaveService.MAX_SLOT_COUNT + SaveService.QUICK_SAVE_COUNT)
+	await process_frame
+	var autosave_badge_hidden := false
+	for card in page.slot_cards():
+		if card.is_autosave:
+			autosave_badge_hidden = not (card.get_node("%KindBadge") as Label).visible
+			break
+	_expect(autosave_badge_hidden, "The autosave card omits the redundant upper-right kind label.")
 	page.free()
 	await process_frame
 

@@ -1,11 +1,26 @@
 class_name SaveThumbnail
 extends RefCounted
 
+const TEXTURE_META := &"_save_thumbnail_texture"
+const PROBED_META := &"_save_thumbnail_probed"
+
 
 ## Decoded only for the visible card pool and selected preview, never all 900 slots.
 static func texture_for(data: SaveData) -> Texture2D:
 	if data == null:
 		return null
+	if data.has_meta(PROBED_META):
+		if data.has_meta(TEXTURE_META):
+			return data.get_meta(TEXTURE_META) as Texture2D
+		return null
+	var texture := _load_texture(data)
+	data.set_meta(PROBED_META, true)
+	if texture != null:
+		data.set_meta(TEXTURE_META, texture)
+	return texture
+
+
+static func _load_texture(data: SaveData) -> Texture2D:
 	if not data.thumbnail_webp.is_empty():
 		var image := Image.new()
 		if image.load_webp_from_buffer(Marshalls.base64_to_raw(data.thumbnail_webp)) == OK:

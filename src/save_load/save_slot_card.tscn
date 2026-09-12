@@ -1,19 +1,45 @@
-[gd_scene format=3 uid="uid://dhsrvtyjdadnn"]
+[gd_scene load_steps=8 format=3 uid="uid://dhsrvtyjdadnn"]
 
 [ext_resource type="Script" uid="uid://bp6cvn62ts5by" path="res://src/save_load/save_slot_card.gd" id="1_card"]
-[ext_resource type="StyleBox" path="res://assets/themes/save_load/preview_mask.tres" id="2_mask"]
-[ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="3_1lb0l"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/slot_preview_mask.tres" id="2_mask"]
+[ext_resource type="Texture2D" uid="uid://c14cub4crn81x" path="res://assets/themes/save_load/play.svg" id="3_play"]
+[ext_resource type="Material" path="res://assets/shaders/ui/save_slot_metadata_blur_material.tres" id="4_metadata_blur"]
+[ext_resource type="Material" path="res://assets/shaders/ui/save_slot_inner_shadow_material.tres" id="5_inner_shadow"]
+[ext_resource type="Material" path="res://assets/shaders/ui/save_slot_header_scrim_material.tres" id="6_header_scrim"]
+[ext_resource type="StyleBox" path="res://assets/themes/save_load/thumbnail_action.tres" id="7_load_backdrop"]
 
-[node name="SaveSlotCard" type="Button" unique_id=308624236]
+[node name="SaveSlotCard" type="Control" unique_id=308624236]
 custom_minimum_size = Vector2(252, 242)
 offset_right = 252.0
 offset_bottom = 242.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
+script = ExtResource("1_card")
+
+[node name="CardButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
 mouse_default_cursor_shape = 2
 theme_type_variation = &"SaveLoadSlotButton"
-toggle_mode = true
-script = ExtResource("1_card")
+
+[node name="SelectionInnerShadow" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+material = ExtResource("5_inner_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Content" type="MarginContainer" parent="." unique_id=152340137]
 layout_mode = 1
@@ -23,127 +49,285 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 11
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 11
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
 
-[node name="Column" type="VBoxContainer" parent="Content" unique_id=1493867012]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="Header" type="HBoxContainer" parent="Content/Column" unique_id=1103464233]
-custom_minimum_size = Vector2(0, 26)
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="SlotNumber" type="Label" parent="Content/Column/Header" unique_id=1224244577]
+[node name="PreviewFrame" type="PanelContainer" parent="Content" unique_id=1183213876]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"SaveLoadSlotNumber"
-text = "01"
-vertical_alignment = 1
-
-[node name="LockButton" type="Button" parent="Content/Column/Header" unique_id=118555562]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(38, 30)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_type_variation = &"SaveLoadCardLockButton"
-icon_alignment = 1
-
-[node name="KindBadge" type="Label" parent="Content/Column/Header" unique_id=1557977024]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(54, 0)
-layout_mode = 2
-theme_type_variation = &"SaveLoadSlotDate"
-text = "自动"
-horizontal_alignment = 2
-vertical_alignment = 1
-
-[node name="PreviewFrame" type="PanelContainer" parent="Content/Column" unique_id=1183213876]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 122)
+custom_minimum_size = Vector2(230, 129.375)
 layout_mode = 2
 size_flags_vertical = 3
-mouse_filter = 1
+mouse_filter = 2
 theme_type_variation = &"SaveLoadSlotPreviewFrame"
 
-[node name="RoundedClip" type="PanelContainer" parent="Content/Column/PreviewFrame" unique_id=735110086]
+[node name="RoundedClip" type="PanelContainer" parent="Content/PreviewFrame" unique_id=735110086]
 clip_children = 1
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("2_mask")
 
-[node name="Thumbnail" type="TextureRect" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=83039734]
+[node name="Thumbnail" type="TextureRect" parent="Content/PreviewFrame/RoundedClip" unique_id=83039734]
 unique_name_in_owner = true
 visible = false
+modulate = Color(1, 1, 1, 1)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="EmptyPreview" type="CenterContainer" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=1109810836]
+[node name="BlurredThumbnail" type="TextureRect" parent="Content/PreviewFrame/RoundedClip"]
+unique_name_in_owner = true
+visible = false
+modulate = Color(1, 1, 1, 1)
+material = ExtResource("4_metadata_blur")
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="HeaderScrim" type="ColorRect" parent="Content/PreviewFrame/RoundedClip"]
+unique_name_in_owner = true
+visible = false
+material = ExtResource("6_header_scrim")
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MissingPreview" type="CenterContainer" parent="Content/PreviewFrame/RoundedClip" unique_id=1109810836]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Watermark" type="VBoxContainer" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview" unique_id=153227616]
+[node name="Watermark" type="VBoxContainer" parent="Content/PreviewFrame/RoundedClip/MissingPreview" unique_id=153227616]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = -4
 
-[node name="Name" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark" unique_id=961864880]
+[node name="Name" type="Label" parent="Content/PreviewFrame/RoundedClip/MissingPreview/Watermark" unique_id=961864880]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.55)
 theme_override_font_sizes/font_size = 22
 text = "ヨスガノソラ"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="Content/Column/PreviewFrame/RoundedClip/EmptyPreview/Watermark" unique_id=1695768606]
+[node name="Caption" type="Label" parent="Content/PreviewFrame/RoundedClip/MissingPreview/Watermark" unique_id=1695768606]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.24, 0.57, 0.77, 0.45)
 theme_override_font_sizes/font_size = 11
 text = "YOSUGA NO SORA"
 horizontal_alignment = 1
 
-[node name="LoadButton" type="Button" parent="Content/Column/PreviewFrame/RoundedClip" unique_id=1062354049]
+[node name="EmptyPreview" type="Control" parent="Content/PreviewFrame/RoundedClip"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="EmptyMark" type="VBoxContainer" parent="Content/PreviewFrame/RoundedClip/EmptyPreview"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = -70.0
+offset_right = 120.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = -3
+alignment = 1
+
+[node name="Plus" type="Label" parent="Content/PreviewFrame/RoundedClip/EmptyPreview/EmptyMark"]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(0, 57)
 layout_mode = 2
-tooltip_text = "读取此存档"
-focus_mode = 0
-mouse_default_cursor_shape = 2
-theme_type_variation = &"SaveLoadThumbnailButton"
-icon = ExtResource("3_1lb0l")
-icon_alignment = 1
+theme_override_colors/font_color = Color(0.18, 0.56, 0.78, 0.58)
+theme_override_font_sizes/font_size = 50
+text = "+"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="MetadataMargin" type="MarginContainer" parent="Content/Column" unique_id=1913144169]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_top = 8
-
-[node name="Metadata" type="VBoxContainer" parent="Content/Column/MetadataMargin" unique_id=702228093]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="Comment" type="Label" parent="Content/Column/MetadataMargin/Metadata" unique_id=2068198383]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 25)
+[node name="EmptyCaption" type="Label" parent="Content/PreviewFrame/RoundedClip/EmptyPreview/EmptyMark"]
+custom_minimum_size = Vector2(0, 39)
 layout_mode = 2
 theme_type_variation = &"SaveLoadSlotComment"
+theme_override_font_sizes/font_size = 25
+text = "空存档"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EmptyDate" type="Label" parent="Content/PreviewFrame/RoundedClip/EmptyPreview/EmptyMark"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_type_variation = &"SaveLoadSlotDate"
+theme_override_font_sizes/font_size = 17
+text = "---- / -- / --   --:--"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadActionLayer" type="Control" parent="Content/PreviewFrame/RoundedClip"]
+unique_name_in_owner = true
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LoadBackdrop" type="PanelContainer" parent="Content/PreviewFrame/RoundedClip/LoadActionLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("7_load_backdrop")
+
+[node name="LoadIndicator" type="Control" parent="Content/PreviewFrame/RoundedClip/LoadActionLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = -43.0
+offset_right = 38.0
+offset_bottom = 33.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LoadIcon" type="TextureRect" parent="Content/PreviewFrame/RoundedClip/LoadActionLayer/LoadIndicator"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -30.0
+offset_right = 30.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_play")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MetadataOverlay" type="Control" parent="Content/PreviewFrame/RoundedClip"]
+modulate = Color(1, 1, 1, 1)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MetadataMargin" type="MarginContainer" parent="Content/PreviewFrame/RoundedClip/MetadataOverlay" unique_id=1913144169]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -74.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 3
+
+[node name="Metadata" type="VBoxContainer" parent="Content/PreviewFrame/RoundedClip/MetadataOverlay/MetadataMargin" unique_id=702228093]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Comment" type="Label" parent="Content/PreviewFrame/RoundedClip/MetadataOverlay/MetadataMargin/Metadata" unique_id=2068198383]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_type_variation = &"SaveLoadSlotOverlayComment"
 text = "空存档"
 text_overrun_behavior = 3
 
-[node name="Date" type="Label" parent="Content/Column/MetadataMargin/Metadata" unique_id=171092452]
+[node name="Date" type="Label" parent="Content/PreviewFrame/RoundedClip/MetadataOverlay/MetadataMargin/Metadata" unique_id=171092452]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"SaveLoadSlotDate"
+theme_type_variation = &"SaveLoadSlotOverlayDate"
 text = "---- / -- / --   --:--"
+horizontal_alignment = 1
 text_overrun_behavior = 3
+
+[node name="HeaderMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = 42.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 2
+
+[node name="Header" type="HBoxContainer" parent="HeaderMargin" unique_id=1103464233]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="SlotNumberArea" type="Control" parent="HeaderMargin/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="SlotNumber" type="Label" parent="HeaderMargin/Header/SlotNumberArea" unique_id=1224244577]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"SaveLoadSlotNumber"
+text = "01"
+vertical_alignment = 1
+
+[node name="KindBadge" type="Label" parent="HeaderMargin/Header" unique_id=1557977024]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+theme_type_variation = &"SaveLoadSlotKindBadge"
+text = "自动"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="LockButton" type="Button" parent="." unique_id=118555562]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -48.0
+offset_top = 10.0
+offset_right = -14.0
+offset_bottom = 40.0
+grow_horizontal = 0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SaveLoadCardLockButton"
+icon_alignment = 2
+expand_icon = true
